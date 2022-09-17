@@ -6,7 +6,7 @@ type C<T> = {
 };
 
 type RA<A extends object, P extends keyof A> = Pick<A, P> & Partial<Omit<A, P>>;
-type OA<A extends object, P extends keyof A> = Omit<A, P> & Partial<Pick<A, P>>;
+// type OA<A extends object, P extends keyof A> = Omit<A, P> & Partial<Pick<A, P>>;
 
 export const DocumentClient = new AWS.DynamoDB.DocumentClient({
 	endpoint: 'localhost:8000',
