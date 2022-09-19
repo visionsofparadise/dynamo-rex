@@ -37,12 +37,10 @@ export const getters =
 		IIdx extends Array<Exclude<TIdxN, TPIdxN>>,
 		Item extends { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
 			[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
-		}
+		} & { new (...args: any): any }
 	>(
 		Item: Item & {
 			secondaryIndices: IIdx;
-
-			new (...args: any): any;
 		}
 	) => {
 		type ItemInst = InstanceType<typeof Item>;
