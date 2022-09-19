@@ -8,10 +8,13 @@ export const DocumentClient = new AWS.DynamoDB.DocumentClient({
 	region: 'local-env'
 });
 
-const Table = new Dx.Table(DocumentClient, {
-	name: 'test',
-	primaryIndex: 'primary',
-	indices: {
+const Table = new Dx.Table(
+	DocumentClient,
+	{
+		name: 'test',
+		primaryIndex: 'primary'
+	},
+	{
 		primary: new Dx.Index('primary', {
 			hashKey: {
 				attribute: 'pk',
@@ -43,15 +46,13 @@ const Table = new Dx.Table(DocumentClient, {
 			}
 		})
 	}
-});
+);
 
 interface ITestItem {
 	testAttribute: string;
 }
 
-class TestItem extends Table.Item<ITestItem, 'gsi1'> {
-	static secondaryIndices = [Table.indices.gsi1];
-
+class TestItem extends Table.Item(['gsi1' as const])<ITestItem> {
 	static pk = () => 'test';
 	static sk = (props: Pick<ITestItem, 'testAttribute'>) => `test-${props.testAttribute}`;
 	static gsi1Pk = () => 'test';
@@ -68,6 +69,7 @@ it('gets the current props of an item', () => {
 	const props = { testAttribute: nanoid() };
 
 	const testItem = new TestItem(props);
+	testItem.tableConfig.primaryIndex;
 
 	expect(testItem.props.testAttribute).toBe(props.testAttribute);
 });

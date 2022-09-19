@@ -1,4 +1,3 @@
-import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import _pick from 'lodash/pick';
 import _chunk from 'lodash/chunk';
 import _get from 'lodash/get';
@@ -11,107 +10,111 @@ import { query } from './methods/query';
 import { scan } from './methods/scan';
 import { _delete } from './methods/delete';
 import { reset } from './methods/reset';
-import { getters } from '../getters/getters';
 import { Index } from '../Index/Index';
-import { IdxAType } from '../Index/Index';
+import { IdxALiteral } from '../Index/Index';
 import { ILogger } from '../utils';
-import { Item, SelfItem } from '../Item/Item';
+import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
+import { Item } from '../Item/Item';
+import { getters } from '../getters/getters';
 
-export interface TCfgProps<
-	TIdx extends PropertyKey,
-	TPIdx extends TIdx,
-	TIdxA extends PropertyKey,
-	TIdxAType extends IdxAType
-> {
-	name: string;
-	indices: Record<TIdx, Index<TIdx, TIdxA, TIdxA, TIdxAType, TIdxAType>>;
-	primaryIndex: TPIdx;
-	logger?: ILogger;
-}
+export type UnionToIntersection<Union> = (Union extends any ? (argument: Union) => void : never) extends (
+	argument: infer Intersection
+) => void
+	? Intersection
+	: never;
+
+export type IdxCfgProps<TIdxN extends PropertyKey, TIdxA extends PropertyKey, TIdxAL extends IdxALiteral> = {
+	[x in TIdxN]: Index<x, TIdxA, TIdxA, TIdxAL, TIdxAL>;
+};
 
 export class Table<
-	TIdx extends PropertyKey,
-	TPIdx extends TIdx,
+	TIdxN extends PropertyKey,
+	TPIdxN extends TIdxN,
 	TIdxA extends PropertyKey,
-	TIdxAType extends IdxAType,
-	TCfg extends TCfgProps<TIdx, TPIdx, TIdxA, TIdxAType>
+	TIdxAL extends IdxALiteral,
+	IdxCfg extends IdxCfgProps<TIdxN, TIdxA, TIdxAL>
 > {
 	DocumentClient: DocumentClient;
-	config: TCfg;
+	tableConfig: { name: string; primaryIndex: TPIdxN; logger?: ILogger };
+	indexConfig: IdxCfg;
 
-	name: string;
-	indices: TCfg['indices'];
-	primaryIndex: TCfg['primaryIndex'];
-	logger?: ILogger;
-
-	constructor(DocumentClient: DocumentClient, config: TCfg) {
+	constructor(
+		DocumentClient: DocumentClient,
+		tableConfig: { name: string; primaryIndex: TPIdxN; logger?: ILogger },
+		indexConfig: IdxCfg
+	) {
 		this.DocumentClient = DocumentClient;
-		this.config = config;
-
-		this.name = config.name;
-		this.indices = config.indices;
-		this.primaryIndex = config.primaryIndex;
-		this.logger = config.logger;
+		this.tableConfig = tableConfig;
+		this.indexConfig = indexConfig;
 	}
 
-	Index!: keyof TCfg['indices'];
-	PrimaryIndex!: TCfg['primaryIndex'];
-	SecondaryIndex!: Exclude<keyof TCfg['indices'], TCfg['primaryIndex']>;
+	IndexNames!: keyof IdxCfg;
+	SecondaryIndexNames!: Exclude<keyof IdxCfg, TPIdxN>;
+	PrimaryIndex!: TPIdxN;
+	IndexKeys!: { [x in keyof IdxCfg]: IdxCfg[x]['key'] };
+	IndexAttributeValues!: UnionToIntersection<IdxCfg[keyof IdxCfg]['key']>;
 
 	get put() {
-		return put(this.DocumentClient, this.name, this.logger);
+		return put(this.DocumentClient, this.tableConfig.name, this.tableConfig.logger);
 	}
 
 	get create() {
-		return create(this.DocumentClient, this.name, this.logger);
+		return create(this.DocumentClient, this.tableConfig.name, this.tableConfig.logger);
 	}
 
 	get update() {
-		return update(this.DocumentClient, this.name, this.logger);
+		return update(this.DocumentClient, this.tableConfig.name, this.tableConfig.logger);
 	}
 
 	get get() {
-		return get(this.DocumentClient, this.name, this.logger);
+		return get(this.DocumentClient, this.tableConfig.name, this.tableConfig.logger);
 	}
 
 	get query() {
-		return query(this.DocumentClient, this.name, this.logger);
+		return query(this.DocumentClient, this.tableConfig.name, this.tableConfig.logger);
 	}
 
 	get scan() {
-		return scan(this.DocumentClient, this.name, this.logger);
+		return scan(this.DocumentClient, this.tableConfig.name, this.tableConfig.logger);
 	}
 
 	get delete() {
-		return _delete(this.DocumentClient, this.name);
+		return _delete(this.DocumentClient, this.tableConfig.name);
 	}
 
 	get reset() {
 		return reset(
 			this.DocumentClient,
-			this.name,
-			this.indices[this.primaryIndex]['attributes']['hashKey'],
-			this.indices[this.primaryIndex]['attributes']['rangeKey'],
-			this.logger
+			this.tableConfig.name,
+			this.indexConfig[this.tableConfig.primaryIndex]['hashKey'],
+			this.indexConfig[this.tableConfig.primaryIndex]['rangeKey'],
+			this.tableConfig.logger
 		);
 	}
 
-	getters = getters<TIdx, TPIdx, TIdxA, TIdxAType, TCfg>(this);
+	Item = <IIdx extends Array<Exclude<TIdxN, TPIdxN>>>(secondaryIndices: IIdx) => {
+		const client = this.DocumentClient;
+		const tableConfig = this.tableConfig;
+		const indexConfig = this.indexConfig;
+		return class TableItem<A extends object> extends Item<A, IIdx, TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg> {
+			static secondaryIndices: IIdx = secondaryIndices;
 
-	get Item() {
-		return this.tableItem();
-	}
-
-	tableItem = () => {
-		const ParentTable = this;
-
-		return class CreatedItem<
-			A extends object,
-			ISIdx extends Exclude<keyof TCfg['indices'], TCfg['primaryIndex']>
-		> extends Item<A, TIdx, TPIdx, ISIdx, TIdxA, TIdxAType, TCfg> {
-			constructor(props: A, SelfItem: SelfItem<TIdx, TPIdx, ISIdx, TIdxA, TIdxAType, TCfg>) {
-				super(props, SelfItem, ParentTable);
+			constructor(
+				props: A,
+				indexFunctions: { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
+					[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
+				}
+			) {
+				super(props, secondaryIndices, indexFunctions, client, tableConfig, indexConfig);
 			}
 		};
+	};
+
+	get getters() {
+		return this.makeGetters();
+	}
+
+	makeGetters = () => {
+		return getters<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>(this.DocumentClient, this.tableConfig, this.indexConfig);
 	};
 }

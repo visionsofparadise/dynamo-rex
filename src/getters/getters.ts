@@ -1,9 +1,11 @@
 import { Key, ConsumedCapacity } from 'aws-sdk/clients/dynamodb';
-import { Table, TCfgProps } from '../Table/Table';
+import { IdxCfgProps } from '../Table/Table';
 import { QueryOutput } from '../Table/methods/query';
-import { IdxAType } from '../Index/Index';
-import { constructObject } from '../utils';
-import { SelfItem } from '../Item/Item';
+import { IdxALiteral } from '../Index/Index';
+import { constructObject, ILogger } from '../utils';
+import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
+import { get } from '../Table/methods/get';
+import { query as _query } from '../Table/methods/query';
 
 export interface ItemListQuery {
 	sortOrder?: 'ASC' | 'DESC';
@@ -19,34 +21,45 @@ export interface ItemList<Item> {
 	consumedCapacity?: ConsumedCapacity;
 }
 
-export const getters = <
-	TIdx extends PropertyKey,
-	TPIdx extends TIdx,
-	TIdxA extends PropertyKey,
-	TIdxAType extends IdxAType,
-	TCfg extends TCfgProps<TIdx, TPIdx, TIdxA, TIdxAType>
->(
-	Table: Table<TIdx, TPIdx, TIdxA, TIdxAType, TCfg>
-) => {
-	return <ISIdx extends typeof Table.SecondaryIndex, Item extends SelfItem<TIdx, TPIdx, ISIdx, TIdxA, TIdxAType, TCfg>>(
-		Item: Item
+export const getters =
+	<
+		TIdxN extends PropertyKey,
+		TPIdxN extends TIdxN,
+		TIdxA extends PropertyKey,
+		TIdxAL extends IdxALiteral,
+		IdxCfg extends IdxCfgProps<TIdxN, TIdxA, TIdxAL>
+	>(
+		client: DocumentClient,
+		tableConfig: { name: string; primaryIndex: TPIdxN; logger?: ILogger },
+		indexConfig: IdxCfg
+	) =>
+	<
+		IIdx extends Array<Exclude<TIdxN, TPIdxN>>,
+		Item extends { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
+			[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
+		} & {
+			new (...args: any): any;
+		}
+	>(
+		Item: Item,
+		secondaryIndices: IIdx
 	) => {
 		type ItemInst = InstanceType<Item>;
 
-		const indexFunctions = <Idx extends ISIdx | TPIdx>(index: Idx) => {
-			type HKParams = Parameters<Item[TCfg['indices'][Idx]['attributes']['hashKey']]>[0];
-			type HKSKParams = Parameters<
-				Item[TCfg['indices'][Idx]['attributes']['hashKey']] & Item[TCfg['indices'][Idx]['attributes']['rangeKey']]
-			>[0];
+		const indexFunctions = <Idx extends IIdx[number] | TPIdxN>(index: Idx) => {
+			type HKParams = Parameters<Item[IdxCfg[Idx]['hashKey']]>[0];
+			type HKSKParams = Parameters<Item[IdxCfg[Idx]['hashKey']] & Item[IdxCfg[Idx]['rangeKey']]>[0];
 
-			const Index = Table.indices[index];
+			const Index = indexConfig[index];
 
-			const hashKey = Index.attributes.hashKey;
-			const rangeKey = Index.attributes.rangeKey;
+			const hashKey = Index.hashKey;
+			const rangeKey = Index.rangeKey;
 
 			const IndexName = index !== 'primary' ? String(index) : undefined;
 
-			const keyOf = (params: HKSKParams): TCfg['indices'][Idx]['types']['key'] => {
+			const tableQuery = _query(client, tableConfig.name, tableConfig.logger);
+
+			const keyOf = (params: HKSKParams): IdxCfg[Idx]['key'] => {
 				return constructObject([hashKey, rangeKey], [Item[hashKey](params), Item[rangeKey](params)]);
 			};
 
@@ -56,8 +69,8 @@ export const getters = <
 				if (!key[rangeKey]) throw new Error('Not Found');
 
 				return !IndexName
-					? Table.get({ Key: key }).then(data => new Item(data.Item))
-					: Table.query({
+					? get(client, tableConfig.name, tableConfig.logger)({ Key: key }).then(data => new Item(data.Item))
+					: tableQuery({
 							IndexName,
 							Limit: 1,
 							KeyConditionExpression: `${String(hashKey)} = :hashKey AND ${String(rangeKey)} = :rangeKey`,
@@ -96,10 +109,10 @@ export const getters = <
 			const fallbackListQuery = { sortOrder: undefined, limit: undefined, cursor: undefined };
 
 			const query = (params?: HKParams) => {
-				const hashKeyValue = Item[Index.attributes.hashKey](params);
+				const hashKeyValue = Item[hashKey](params);
 
 				const hashKeyFn = async (listQuery?: ItemListQuery): Promise<ItemList<ItemInst>> =>
-					Table.query({
+					tableQuery({
 						...listQueryParams(listQuery || fallbackListQuery),
 						KeyConditionExpression: `${String(hashKey)} = :hashKey`,
 						ExpressionAttributeValues: {
@@ -108,7 +121,7 @@ export const getters = <
 					}).then(listMaker);
 
 				const startsWith = async (listQuery: ItemListQuery & { value: string | number }): Promise<ItemList<ItemInst>> =>
-					Table.query({
+					tableQuery({
 						...listQueryParams(listQuery),
 						KeyConditionExpression: `${String(hashKey)} = :hashKey AND begins_with(${String(rangeKey)}, :startsWith)`,
 						ExpressionAttributeValues: {
@@ -120,7 +133,7 @@ export const getters = <
 				const between = async (
 					listQuery: ItemListQuery & { min: string | number; max: string | number }
 				): Promise<ItemList<ItemInst>> =>
-					Table.query({
+					tableQuery({
 						...listQueryParams(fallbackListQuery),
 						KeyConditionExpression: `${String(hashKey)} = :hashKey AND ${String(rangeKey)} BETWEEN :min AND :max`,
 						ExpressionAttributeValues: {
@@ -188,18 +201,13 @@ export const getters = <
 			};
 		};
 
-		const secondaryIndexNames = Item['secondaryIndices'].map(index => index.name);
-
-		const indexFunctionSet: {
-			[x in ISIdx]: ReturnType<typeof indexFunctions<x>>;
-		} = constructObject(
-			secondaryIndexNames,
-			secondaryIndexNames.map(index => indexFunctions(index))
+		const indexFunctionSet: { [x in IIdx[number]]: ReturnType<typeof indexFunctions<x>> } = constructObject(
+			secondaryIndices,
+			secondaryIndices.map(index => indexFunctions(index))
 		);
 
-		return Object.assign(indexFunctions(Table.primaryIndex).one, {
-			...indexFunctions(Table.primaryIndex),
+		return Object.assign(indexFunctions(tableConfig.primaryIndex).one, {
+			...indexFunctions(tableConfig.primaryIndex),
 			...indexFunctionSet
 		});
 	};
-};

@@ -1,86 +1,83 @@
 import _get from 'lodash/get';
 import _flatten from 'lodash/flatten';
-import { Table, TCfgProps } from '../Table/Table';
-import { IdxAType, Index } from '../Index/Index';
-import { constructObject } from '../utils';
-
-export type SelfItem<
-	TIdx extends PropertyKey,
-	TPIdx extends TIdx,
-	ISIdx extends keyof TCfg['indices'],
-	TIdxA extends PropertyKey,
-	TIdxAType extends IdxAType,
-	TCfg extends TCfgProps<TIdx, TPIdx, TIdxA, TIdxAType>
-> = {
-	secondaryIndices: Array<Index<ISIdx, TIdxA, TIdxA, TIdxAType, TIdxAType>>;
-
-	new (...params: any): any;
-} & {
-	[x in keyof TCfg['indices'][ISIdx]['types']['key']]: (props: any) => TCfg['indices'][ISIdx]['types']['key'][x];
-} & {
-	[x in keyof TCfg['indices'][TCfg['primaryIndex']]['types']['key']]: (
-		props: any
-	) => TCfg['indices'][TCfg['primaryIndex']]['types']['key'][x];
-};
+import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
+import { constructObject, ILogger } from '../utils';
+import { _delete } from '../Table/methods/delete';
+import { update } from '../Table/methods/update';
+import { create } from '../Table/methods/create';
+import { put } from '../Table/methods/put';
+import { IdxALiteral } from '../Index/Index';
+import { IdxCfgProps } from '../Table/Table';
 
 export class Item<
 	A extends object,
-	TIdx extends PropertyKey,
-	TPIdx extends TIdx,
-	ISIdx extends Exclude<keyof TCfg['indices'], TCfg['primaryIndex']>,
+	IIdx extends Array<TIdxN>,
+	TIdxN extends PropertyKey,
+	TPIdxN extends TIdxN,
 	TIdxA extends PropertyKey,
-	TIdxAType extends IdxAType,
-	TCfg extends TCfgProps<TIdx, TPIdx, TIdxA, TIdxAType>
+	TIdxAL extends IdxALiteral,
+	IdxCfg extends IdxCfgProps<TIdxN, TIdxA, TIdxAL>
 > {
-	readonly Table: Table<TIdx, TPIdx, TIdxA, TIdxAType, TCfg>;
-	readonly Item: SelfItem<TIdx, TPIdx, ISIdx, TIdxA, TIdxAType, TCfg>;
+	secondaryIndices: IIdx;
+	indexFunctions: { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
+		[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
+	};
+
+	client: DocumentClient;
+	tableConfig: { name: string; primaryIndex: TPIdxN; logger?: ILogger };
+	indexConfig: IdxCfg;
 
 	readonly _initial: A;
 	_current: A;
 
 	constructor(
 		props: A,
-		SelfItem: SelfItem<TIdx, TPIdx, ISIdx, TIdxA, TIdxAType, TCfg>,
-		Table: Table<TIdx, TPIdx, TIdxA, TIdxAType, TCfg>
+		secondaryIndices: IIdx,
+		indexFunctions: { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
+			[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
+		},
+		client: DocumentClient,
+		tableConfig: { name: string; primaryIndex: TPIdxN; logger?: ILogger },
+		indexConfig: IdxCfg
 	) {
-		this.Table = Table;
-		this.Item = SelfItem;
-
 		this._initial = props;
 		this._current = props;
+
+		this.secondaryIndices = secondaryIndices;
+		this.indexFunctions = indexFunctions;
+
+		this.client = client;
+		this.tableConfig = tableConfig;
+		this.indexConfig = indexConfig;
 
 		this.onNew();
 	}
 
-	get key(): TCfg['indices'][TCfg['primaryIndex']]['types']['key'] {
-		return this.indexKey(this.Table.primaryIndex);
+	get key(): IdxCfg[TPIdxN]['key'] {
+		const index = this.indexConfig[this.tableConfig.primaryIndex];
+
+		const attributes = [index.hashKey, index.rangeKey];
+		const values = attributes.map(attribute => this.indexFunctions[attribute](this._current));
+
+		return constructObject(attributes, values);
 	}
 
-	indexKey = <Idx extends ISIdx | TPIdx>(index: Idx): TCfg['indices'][Idx]['types']['key'] => {
-		const attributes = [this.Table.indices[index].attributes.hashKey, this.Table.indices[index].attributes.rangeKey];
+	indexKey = <Idx extends IIdx[number]>(index: Idx): IdxCfg[Idx]['key'] => {
+		const secondaryIndex = this.indexConfig[index];
 
-		return constructObject(
-			attributes,
-			attributes.map(attribute => this.Item[attribute](this._current))
-		);
+		const attributes = [secondaryIndex.hashKey, secondaryIndex.rangeKey];
+		const values = attributes.map(attribute => this.indexFunctions[attribute](this._current));
+
+		return constructObject(attributes, values);
 	};
 
-	get keys(): TCfg['indices'][TCfg['primaryIndex']]['types']['key'] & TCfg['indices'][ISIdx]['types']['key'] {
-		const secondaryIndexNames = this.Item.secondaryIndices.map(index => index.name);
+	get keys(): IdxCfg[IIdx[number]]['key'] & IdxCfg[TPIdxN]['key'] {
+		const secondaryIndices = this.secondaryIndices.map(index => this.indexConfig[index]);
 
-		const attributes = _flatten(
-			secondaryIndexNames.map(index => [
-				this.Table.indices[index].attributes.hashKey,
-				this.Table.indices[index].attributes.rangeKey
-			])
-		);
+		const attributes = _flatten(secondaryIndices.map(index => [index.hashKey, index.rangeKey]));
+		const values = attributes.map(attribute => this.indexFunctions[attribute](this._current));
 
-		const secondaryKeys = constructObject(
-			attributes,
-			attributes.map(attribute => this.Item[attribute](this._current))
-		);
-
-		return { ...this.key, ...secondaryKeys };
+		return { ...constructObject(attributes, values), ...this.key };
 	}
 
 	get props() {
@@ -88,25 +85,25 @@ export class Item<
 	}
 
 	get propsWithKeys() {
-		return { ...this._current, ...this.keys };
+		return { ...this.keys, ...this._current };
 	}
 
 	get init() {
 		return this._initial;
 	}
 
-	onNew: () => any = () => {};
-	onSet: () => Promise<any> = async () => {};
-	onWrite: () => Promise<any> = async () => {};
-	onCreate: () => Promise<any> = async () => {};
-	onDelete: () => Promise<any> = async () => {};
+	readonly onNew = () => {};
+	readonly onSet = async () => {};
+	readonly onWrite = async () => {};
+	readonly onCreate = async () => {};
+	readonly onDelete = async () => {};
 
-	readonly set = async (props: Partial<typeof this._current>) => {
+	readonly set = async (props: Partial<A>) => {
 		await this.onSet();
 
 		this._current = { ...this._current, ...props };
 
-		if (this.Table.logger) this.Table.logger.info(this._current);
+		if (this.tableConfig.logger) this.tableConfig.logger.info(this._current);
 
 		return;
 	};
@@ -114,7 +111,11 @@ export class Item<
 	readonly write = async () => {
 		await this.onWrite();
 
-		await this.Table.put({
+		await put(
+			this.client,
+			this.tableConfig.name,
+			this.tableConfig.logger
+		)({
 			Item: { ...this._current, ...this.keys }
 		});
 
@@ -125,7 +126,11 @@ export class Item<
 		await this.onWrite();
 		await this.onCreate();
 
-		await this.Table.create(this.key, {
+		await create(
+			this.client,
+			this.tableConfig.name,
+			this.tableConfig.logger
+		)(this.key, {
 			Item: { ...this._current, ...this.keys }
 		});
 
@@ -148,7 +153,11 @@ export class Item<
 
 		const UpdateExpression = untrimmedUpdateExpression.slice(0, untrimmedUpdateExpression.length - 2);
 
-		await this.Table.update<A>({
+		await update(
+			this.client,
+			this.tableConfig.name,
+			this.tableConfig.logger
+		)<A>({
 			Key: this.key,
 			UpdateExpression,
 			ExpressionAttributeValues
@@ -160,7 +169,11 @@ export class Item<
 	readonly delete = async () => {
 		await this.onDelete();
 
-		await this.Table.delete({
+		await _delete(
+			this.client,
+			this.tableConfig.name,
+			this.tableConfig.logger
+		)({
 			Key: this.key
 		});
 

@@ -8,10 +8,13 @@ export const DocumentClient = new AWS.DynamoDB.DocumentClient({
 	region: 'local-env'
 });
 
-const Table = new Dx.Table(DocumentClient, {
-	name: 'test',
-	primaryIndex: 'primary',
-	indices: {
+const Table = new Dx.Table(
+	DocumentClient,
+	{
+		name: 'test',
+		primaryIndex: 'primary'
+	},
+	{
 		primary: new Dx.Index('primary', {
 			hashKey: {
 				attribute: 'pk',
@@ -43,7 +46,14 @@ const Table = new Dx.Table(DocumentClient, {
 			}
 		})
 	}
-});
+);
+
+Table.PrimaryIndex;
+Table.IndexNames;
+Table.indexConfig;
+Table.SecondaryIndexNames;
+Table.IndexKeys;
+Table.IndexAttributeValues;
 
 beforeEach(Table.reset);
 

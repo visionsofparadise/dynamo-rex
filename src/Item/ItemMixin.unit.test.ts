@@ -14,10 +14,13 @@ export const DocumentClient = new AWS.DynamoDB.DocumentClient({
 	region: 'local-env'
 });
 
-const Table = new Dx.Table(DocumentClient, {
-	name: 'test',
-	primaryIndex: 'primary',
-	indices: {
+const Table = new Dx.Table(
+	DocumentClient,
+	{
+		name: 'test',
+		primaryIndex: 'primary'
+	},
+	{
 		primary: new Dx.Index('primary', {
 			hashKey: {
 				attribute: 'pk',
@@ -49,11 +52,9 @@ const Table = new Dx.Table(DocumentClient, {
 			}
 		})
 	}
-});
+);
 
-Table.SecondaryIndex;
-
-class TimestampsBaseItem extends Table.Item<ITimestamps, typeof Table.SecondaryIndex> {}
+class TimestampsBaseItem extends Table.Item([])<ITimestamps> {}
 
 interface ITimestamps {
 	createdAt: number;
@@ -83,7 +84,7 @@ interface IExtraAttribute {
 	extra: string;
 }
 
-class ExtraAttributeBaseItem extends Table.Item<IExtraAttribute, typeof Table.SecondaryIndex> {}
+class ExtraAttributeBaseItem extends Table.Item([])<ITimestamps> {}
 
 const mixExtraAttribute = <TB extends C<ExtraAttributeBaseItem>>(Base: TB) => {
 	return class BasePlusExtraAttribute extends Base {
@@ -99,11 +100,9 @@ interface ITestItem extends ITimestamps, IExtraAttribute {
 	testAttribute: string;
 }
 
-class TestItemBase extends Table.Item<ITestItem, 'gsi1'> {}
+class TestItemBase extends Table.Item([])<ITestItem> {}
 
 class TestItem extends mixExtraAttribute(mixTimestamps(TestItemBase)) {
-	static secondaryIndices = [Table.indices.gsi1];
-
 	static pk = () => 'test';
 	static sk = (props: Pick<ITestItem, 'testAttribute'>) => `test-${props.testAttribute}`;
 	static gsi1Pk = () => 'test';
