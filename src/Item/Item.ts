@@ -19,7 +19,7 @@ export class Item<
 	IdxCfg extends IdxCfgProps<TIdxN, TIdxA, TIdxAL>
 > {
 	secondaryIndices: IIdx;
-	indexFunctions: { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
+	Item: { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
 		[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
 	};
 
@@ -27,13 +27,13 @@ export class Item<
 	tableConfig: { name: string; primaryIndex: TPIdxN; logger?: ILogger };
 	indexConfig: IdxCfg;
 
-	readonly _initial: A;
+	_initial: A;
 	_current: A;
 
 	constructor(
 		props: A,
 		secondaryIndices: IIdx,
-		indexFunctions: { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
+		Item: { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
 			[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
 		},
 		client: DocumentClient,
@@ -44,7 +44,7 @@ export class Item<
 		this._current = props;
 
 		this.secondaryIndices = secondaryIndices;
-		this.indexFunctions = indexFunctions;
+		this.Item = Item;
 
 		this.client = client;
 		this.tableConfig = tableConfig;
@@ -57,7 +57,7 @@ export class Item<
 		const index = this.indexConfig[this.tableConfig.primaryIndex];
 
 		const attributes = [index.hashKey, index.rangeKey];
-		const values = attributes.map(attribute => this.indexFunctions[attribute](this._current));
+		const values = attributes.map(attribute => this.Item[attribute](this._current));
 
 		return constructObject(attributes, values);
 	}
@@ -66,7 +66,7 @@ export class Item<
 		const secondaryIndex = this.indexConfig[index];
 
 		const attributes = [secondaryIndex.hashKey, secondaryIndex.rangeKey];
-		const values = attributes.map(attribute => this.indexFunctions[attribute](this._current));
+		const values = attributes.map(attribute => this.Item[attribute](this._current));
 
 		return constructObject(attributes, values);
 	};
@@ -75,7 +75,7 @@ export class Item<
 		const secondaryIndices = this.secondaryIndices.map(index => this.indexConfig[index]);
 
 		const attributes = _flatten(secondaryIndices.map(index => [index.hashKey, index.rangeKey]));
-		const values = attributes.map(attribute => this.indexFunctions[attribute](this._current));
+		const values = attributes.map(attribute => this.Item[attribute](this._current));
 
 		return { ...constructObject(attributes, values), ...this.key };
 	}
@@ -92,13 +92,13 @@ export class Item<
 		return this._initial;
 	}
 
-	readonly onNew = () => {};
-	readonly onSet = async () => {};
-	readonly onWrite = async () => {};
-	readonly onCreate = async () => {};
-	readonly onDelete = async () => {};
+	onNew() {}
+	async onSet() {}
+	async onWrite() {}
+	async onCreate() {}
+	async onDelete() {}
 
-	readonly set = async (props: Partial<A>) => {
+	set = async (props: Partial<A>) => {
 		await this.onSet();
 
 		this._current = { ...this._current, ...props };
@@ -108,7 +108,7 @@ export class Item<
 		return;
 	};
 
-	readonly write = async () => {
+	write = async () => {
 		await this.onWrite();
 
 		await put(
@@ -122,7 +122,7 @@ export class Item<
 		return this;
 	};
 
-	readonly create = async () => {
+	create = async () => {
 		await this.onWrite();
 		await this.onCreate();
 
@@ -137,7 +137,7 @@ export class Item<
 		return this;
 	};
 
-	readonly update = async (props: Partial<A>) => {
+	update = async (props: Partial<A>) => {
 		await this.set(props);
 
 		let untrimmedUpdateExpression = 'SET ';
@@ -166,7 +166,7 @@ export class Item<
 		return this;
 	};
 
-	readonly delete = async () => {
+	delete = async () => {
 		await this.onDelete();
 
 		await _delete(

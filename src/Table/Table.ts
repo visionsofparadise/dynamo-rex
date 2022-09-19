@@ -101,11 +101,11 @@ export class Table<
 
 			constructor(
 				props: A,
-				indexFunctions: { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
+				Item: { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
 					[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
 				}
 			) {
-				super(props, secondaryIndices, indexFunctions, client, tableConfig, indexConfig);
+				super(props, secondaryIndices, Item, client, tableConfig, indexConfig);
 			}
 		};
 	};

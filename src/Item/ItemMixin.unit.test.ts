@@ -70,13 +70,11 @@ const mixTimestamps = <TB extends C<TimestampsBaseItem>>(Base: TB) => {
 			};
 		};
 
-		onWrite = async () => {
+		async onWrite() {
 			this.set({
 				updatedAt: new Date().getTime()
 			});
-		};
-
-		onWrite_timestamps = this.onWrite;
+		}
 	};
 };
 
@@ -84,7 +82,7 @@ interface IExtraAttribute {
 	extra: string;
 }
 
-class ExtraAttributeBaseItem extends Table.Item([])<ITimestamps> {}
+class ExtraAttributeBaseItem extends Table.Item([])<IExtraAttribute> {}
 
 const mixExtraAttribute = <TB extends C<ExtraAttributeBaseItem>>(Base: TB) => {
 	return class BasePlusExtraAttribute extends Base {
@@ -100,9 +98,7 @@ interface ITestItem extends ITimestamps, IExtraAttribute {
 	testAttribute: string;
 }
 
-class TestItemBase extends Table.Item([])<ITestItem> {}
-
-class TestItem extends mixExtraAttribute(mixTimestamps(TestItemBase)) {
+class TestItem extends mixExtraAttribute(mixTimestamps(Table.Item([])<ITestItem>)) {
 	static pk = () => 'test';
 	static sk = (props: Pick<ITestItem, 'testAttribute'>) => `test-${props.testAttribute}`;
 	static gsi1Pk = () => 'test';
@@ -112,13 +108,13 @@ class TestItem extends mixExtraAttribute(mixTimestamps(TestItemBase)) {
 		super({ ...props, ...TestItem.defaults_timestamps(props), ...TestItem.defaults_extra(props) }, TestItem);
 	}
 
-	onWrite = async () => {
-		await this.onWrite_timestamps();
+	async onWrite() {
+		await super.onWrite();
 
 		await this.set({
 			testAttribute: 'test2'
 		});
-	};
+	}
 }
 
 beforeEach(Table.reset);
