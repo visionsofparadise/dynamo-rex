@@ -58,7 +58,7 @@ class TestItem extends Table.Item(['gsi1' as const])<ITestItem> {
 	static gsi1Pk = () => 'test';
 	static gsi1Sk = (props: Pick<ITestItem, 'testAttribute'>) => `test-${props.testAttribute}`;
 
-	static get = Table.getters(TestItem, ['gsi1' as const]);
+	static get = Table.getters(TestItem);
 
 	constructor(props: ITestItem) {
 		super(props, TestItem);

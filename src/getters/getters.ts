@@ -37,18 +37,21 @@ export const getters =
 		IIdx extends Array<Exclude<TIdxN, TPIdxN>>,
 		Item extends { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
 			[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
-		} & {
-			new (...args: any): any;
 		}
 	>(
-		Item: Item,
-		secondaryIndices: IIdx
+		Item: Item & {
+			secondaryIndices: IIdx;
+
+			new (...args: any): any;
+		}
 	) => {
-		type ItemInst = InstanceType<Item>;
+		type ItemInst = InstanceType<typeof Item>;
 
 		const indexFunctions = <Idx extends IIdx[number] | TPIdxN>(index: Idx) => {
 			type HKParams = Parameters<Item[IdxCfg[Idx]['hashKey']]>[0];
-			type HKSKParams = Parameters<Item[IdxCfg[Idx]['hashKey']] & Item[IdxCfg[Idx]['rangeKey']]>[0];
+			type RKParams = Parameters<Item[IdxCfg[Idx]['rangeKey']]>[0];
+			type HKSKParams = (HKParams extends undefined ? object : HKParams) &
+				(RKParams extends undefined ? object : RKParams);
 
 			const Index = indexConfig[index];
 
@@ -202,8 +205,8 @@ export const getters =
 		};
 
 		const indexFunctionSet: { [x in IIdx[number]]: ReturnType<typeof indexFunctions<x>> } = constructObject(
-			secondaryIndices,
-			secondaryIndices.map(index => indexFunctions(index))
+			Item.secondaryIndices,
+			Item.secondaryIndices.map(index => indexFunctions(index))
 		);
 
 		return Object.assign(indexFunctions(tableConfig.primaryIndex).one, {

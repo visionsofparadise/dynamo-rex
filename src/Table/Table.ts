@@ -92,12 +92,15 @@ export class Table<
 		);
 	}
 
-	Item = <IIdx extends Array<Exclude<TIdxN, TPIdxN>>>(secondaryIndices: IIdx) => {
+	Item = <IIdx extends Array<Exclude<TIdxN, TPIdxN>>>(secondaryIndices?: IIdx) => {
 		const client = this.DocumentClient;
 		const tableConfig = this.tableConfig;
 		const indexConfig = this.indexConfig;
+
+		const fallbackSecondaryIndices = secondaryIndices || ([''] as IIdx);
+
 		return class TableItem<A extends object> extends Item<A, IIdx, TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg> {
-			static secondaryIndices: IIdx = secondaryIndices;
+			static secondaryIndices = fallbackSecondaryIndices;
 
 			constructor(
 				props: A,
@@ -105,7 +108,7 @@ export class Table<
 					[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
 				}
 			) {
-				super(props, secondaryIndices, Item, client, tableConfig, indexConfig);
+				super(props, fallbackSecondaryIndices, Item, client, tableConfig, indexConfig);
 			}
 		};
 	};
