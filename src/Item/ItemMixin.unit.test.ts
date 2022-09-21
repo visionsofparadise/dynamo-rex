@@ -15,9 +15,9 @@ export const DocumentClient = new AWS.DynamoDB.DocumentClient({
 });
 
 const Table = new Dx.Table(
-	DocumentClient,
 	{
 		name: 'test',
+		client: DocumentClient,
 		primaryIndex: 'primary'
 	},
 	{
@@ -54,7 +54,7 @@ const Table = new Dx.Table(
 	}
 );
 
-class TimestampsBaseItem extends Table.Item([])<ITimestamps> {}
+class TimestampsBaseItem extends Table.Item()<ITimestamps> {}
 
 interface ITimestamps {
 	createdAt: number;
@@ -82,7 +82,7 @@ interface IExtraAttribute {
 	extra: string;
 }
 
-class ExtraAttributeBaseItem extends Table.Item([])<IExtraAttribute> {}
+class ExtraAttributeBaseItem extends Table.Item()<IExtraAttribute> {}
 
 const mixExtraAttribute = <TB extends C<ExtraAttributeBaseItem>>(Base: TB) => {
 	return class BasePlusExtraAttribute extends Base {
@@ -98,7 +98,7 @@ interface ITestItem extends ITimestamps, IExtraAttribute {
 	testAttribute: string;
 }
 
-class TestItem extends mixExtraAttribute(mixTimestamps(Table.Item([])<ITestItem>)) {
+class TestItem extends mixExtraAttribute(mixTimestamps(Table.Item()<ITestItem>)) {
 	static pk = () => 'test';
 	static sk = (props: Pick<ITestItem, 'testAttribute'>) => `test-${props.testAttribute}`;
 	static gsi1Pk = () => 'test';

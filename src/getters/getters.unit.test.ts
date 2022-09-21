@@ -9,9 +9,9 @@ export const DocumentClient = new AWS.DynamoDB.DocumentClient({
 });
 
 const Table = new Dx.Table(
-	DocumentClient,
 	{
 		name: 'test',
+		client: DocumentClient,
 		primaryIndex: 'primary'
 	},
 	{
@@ -90,7 +90,7 @@ it('queries items with hashKey on primary key', async () => {
 
 	const result = await TestItem.get.query().hashKey();
 
-	expect(result.items.length).toBe(3);
+	expect(result.Items.length).toBe(3);
 });
 
 it('queries items with startsWith on primary key', async () => {
@@ -98,9 +98,9 @@ it('queries items with startsWith on primary key', async () => {
 		await new TestItem({ testAttribute: String(i) }).create();
 	}
 
-	const result = await TestItem.get.query().startsWith({ value: 'test-1' });
+	const result = await TestItem.get.query().startsWith({ StartsWith: 'test-1' });
 
-	expect(result.items.length).toBe(5);
+	expect(result.Items.length).toBe(5);
 });
 
 it('queries items with between on primary key', async () => {
@@ -108,9 +108,9 @@ it('queries items with between on primary key', async () => {
 		await new TestItem({ testAttribute: String(i) }).create();
 	}
 
-	const result = await TestItem.get.query().between({ min: 'test-198', max: 'test-204' });
+	const result = await TestItem.get.query().between({ Min: 'test-198', Max: 'test-204' });
 
-	expect(result.items.length).toBe(7);
+	expect(result.Items.length).toBe(7);
 });
 
 it('gets index key of item', () => {
@@ -136,7 +136,7 @@ it('queries items with hashKey on index key', async () => {
 
 	const result = await TestItem.get.gsi1.query().hashKey();
 
-	expect(result.items.length).toBe(3);
+	expect(result.Items.length).toBe(3);
 });
 
 it('queries items with startsWith on index key', async () => {
@@ -144,9 +144,9 @@ it('queries items with startsWith on index key', async () => {
 		await new TestItem({ testAttribute: String(i) }).create();
 	}
 
-	const result = await TestItem.get.gsi1.query().startsWith({ value: 'test-1' });
+	const result = await TestItem.get.gsi1.query().startsWith({ StartsWith: 'test-1' });
 
-	expect(result.items.length).toBe(5);
+	expect(result.Items.length).toBe(5);
 });
 
 it('queries items with between on index key', async () => {
@@ -154,9 +154,40 @@ it('queries items with between on index key', async () => {
 		await new TestItem({ testAttribute: String(i) }).create();
 	}
 
-	const result = await TestItem.get.gsi1.query().between({ min: 'test-198', max: 'test-204' });
+	const result = await TestItem.get.gsi1.query().between({ Min: 'test-198', Max: 'test-204' });
 
-	expect(result.items.length).toBe(7);
+	expect(result.Items.length).toBe(7);
 });
 
-// TODO: test 'all' functions
+it('queries items with hashKey on primary key', async () => {
+	for (let i = 0; i < 20; i++) {
+		await new TestItem({ testAttribute: String(i) }).create();
+	}
+
+	const result = await TestItem.get.queryAll().hashKey({ Limit: 5 });
+
+	expect(result.Items.length).toBe(20);
+	expect(result.Pages.length).toBe(5);
+});
+
+it('queries items with startsWith on primary key', async () => {
+	for (let i = 180; i < 220; i++) {
+		await new TestItem({ testAttribute: String(i) }).create();
+	}
+
+	const result = await TestItem.get.queryAll().startsWith({ Limit: 5, StartsWith: 'test-1' });
+
+	expect(result.Items.length).toBe(20);
+	expect(result.Pages.length).toBe(5);
+});
+
+it('queries items with between on primary key', async () => {
+	for (let i = 180; i < 220; i++) {
+		await new TestItem({ testAttribute: String(i) }).create();
+	}
+
+	const result = await TestItem.get.queryAll().between({ Limit: 5, Min: 'test-190', Max: 'test-209' });
+
+	expect(result.Items.length).toBe(20);
+	expect(result.Pages.length).toBe(4);
+});

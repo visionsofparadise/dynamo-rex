@@ -9,9 +9,9 @@ export const DocumentClient = new AWS.DynamoDB.DocumentClient({
 });
 
 const Table = new Dx.Table(
-	DocumentClient,
 	{
 		name: 'test',
+		client: DocumentClient,
 		primaryIndex: 'primary'
 	},
 	{
@@ -69,7 +69,6 @@ it('gets the current props of an item', () => {
 	const props = { testAttribute: nanoid() };
 
 	const testItem = new TestItem(props);
-	testItem.tableConfig.primaryIndex;
 
 	expect(testItem.props.testAttribute).toBe(props.testAttribute);
 });

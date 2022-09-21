@@ -9,9 +9,9 @@ export const DocumentClient = new AWS.DynamoDB.DocumentClient({
 });
 
 const Table = new Dx.Table(
-	DocumentClient,
 	{
 		name: 'test',
+		client: DocumentClient,
 		primaryIndex: 'primary'
 	},
 	{
@@ -144,7 +144,8 @@ it('creates new item', async () => {
 		test: 'test'
 	};
 
-	await Table.create(Key, {
+	await Table.create({
+		Key,
 		Item
 	});
 
@@ -170,7 +171,8 @@ it('throws if trying to create item that already exists', async () => {
 		Item
 	});
 
-	await Table.create(Key, {
+	await Table.create({
+		Key,
 		Item
 	}).catch(error => expect(error).toBeDefined());
 });

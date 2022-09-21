@@ -1,13 +1,12 @@
 import _get from 'lodash/get';
 import _flatten from 'lodash/flatten';
-import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { constructObject, ILogger } from '../utils';
+import { constructObject } from '../utils';
 import { _delete } from '../Table/methods/delete';
 import { update } from '../Table/methods/update';
 import { create } from '../Table/methods/create';
 import { put } from '../Table/methods/put';
 import { IdxALiteral } from '../Index/Index';
-import { IdxCfgProps } from '../Table/Table';
+import { IdxCfgProps, Table } from '../Table/Table';
 
 export class Item<
 	A extends object,
@@ -22,10 +21,7 @@ export class Item<
 	Item: { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
 		[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
 	};
-
-	client: DocumentClient;
-	tableConfig: { name: string; primaryIndex: TPIdxN; logger?: ILogger };
-	indexConfig: IdxCfg;
+	Table: Table<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>;
 
 	_initial: A;
 	_current: A;
@@ -36,25 +32,20 @@ export class Item<
 		Item: { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
 			[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
 		},
-		client: DocumentClient,
-		tableConfig: { name: string; primaryIndex: TPIdxN; logger?: ILogger },
-		indexConfig: IdxCfg
+		Table: Table<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>
 	) {
 		this._initial = props;
 		this._current = props;
 
 		this.secondaryIndices = secondaryIndices;
 		this.Item = Item;
-
-		this.client = client;
-		this.tableConfig = tableConfig;
-		this.indexConfig = indexConfig;
+		this.Table = Table;
 
 		this.onNew();
 	}
 
 	get key(): IdxCfg[TPIdxN]['key'] {
-		const index = this.indexConfig[this.tableConfig.primaryIndex];
+		const index = this.Table.indexConfig[this.Table.tableConfig.primaryIndex];
 
 		const attributes = [index.hashKey, index.rangeKey];
 		const values = attributes.map(attribute => this.Item[attribute](this._current));
@@ -63,7 +54,7 @@ export class Item<
 	}
 
 	indexKey = <Idx extends IIdx[number]>(index: Idx): IdxCfg[Idx]['key'] => {
-		const secondaryIndex = this.indexConfig[index];
+		const secondaryIndex = this.Table.indexConfig[index];
 
 		const attributes = [secondaryIndex.hashKey, secondaryIndex.rangeKey];
 		const values = attributes.map(attribute => this.Item[attribute](this._current));
@@ -72,7 +63,7 @@ export class Item<
 	};
 
 	get keys(): IdxCfg[IIdx[number]]['key'] & IdxCfg[TPIdxN]['key'] {
-		const secondaryIndices = this.secondaryIndices.map(index => this.indexConfig[index]);
+		const secondaryIndices = this.secondaryIndices.map(index => this.Table.indexConfig[index]);
 
 		const attributes = _flatten(secondaryIndices.map(index => [index.hashKey, index.rangeKey]));
 		const values = attributes.map(attribute => this.Item[attribute](this._current));
@@ -93,6 +84,7 @@ export class Item<
 	}
 
 	onNew() {}
+	async onGet() {}
 	async onSet() {}
 	async onWrite() {}
 	async onCreate() {}
@@ -103,7 +95,7 @@ export class Item<
 
 		this._current = { ...this._current, ...props };
 
-		if (this.tableConfig.logger) this.tableConfig.logger.info(this._current);
+		if (this.Table.tableConfig.logger) this.Table.tableConfig.logger.info(this._current);
 
 		return;
 	};
@@ -111,11 +103,7 @@ export class Item<
 	write = async () => {
 		await this.onWrite();
 
-		await put(
-			this.client,
-			this.tableConfig.name,
-			this.tableConfig.logger
-		)({
+		await put(this.Table)({
 			Item: { ...this._current, ...this.keys }
 		});
 
@@ -126,11 +114,8 @@ export class Item<
 		await this.onWrite();
 		await this.onCreate();
 
-		await create(
-			this.client,
-			this.tableConfig.name,
-			this.tableConfig.logger
-		)(this.key, {
+		await create(this.Table)({
+			Key: this.key,
 			Item: { ...this._current, ...this.keys }
 		});
 
@@ -153,11 +138,7 @@ export class Item<
 
 		const UpdateExpression = untrimmedUpdateExpression.slice(0, untrimmedUpdateExpression.length - 2);
 
-		await update(
-			this.client,
-			this.tableConfig.name,
-			this.tableConfig.logger
-		)<A>({
+		await update(this.Table)({
 			Key: this.key,
 			UpdateExpression,
 			ExpressionAttributeValues
@@ -169,11 +150,7 @@ export class Item<
 	delete = async () => {
 		await this.onDelete();
 
-		await _delete(
-			this.client,
-			this.tableConfig.name,
-			this.tableConfig.logger
-		)({
+		await _delete(this.Table)({
 			Key: this.key
 		});
 

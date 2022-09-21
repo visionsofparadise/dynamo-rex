@@ -17,7 +17,7 @@ import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { Item } from '../Item/Item';
 import { getters } from '../getters/getters';
 
-export type UnionToIntersection<Union> = (Union extends any ? (argument: Union) => void : never) extends (
+type UnionToIntersection<Union> = (Union extends any ? (argument: Union) => void : never) extends (
 	argument: infer Intersection
 ) => void
 	? Intersection
@@ -34,18 +34,24 @@ export class Table<
 	TIdxAL extends IdxALiteral,
 	IdxCfg extends IdxCfgProps<TIdxN, TIdxA, TIdxAL>
 > {
-	DocumentClient: DocumentClient;
-	tableConfig: { name: string; primaryIndex: TPIdxN; logger?: ILogger };
+	tableConfig: { name: string; primaryIndex: TPIdxN; client: DocumentClient; logger?: ILogger };
 	indexConfig: IdxCfg;
 
 	constructor(
-		DocumentClient: DocumentClient,
-		tableConfig: { name: string; primaryIndex: TPIdxN; logger?: ILogger },
+		tableConfig: { name: string; primaryIndex: TPIdxN; client: DocumentClient; logger?: ILogger },
 		indexConfig: IdxCfg
 	) {
-		this.DocumentClient = DocumentClient;
 		this.tableConfig = tableConfig;
 		this.indexConfig = indexConfig;
+
+		this.put = put(this);
+		this.create = create(this);
+		this.update = update(this);
+		this.get = get(this);
+		this.query = query(this);
+		this.scan = scan(this);
+		this.delete = _delete(this);
+		this.reset = reset(this);
 	}
 
 	IndexNames!: keyof IdxCfg;
@@ -54,50 +60,19 @@ export class Table<
 	IndexKeys!: { [x in keyof IdxCfg]: IdxCfg[x]['key'] };
 	IndexAttributeValues!: UnionToIntersection<IdxCfg[keyof IdxCfg]['key']>;
 
-	get put() {
-		return put(this.DocumentClient, this.tableConfig.name, this.tableConfig.logger);
-	}
-
-	get create() {
-		return create(this.DocumentClient, this.tableConfig.name, this.tableConfig.logger);
-	}
-
-	get update() {
-		return update(this.DocumentClient, this.tableConfig.name, this.tableConfig.logger);
-	}
-
-	get get() {
-		return get(this.DocumentClient, this.tableConfig.name, this.tableConfig.logger);
-	}
-
-	get query() {
-		return query(this.DocumentClient, this.tableConfig.name, this.tableConfig.logger);
-	}
-
-	get scan() {
-		return scan(this.DocumentClient, this.tableConfig.name, this.tableConfig.logger);
-	}
-
-	get delete() {
-		return _delete(this.DocumentClient, this.tableConfig.name);
-	}
-
-	get reset() {
-		return reset(
-			this.DocumentClient,
-			this.tableConfig.name,
-			this.indexConfig[this.tableConfig.primaryIndex]['hashKey'],
-			this.indexConfig[this.tableConfig.primaryIndex]['rangeKey'],
-			this.tableConfig.logger
-		);
-	}
+	put: ReturnType<typeof put<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>>;
+	create: ReturnType<typeof create<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>>;
+	update: ReturnType<typeof update<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>>;
+	get: ReturnType<typeof get<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>>;
+	query: ReturnType<typeof query<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>>;
+	scan: ReturnType<typeof scan<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>>;
+	delete: ReturnType<typeof _delete<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>>;
+	reset: ReturnType<typeof reset<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>>;
 
 	Item = <IIdx extends Array<Exclude<TIdxN, TPIdxN>>>(secondaryIndices?: IIdx) => {
-		const client = this.DocumentClient;
-		const tableConfig = this.tableConfig;
-		const indexConfig = this.indexConfig;
+		const ParentTable = this;
 
-		const fallbackSecondaryIndices = secondaryIndices || ([''] as IIdx);
+		const fallbackSecondaryIndices = secondaryIndices || ([] as unknown as IIdx);
 
 		return class TableItem<A extends object> extends Item<A, IIdx, TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg> {
 			static secondaryIndices = fallbackSecondaryIndices;
@@ -108,7 +83,7 @@ export class Table<
 					[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
 				}
 			) {
-				super(props, fallbackSecondaryIndices, Item, client, tableConfig, indexConfig);
+				super(props, fallbackSecondaryIndices, Item, ParentTable);
 			}
 		};
 	};
@@ -118,6 +93,6 @@ export class Table<
 	}
 
 	makeGetters = () => {
-		return getters<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>(this.DocumentClient, this.tableConfig, this.indexConfig);
+		return getters<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>(this);
 	};
 }

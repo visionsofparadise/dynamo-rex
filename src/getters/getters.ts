@@ -1,25 +1,11 @@
-import { Key, ConsumedCapacity } from 'aws-sdk/clients/dynamodb';
-import { IdxCfgProps } from '../Table/Table';
-import { QueryOutput } from '../Table/methods/query';
+import { IdxCfgProps, Table } from '../Table/Table';
+import { QueryInput, QueryOutput } from '../Table/methods/query';
 import { IdxALiteral } from '../Index/Index';
-import { constructObject, ILogger } from '../utils';
-import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
+import { constructObject, OptionalAttribtues } from '../utils';
 import { get } from '../Table/methods/get';
 import { query as _query } from '../Table/methods/query';
-
-export interface ItemListQuery {
-	sortOrder?: 'ASC' | 'DESC';
-	limit?: number;
-	cursor?: Key;
-}
-
-export interface ItemList<Item> {
-	items: Array<Item>;
-	cursor?: Key;
-	count?: number;
-	scannedCount?: number;
-	consumedCapacity?: ConsumedCapacity;
-}
+import _chunk from 'lodash/chunk';
+import { omit } from 'lodash';
 
 export const getters =
 	<
@@ -29,15 +15,13 @@ export const getters =
 		TIdxAL extends IdxALiteral,
 		IdxCfg extends IdxCfgProps<TIdxN, TIdxA, TIdxAL>
 	>(
-		client: DocumentClient,
-		tableConfig: { name: string; primaryIndex: TPIdxN; logger?: ILogger },
-		indexConfig: IdxCfg
+		Table: Table<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>
 	) =>
 	<
 		IIdx extends Array<Exclude<TIdxN, TPIdxN>>,
 		Item extends { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
 			[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
-		} & { new (...args: any): any }
+		} & { new (...args: any[]): any }
 	>(
 		Item: Item & {
 			secondaryIndices: IIdx;
@@ -45,32 +29,42 @@ export const getters =
 	) => {
 		type ItemInst = InstanceType<typeof Item>;
 
-		const indexFunctions = <Idx extends IIdx[number] | TPIdxN>(index: Idx) => {
+		const indexFunctions = <Idx extends Exclude<TIdxN, TPIdxN> | TPIdxN>(index: Idx) => {
 			type HKParams = Parameters<Item[IdxCfg[Idx]['hashKey']]>[0];
 			type RKParams = Parameters<Item[IdxCfg[Idx]['rangeKey']]>[0];
-			type HKSKParams = (HKParams extends undefined ? object : HKParams) &
+			type HKRKarams = (HKParams extends undefined ? object : HKParams) &
 				(RKParams extends undefined ? object : RKParams);
 
-			const Index = indexConfig[index];
+			const Index = Table.indexConfig[index];
 
 			const hashKey = Index.hashKey;
 			const rangeKey = Index.rangeKey;
 
-			const IndexName = index !== 'primary' ? String(index) : undefined;
+			const IndexName = (index === (Table.tableConfig.primaryIndex as string) ? undefined : index) as
+				| Exclude<TIdxN, TPIdxN>
+				| undefined;
 
-			const tableQuery = _query(client, tableConfig.name, tableConfig.logger);
+			const tableQuery = _query(Table);
 
-			const keyOf = (params: HKSKParams): IdxCfg[Idx]['key'] => {
+			const keyOf = (params: HKRKarams): IdxCfg[Idx]['key'] => {
 				return constructObject([hashKey, rangeKey], [Item[hashKey](params), Item[rangeKey](params)]);
 			};
 
-			const one = async (params: HKSKParams): Promise<ItemInst> => {
+			const itemize = async (data: unknown): Promise<ItemInst> => {
+				const item = new Item(data);
+
+				await item.onGet();
+
+				return item;
+			};
+
+			const one = async (params: HKRKarams): Promise<ItemInst> => {
 				const key = keyOf(params);
 
 				if (!key[rangeKey]) throw new Error('Not Found');
 
 				return !IndexName
-					? get(client, tableConfig.name, tableConfig.logger)({ Key: key }).then(data => new Item(data.Item))
+					? get(Table)({ Key: key }).then(data => itemize(data.Item))
 					: tableQuery({
 							IndexName,
 							Limit: 1,
@@ -79,69 +73,83 @@ export const getters =
 								[`:hashKey`]: key[hashKey],
 								[`:rangeKey`]: key[rangeKey]
 							}
-					  }).then(data => {
+					  }).then(async data => {
 							if (!data.Items || data.Items.length === 0) throw new Error('Not Found');
 
-							const items: Array<ItemInst> = data.Items!.map(itemData => new Item(itemData));
+							const items: Array<ItemInst> = await Promise.all(data.Items!.map(itemize));
 
 							return items[0];
 					  });
 			};
 
-			const listQueryParams = (query: ItemListQuery) => ({
-				IndexName,
-				Limit: (query.limit && query.limit > 1000 ? 1000 : query.limit) || 1000,
-				ScanIndexForward: query.sortOrder === 'ASC',
-				ExclusiveStartKey: query.cursor
-			});
+			const listMaker = async <A extends object>(data: QueryOutput<A>) => {
+				const batches = _chunk(data.Items, 10);
 
-			const listMaker = <DatabaseItem extends object>(data: QueryOutput<DatabaseItem>) => {
-				let items: Array<ItemInst> = data.Items.map(itemData => new Item(itemData));
+				let items: Array<ItemInst> = [];
+
+				for (const batch of batches) {
+					const newItems = await Promise.all(batch.map(itemize));
+
+					items = [...items, ...newItems];
+				}
 
 				return {
-					items,
-					cursor: data.LastEvaluatedKey,
-					count: data.Count,
-					scannedCount: data.ScannedCount,
-					consumedCapacity: data.ConsumedCapacity
+					...data,
+					Items: items
 				};
 			};
-
-			const fallbackListQuery = { sortOrder: undefined, limit: undefined, cursor: undefined };
 
 			const query = (params?: HKParams) => {
 				const hashKeyValue = Item[hashKey](params);
 
-				const hashKeyFn = async (listQuery?: ItemListQuery): Promise<ItemList<ItemInst>> =>
+				const hashKeyFn = async (
+					listQuery?: OptionalAttribtues<
+						QueryInput<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg, Exclude<TIdxN, TPIdxN>>,
+						'KeyConditionExpression' | 'ExpressionAttributeValues'
+					>
+				): Promise<QueryOutput<ItemInst>> =>
 					tableQuery({
-						...listQueryParams(listQuery || fallbackListQuery),
+						IndexName,
 						KeyConditionExpression: `${String(hashKey)} = :hashKey`,
 						ExpressionAttributeValues: {
 							[`:hashKey`]: hashKeyValue
-						}
+						},
+						...(listQuery || {})
 					}).then(listMaker);
 
-				const startsWith = async (listQuery: ItemListQuery & { value: string | number }): Promise<ItemList<ItemInst>> =>
+				const startsWith = async (
+					listQuery: OptionalAttribtues<
+						QueryInput<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg, Exclude<TIdxN, TPIdxN>>,
+						'KeyConditionExpression' | 'ExpressionAttributeValues'
+					> & {
+						StartsWith: string | number;
+					}
+				): Promise<QueryOutput<ItemInst>> =>
 					tableQuery({
-						...listQueryParams(listQuery),
+						IndexName,
 						KeyConditionExpression: `${String(hashKey)} = :hashKey AND begins_with(${String(rangeKey)}, :startsWith)`,
 						ExpressionAttributeValues: {
 							[`:hashKey`]: hashKeyValue,
-							[`:startsWith`]: listQuery.value
-						}
+							[`:startsWith`]: listQuery.StartsWith
+						},
+						...omit(listQuery, 'StartsWith')
 					}).then(listMaker);
 
 				const between = async (
-					listQuery: ItemListQuery & { min: string | number; max: string | number }
-				): Promise<ItemList<ItemInst>> =>
+					listQuery: OptionalAttribtues<
+						QueryInput<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg, Exclude<TIdxN, TPIdxN>>,
+						'KeyConditionExpression' | 'ExpressionAttributeValues'
+					> & { Min: string | number; Max: string | number }
+				): Promise<QueryOutput<ItemInst>> =>
 					tableQuery({
-						...listQueryParams(fallbackListQuery),
+						IndexName,
 						KeyConditionExpression: `${String(hashKey)} = :hashKey AND ${String(rangeKey)} BETWEEN :min AND :max`,
 						ExpressionAttributeValues: {
 							[`:hashKey`]: hashKeyValue,
-							[`:min`]: listQuery.min,
-							[`:max`]: listQuery.max
-						}
+							[`:min`]: listQuery.Min,
+							[`:max`]: listQuery.Max
+						},
+						...omit(listQuery, 'Min', 'Max')
 					}).then(listMaker);
 
 				return {
@@ -151,36 +159,40 @@ export const getters =
 				};
 			};
 
-			const queryAll = (params: HKParams) => {
+			const queryAll = (params?: HKParams) => {
 				const queryFns = query(params);
 
 				const getAll =
-					<ListFunctionParams>(listFunction: (listParams: ListFunctionParams) => Promise<ItemList<ItemInst>>) =>
-					async (listQuery: ItemListQuery & ListFunctionParams): Promise<Omit<ItemList<ItemInst>, 'cursor'>> => {
+					<
+						ListFunctionQuery extends OptionalAttribtues<
+							QueryInput<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg, Exclude<TIdxN, TPIdxN>>,
+							'KeyConditionExpression' | 'ExpressionAttributeValues'
+						>
+					>(
+						listFunction: (listQuery: ListFunctionQuery) => Promise<QueryOutput<ItemInst>>
+					) =>
+					async (
+						listQuery: ListFunctionQuery
+					): Promise<Pick<QueryOutput<ItemInst>, 'Items'> & { Pages: Array<Omit<QueryOutput<ItemInst>, 'Items'>> }> => {
 						const getPages = async (
-							internalListQuery: ItemListQuery & ListFunctionParams
-						): Promise<ItemList<ItemInst>> => {
-							const data = await listFunction(listQuery);
+							internalListQuery: ListFunctionQuery
+						): Promise<
+							Pick<QueryOutput<ItemInst>, 'Items'> & { Pages: Array<Omit<QueryOutput<ItemInst>, 'Items'>> }
+						> => {
+							const data = await listFunction(internalListQuery);
 
-							if (data.cursor) {
-								const moreData = await getPages(internalListQuery);
+							if (data.LastEvaluatedKey) {
+								const moreData = await getPages({ ...internalListQuery, ExclusiveStartKey: data.LastEvaluatedKey });
 
 								return {
-									items: [...data.items, ...moreData.items],
-									count: (data.count || 0) + (moreData.count || 0),
-									scannedCount: (data.scannedCount || 0) + (moreData.scannedCount || 0),
-									consumedCapacity: {
-										...data.consumedCapacity,
-										ReadCapacityUnits:
-											(data.consumedCapacity ? data.consumedCapacity.ReadCapacityUnits || 0 : 0) +
-											(moreData.consumedCapacity ? moreData.consumedCapacity.ReadCapacityUnits || 0 : 0),
-										WriteCapacityUnits:
-											(data.consumedCapacity ? data.consumedCapacity.WriteCapacityUnits || 0 : 0) +
-											(moreData.consumedCapacity ? moreData.consumedCapacity.WriteCapacityUnits || 0 : 0)
-									}
+									Items: [...data.Items, ...moreData.Items],
+									Pages: [omit(data, 'Items'), ...moreData.Pages]
 								};
 							} else {
-								return data;
+								return {
+									Items: data.Items,
+									Pages: [omit(data, 'Items')]
+								};
 							}
 						};
 
@@ -207,8 +219,8 @@ export const getters =
 			Item.secondaryIndices.map(index => indexFunctions(index))
 		);
 
-		return Object.assign(indexFunctions(tableConfig.primaryIndex).one, {
-			...indexFunctions(tableConfig.primaryIndex),
+		return Object.assign(indexFunctions(Table.tableConfig.primaryIndex).one, {
+			...indexFunctions(Table.tableConfig.primaryIndex),
 			...indexFunctionSet
 		});
 	};

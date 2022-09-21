@@ -1,14 +1,22 @@
 import _chunk from 'lodash/chunk';
 import _pick from 'lodash/pick';
-import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { ILogger } from '../../utils';
 import { _delete } from './delete';
 import { scan } from './scan';
+import { IdxALiteral } from '../../Index/Index';
+import { IdxCfgProps, Table } from '../Table';
 
 export const reset =
-	(client: DocumentClient, TableName: string, hashKey: PropertyKey, rangeKey: PropertyKey, logger?: ILogger) =>
+	<
+		TIdxN extends PropertyKey,
+		TPIdxN extends TIdxN,
+		TIdxA extends PropertyKey,
+		TIdxAL extends IdxALiteral,
+		IdxCfg extends IdxCfgProps<TIdxN, TIdxA, TIdxAL>
+	>(
+		Table: Table<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>
+	) =>
 	async () => {
-		const scanData = await scan(client, TableName, logger)();
+		const scanData = await scan(Table)();
 
 		if (scanData.Items) {
 			const batches = _chunk(scanData.Items);
@@ -16,12 +24,11 @@ export const reset =
 			for (const batch of batches) {
 				await Promise.all(
 					batch.map(async Item =>
-						_delete(
-							client,
-							TableName,
-							logger
-						)({
-							Key: _pick(Item, [hashKey, rangeKey])
+						_delete(Table)({
+							Key: _pick(Item, [
+								Table.indexConfig[Table.tableConfig.primaryIndex].hashKey,
+								Table.indexConfig[Table.tableConfig.primaryIndex].rangeKey
+							]) as any
 						})
 					)
 				);

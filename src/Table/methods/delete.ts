@@ -1,27 +1,47 @@
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { ILogger } from '../../utils';
-import { get } from './get';
+import { IdxALiteral } from '../../Index/Index';
+import { IdxCfgProps, Table } from '../Table';
+import { get, GetItemInput } from './get';
 
-export type DeleteItemOutput<A extends DocumentClient.AttributeMap> = Omit<
+export type DeleteItemInput<
+	A extends DocumentClient.AttributeMap,
+	PK extends DocumentClient.GetItemInput['Key'],
+	RV extends DocumentClient.ReturnValue
+> = Omit<DocumentClient.DeleteItemInput, 'TableName' | 'Key' | 'ReturnValues'> & {
+	Key: GetItemInput<A, PK>['Key'];
+	ReturnValues?: RV;
+};
+
+export type DeleteItemOutput<A extends DocumentClient.AttributeMap, RV extends DocumentClient.ReturnValue> = Omit<
 	DocumentClient.DeleteItemOutput,
 	'Attributes'
 > & {
-	Attributes?: A;
+	Attributes: RV extends 'NONE' | undefined | never ? undefined : RV extends 'ALL_OLD' ? A : undefined;
 };
 
 export const _delete =
-	(client: DocumentClient, TableName: string, logger?: ILogger) =>
-	async <A extends DocumentClient.AttributeMap>(
-		query: Omit<DocumentClient.DeleteItemInput, 'TableName'>
-	): Promise<DeleteItemOutput<A>> => {
-		await get(client, TableName, logger)(query);
+	<
+		TIdxN extends PropertyKey,
+		TPIdxN extends TIdxN,
+		TIdxA extends PropertyKey,
+		TIdxAL extends IdxALiteral,
+		IdxCfg extends IdxCfgProps<TIdxN, TIdxA, TIdxAL>
+	>(
+		Table: Table<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>
+	) =>
+	async <A extends DocumentClient.AttributeMap, RV extends DocumentClient.ReturnValue>(
+		query: DeleteItemInput<A, IdxCfg[TPIdxN]['key'], RV>
+	): Promise<DeleteItemOutput<A, RV>> => {
+		await get(Table)(query);
 
-		const data = await client.delete({ TableName, ...query }).promise();
-
-		const Attributes = data.Attributes as A;
+		const data = await Table.tableConfig.client.delete({ TableName: Table.tableConfig.name, ...query }).promise();
 
 		return {
 			...data,
-			Attributes
+			Attributes: data.Attributes as RV extends 'NONE' | undefined | never
+				? undefined
+				: RV extends 'ALL_OLD'
+				? A
+				: undefined
 		};
 	};
