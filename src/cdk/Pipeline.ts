@@ -42,7 +42,7 @@ export class DynamoRexPipelineStack extends Stack {
 
 		const testingPolicyStatement = new PolicyStatement({
 			effect: Effect.ALLOW,
-			resources: [`arn:aws:dynamodb:us-east-1:${process.env.CDK_DEFAULT_ACCOUNT}:table/dynamo-rex-test-database`],
+			resources: ['*'],
 			actions: [
 				'dynamodb:GetItem',
 				'dynamodb:Query',
