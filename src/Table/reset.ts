@@ -1,4 +1,3 @@
-import chunk from 'lodash/chunk';
 import pick from 'lodash/pick';
 import { Table, IdxATL, IdxCfgSet } from './Table';
 
@@ -17,21 +16,15 @@ export const resetFn =
 		if (Table.config.logger) Table.config.logger.info(scanData);
 
 		if (scanData.Items) {
-			const batches = chunk(scanData.Items);
+			for (const item of scanData.Items) {
+				const primaryIndex = Table.config.indexes[Table.config.primaryIndex];
 
-			for (const batch of batches) {
-				await Promise.all(
-					batch.map(async Item => {
-						const primaryIndex = Table.config.indexes[Table.config.primaryIndex];
+				const hashKey = primaryIndex.hashKey.attribute;
+				const rangeKey = primaryIndex.rangeKey ? primaryIndex.rangeKey.attribute : undefined;
 
-						const hashKey = primaryIndex.hashKey.attribute;
-						const rangeKey = primaryIndex.rangeKey ? primaryIndex.rangeKey.attribute : undefined;
-
-						return Table.delete({
-							Key: pick(Item, rangeKey ? [hashKey, rangeKey] : [hashKey])
-						});
-					})
-				);
+				await Table.delete({
+					Key: pick(item, rangeKey ? [hashKey, rangeKey] : [hashKey])
+				});
 			}
 		}
 
