@@ -7,7 +7,7 @@ export const indexNameCheck: A.Equals<
 	'gsi1' | 'gsi2' | 'gsi3' | 'gsi4' | 'gsi5' | 'gsi6' | undefined
 > = 1;
 
-beforeEach(TestTable.reset);
+beforeEach(TestTable.reset, 60 * 1000);
 
 it('query returns list of items', async () => {
 	for (let i = 0; i < 10; i++) {

@@ -62,7 +62,7 @@ export const gsi4KeyParamsCheck: A.Equals<
 	Pick<ITestItem, 'testNumber'>
 > = 1;
 
-beforeEach(TestTable.reset);
+beforeEach(TestTable.reset, 60 * 1000);
 
 it('gets primary key of item', () => {
 	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });

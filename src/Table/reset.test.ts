@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import { TestTable } from '../utils';
 
-beforeEach(TestTable.reset);
+beforeEach(TestTable.reset, 60 * 1000);
 
 it('reset deletes all items', async () => {
 	for (let i = 0; i < 10; i++) {

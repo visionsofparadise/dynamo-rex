@@ -76,6 +76,8 @@ export class Table<
 		this.scan = scanFn(this);
 		this.delete = deleteFn(this);
 		this.reset = resetFn(this);
+
+		if (config.logger) config.logger.log(`Table ${config.name} created`);
 	}
 
 	Index!: keyof TIdxCfg;
