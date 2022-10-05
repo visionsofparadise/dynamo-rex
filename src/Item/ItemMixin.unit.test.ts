@@ -1,69 +1,28 @@
-import AWS from 'aws-sdk';
-import Dx from '../index';
+import { RequiredAttributes, TestTable } from '../utils';
 
 type C<T> = {
 	new (...args: any[]): T;
 };
 
-type RA<A extends object, P extends keyof A> = Pick<A, P> & Partial<Omit<A, P>>;
-// type OA<A extends object, P extends keyof A> = Omit<A, P> & Partial<Pick<A, P>>;
-
-export const DocumentClient = new AWS.DynamoDB.DocumentClient({
-	endpoint: 'localhost:8000',
-	sslEnabled: false,
-	region: 'local-env'
-});
-
-const Table = new Dx.Table(
-	{
-		name: 'test',
-		client: DocumentClient,
-		primaryIndex: 'primary'
-	},
-	{
-		primary: new Dx.Index('primary', {
-			hashKey: {
-				attribute: 'pk',
-				type: 'S'
-			},
-			rangeKey: {
-				attribute: 'sk',
-				type: 'S'
-			}
-		}),
-		gsi1: new Dx.Index('gsi1', {
-			hashKey: {
-				attribute: 'gsi1Pk',
-				type: 'S'
-			},
-			rangeKey: {
-				attribute: 'gsi1Sk',
-				type: 'S'
-			}
-		}),
-		gsi2: new Dx.Index('gsi2', {
-			hashKey: {
-				attribute: 'gsi2Pk',
-				type: 'S'
-			},
-			rangeKey: {
-				attribute: 'gsi2Sk',
-				type: 'S'
-			}
-		})
-	}
-);
-
-class TimestampsBaseItem extends Table.Item()<ITimestamps> {}
+class TimestampsBaseItem<
+	IExtend extends ITimestamps,
+	ISIdx extends typeof TestTable.SecondaryIndex | never
+> extends TestTable.Item<IExtend, ISIdx> {}
 
 interface ITimestamps {
 	createdAt: number;
 	updatedAt: number;
 }
 
-const mixTimestamps = <TB extends C<TimestampsBaseItem>>(Base: TB) => {
+const mixTimestamps = <
+	IExtend extends ITimestamps,
+	ISIdx extends typeof TestTable.SecondaryIndex | never,
+	TB extends C<TimestampsBaseItem<IExtend, ISIdx>>
+>(
+	Base: TB
+) => {
 	return class BasePlusTimestamps extends Base {
-		static defaults_timestamps = (props: Partial<{ createdAt: number; updatedAt: number }>) => {
+		static defaults_timestamps = (props: Partial<ITimestamps>) => {
 			return {
 				createdAt: props.createdAt || new Date().getTime(),
 				updatedAt: props.updatedAt || new Date().getTime()
@@ -72,6 +31,7 @@ const mixTimestamps = <TB extends C<TimestampsBaseItem>>(Base: TB) => {
 
 		async onWrite() {
 			this.set({
+				...this.props,
 				updatedAt: new Date().getTime()
 			});
 		}
@@ -82,11 +42,20 @@ interface IExtraAttribute {
 	extra: string;
 }
 
-class ExtraAttributeBaseItem extends Table.Item()<IExtraAttribute> {}
+class ExtraAttributeBaseItem<
+	IExtend extends ITimestamps,
+	ISIdx extends typeof TestTable.SecondaryIndex | never
+> extends TestTable.Item<IExtend, ISIdx> {}
 
-const mixExtraAttribute = <TB extends C<ExtraAttributeBaseItem>>(Base: TB) => {
+const mixExtraAttribute = <
+	IExtend extends ITimestamps,
+	ISIdx extends typeof TestTable.SecondaryIndex | never,
+	TB extends C<ExtraAttributeBaseItem<IExtend, ISIdx>>
+>(
+	Base: TB
+) => {
 	return class BasePlusExtraAttribute extends Base {
-		static defaults_extra = (props: Partial<{ extra: string }>) => {
+		static defaults_extra = (props: Partial<IExtraAttribute>) => {
 			return {
 				extra: props.extra || 'test'
 			};
@@ -98,13 +67,23 @@ interface ITestItem extends ITimestamps, IExtraAttribute {
 	testAttribute: string;
 }
 
-class TestItem extends mixExtraAttribute(mixTimestamps(Table.Item()<ITestItem>)) {
-	static pk = () => 'test';
-	static sk = (props: Pick<ITestItem, 'testAttribute'>) => `test-${props.testAttribute}`;
-	static gsi1Pk = () => 'test';
-	static gsi1Sk = (props: Pick<ITestItem, 'testAttribute'>) => `test-${props.testAttribute}`;
+class TestItem extends mixExtraAttribute(mixTimestamps(TestTable.Item))<ITestItem, 'gsi1'> {
+	static secondaryIndexes = ['gsi1' as const];
 
-	constructor(props: RA<ITestItem, 'testAttribute'>) {
+	static pk() {
+		return 'test';
+	}
+	static sk(props: Pick<ITestItem, 'testAttribute'>) {
+		return `test-${props.testAttribute}`;
+	}
+	static gsi1Pk() {
+		return 'test';
+	}
+	static gsi1Sk(props: Pick<ITestItem, 'testAttribute'>) {
+		return `test-${props.testAttribute}`;
+	}
+
+	constructor(props: RequiredAttributes<ITestItem, 'testAttribute'>) {
 		super({ ...props, ...TestItem.defaults_timestamps(props), ...TestItem.defaults_extra(props) }, TestItem);
 	}
 
@@ -117,7 +96,7 @@ class TestItem extends mixExtraAttribute(mixTimestamps(Table.Item()<ITestItem>))
 	}
 }
 
-beforeEach(Table.reset);
+beforeEach(TestTable.reset);
 
 it('mixes timestamps and extra attribute', async () => {
 	jest.useFakeTimers();

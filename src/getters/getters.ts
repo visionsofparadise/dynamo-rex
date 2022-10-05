@@ -1,78 +1,81 @@
-import { IdxCfgProps, Table } from '../Table/Table';
-import { QueryInput, QueryOutput } from '../Table/methods/query';
-import { IdxALiteral } from '../Index/Index';
-import { constructObject, OptionalAttribtues } from '../utils';
-import { get } from '../Table/methods/get';
-import { query as _query } from '../Table/methods/query';
+import { Table, IdxCfgSet, IdxATL, IdxACfg, IdxKey } from '../Table/Table';
+import { constructObject, OptionalAttributes } from '../utils';
 import _chunk from 'lodash/chunk';
 import { omit } from 'lodash';
+import { StaticItem } from '../Item/Item';
+import { getAllFn } from './getAll';
+import { itemizeFn } from './itemize';
+import { listMakerFn } from './listMaker';
+import { QueryInput, QueryOutput } from '../Table/query';
 
 export const getters =
 	<
-		TIdxN extends PropertyKey,
-		TPIdxN extends TIdxN,
-		TIdxA extends PropertyKey,
-		TIdxAL extends IdxALiteral,
-		IdxCfg extends IdxCfgProps<TIdxN, TIdxA, TIdxAL>
+		TIdxA extends string,
+		TIdxATL extends IdxATL,
+		TPIdxN extends string & keyof TIdxCfg,
+		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 	>(
-		Table: Table<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>
+		Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
 	) =>
 	<
-		IIdx extends Array<Exclude<TIdxN, TPIdxN>>,
-		Item extends { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
-			[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
-		} & { new (...args: any[]): any }
+		ISIdx extends string & Exclude<keyof TIdxCfg, TPIdxN>,
+		Item extends StaticItem<ISIdx, TIdxA, TIdxATL, TPIdxN, TIdxCfg>
 	>(
 		Item: Item & {
-			secondaryIndices: IIdx;
+			secondaryIndexes: Array<ISIdx>;
 		}
 	) => {
 		type ItemInst = InstanceType<typeof Item>;
 
-		const indexFunctions = <Idx extends Exclude<TIdxN, TPIdxN> | TPIdxN>(index: Idx) => {
-			type HKParams = Parameters<Item[IdxCfg[Idx]['hashKey']]>[0];
-			type RKParams = Parameters<Item[IdxCfg[Idx]['rangeKey']]>[0];
-			type HKRKarams = (HKParams extends undefined ? object : HKParams) &
-				(RKParams extends undefined ? object : RKParams);
+		const itemize = itemizeFn<ISIdx, TIdxA, TIdxATL, TPIdxN, TIdxCfg, Item>(Item);
+		const listMaker = listMakerFn<ISIdx, TIdxA, TIdxATL, TPIdxN, TIdxCfg, Item>(Item);
 
-			const Index = Table.indexConfig[index];
+		const indexFunctions = <Idx extends TPIdxN | ISIdx>(index: Idx) => {
+			type HKParams = Parameters<Item[TIdxCfg[Idx]['hashKey']['attribute']]>;
 
-			const hashKey = Index.hashKey;
-			const rangeKey = Index.rangeKey;
+			type RKParams = TIdxCfg[Idx]['rangeKey'] extends IdxACfg<string, IdxATL>
+				? Parameters<Item[TIdxCfg[Idx]['rangeKey']['attribute']]>
+				: never[];
 
-			const IndexName = (index === (Table.tableConfig.primaryIndex as string) ? undefined : index) as
-				| Exclude<TIdxN, TPIdxN>
-				| undefined;
+			type HKRKParams = HKParams extends never[]
+				? RKParams extends never[]
+					? never[]
+					: RKParams
+				: RKParams extends never[]
+				? HKParams
+				: HKParams & RKParams;
 
-			const tableQuery = _query(Table);
+			const Index = Table.config.indexes[index];
 
-			const keyOf = (params: HKRKarams): IdxCfg[Idx]['key'] => {
-				return constructObject([hashKey, rangeKey], [Item[hashKey](params), Item[rangeKey](params)]);
+			const hashKey = Index.hashKey.attribute;
+			const rangeKey = Index.rangeKey ? Index.rangeKey.attribute : undefined;
+
+			const IndexName = index === (Table.config.primaryIndex as string) ? undefined : (index as Exclude<Idx, TPIdxN>);
+
+			const keyOf = (...params: HKRKParams): IdxKey<TIdxCfg[Idx]> => {
+				const attributes = rangeKey ? [hashKey, rangeKey] : [hashKey];
+				const values = attributes.map(attribute => Item[attribute](...[...params]));
+
+				return constructObject(attributes, values);
 			};
 
-			const itemize = async (data: unknown): Promise<ItemInst> => {
-				const item = new Item(data);
-
-				await item.onGet();
-
-				return item;
-			};
-
-			const one = async (params: HKRKarams): Promise<ItemInst> => {
-				const key = keyOf(params);
-
-				if (!key[rangeKey]) throw new Error('Not Found');
+			const one = async (...params: HKRKParams): Promise<ItemInst> => {
+				const key = keyOf(...params);
 
 				return !IndexName
-					? get(Table)({ Key: key }).then(data => itemize(data.Item))
-					: tableQuery({
+					? Table.get({ Key: key }).then(data => itemize(data.Item))
+					: Table.query({
 							IndexName,
 							Limit: 1,
-							KeyConditionExpression: `${String(hashKey)} = :hashKey AND ${String(rangeKey)} = :rangeKey`,
-							ExpressionAttributeValues: {
-								[`:hashKey`]: key[hashKey],
-								[`:rangeKey`]: key[rangeKey]
-							}
+							KeyConditionExpression: `${hashKey} = :hashKey${rangeKey ? ` AND ${rangeKey} = :rangeKey` : ``}`,
+							ExpressionAttributeValues: rangeKey
+								? {
+										[`:hashKey`]: key[hashKey],
+										[`:rangeKey`]: key[rangeKey]
+								  }
+								: {
+										[`:hashKey`]: key[hashKey]
+								  }
 					  }).then(async data => {
 							if (!data.Items || data.Items.length === 0) throw new Error('Not Found');
 
@@ -82,35 +85,18 @@ export const getters =
 					  });
 			};
 
-			const listMaker = async <A extends object>(data: QueryOutput<A>) => {
-				const batches = _chunk(data.Items, 10);
-
-				let items: Array<ItemInst> = [];
-
-				for (const batch of batches) {
-					const newItems = await Promise.all(batch.map(itemize));
-
-					items = [...items, ...newItems];
-				}
-
-				return {
-					...data,
-					Items: items
-				};
-			};
-
-			const query = (params?: HKParams) => {
-				const hashKeyValue = Item[hashKey](params);
+			const query = (...params: HKParams) => {
+				const hashKeyValue = Item[hashKey](...[...params]);
 
 				const hashKeyFn = async (
-					listQuery?: OptionalAttribtues<
-						QueryInput<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg, Exclude<TIdxN, TPIdxN>>,
+					listQuery?: OptionalAttributes<
+						QueryInput<TPIdxN, ISIdx, TIdxCfg>,
 						'KeyConditionExpression' | 'ExpressionAttributeValues'
 					>
 				): Promise<QueryOutput<ItemInst>> =>
-					tableQuery({
+					Table.query({
 						IndexName,
-						KeyConditionExpression: `${String(hashKey)} = :hashKey`,
+						KeyConditionExpression: `${hashKey} = :hashKey`,
 						ExpressionAttributeValues: {
 							[`:hashKey`]: hashKeyValue
 						},
@@ -118,16 +104,16 @@ export const getters =
 					}).then(listMaker);
 
 				const startsWith = async (
-					listQuery: OptionalAttribtues<
-						QueryInput<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg, Exclude<TIdxN, TPIdxN>>,
+					listQuery: OptionalAttributes<
+						QueryInput<TPIdxN, ISIdx, TIdxCfg>,
 						'KeyConditionExpression' | 'ExpressionAttributeValues'
 					> & {
 						StartsWith: string | number;
 					}
 				): Promise<QueryOutput<ItemInst>> =>
-					tableQuery({
+					Table.query({
 						IndexName,
-						KeyConditionExpression: `${String(hashKey)} = :hashKey AND begins_with(${String(rangeKey)}, :startsWith)`,
+						KeyConditionExpression: `${hashKey} = :hashKey AND begins_with(${rangeKey}, :startsWith)`,
 						ExpressionAttributeValues: {
 							[`:hashKey`]: hashKeyValue,
 							[`:startsWith`]: listQuery.StartsWith
@@ -136,14 +122,14 @@ export const getters =
 					}).then(listMaker);
 
 				const between = async (
-					listQuery: OptionalAttribtues<
-						QueryInput<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg, Exclude<TIdxN, TPIdxN>>,
+					listQuery: OptionalAttributes<
+						QueryInput<TPIdxN, ISIdx, TIdxCfg>,
 						'KeyConditionExpression' | 'ExpressionAttributeValues'
 					> & { Min: string | number; Max: string | number }
 				): Promise<QueryOutput<ItemInst>> =>
-					tableQuery({
+					Table.query({
 						IndexName,
-						KeyConditionExpression: `${String(hashKey)} = :hashKey AND ${String(rangeKey)} BETWEEN :min AND :max`,
+						KeyConditionExpression: `${hashKey} = :hashKey AND ${rangeKey} BETWEEN :min AND :max`,
 						ExpressionAttributeValues: {
 							[`:hashKey`]: hashKeyValue,
 							[`:min`]: listQuery.Min,
@@ -159,45 +145,10 @@ export const getters =
 				};
 			};
 
-			const queryAll = (params?: HKParams) => {
-				const queryFns = query(params);
+			const queryAll = (...params: HKParams) => {
+				const queryFns = query(...params);
 
-				const getAll =
-					<
-						ListFunctionQuery extends OptionalAttribtues<
-							QueryInput<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg, Exclude<TIdxN, TPIdxN>>,
-							'KeyConditionExpression' | 'ExpressionAttributeValues'
-						>
-					>(
-						listFunction: (listQuery: ListFunctionQuery) => Promise<QueryOutput<ItemInst>>
-					) =>
-					async (
-						listQuery: ListFunctionQuery
-					): Promise<Pick<QueryOutput<ItemInst>, 'Items'> & { Pages: Array<Omit<QueryOutput<ItemInst>, 'Items'>> }> => {
-						const getPages = async (
-							internalListQuery: ListFunctionQuery
-						): Promise<
-							Pick<QueryOutput<ItemInst>, 'Items'> & { Pages: Array<Omit<QueryOutput<ItemInst>, 'Items'>> }
-						> => {
-							const data = await listFunction(internalListQuery);
-
-							if (data.LastEvaluatedKey) {
-								const moreData = await getPages({ ...internalListQuery, ExclusiveStartKey: data.LastEvaluatedKey });
-
-								return {
-									Items: [...data.Items, ...moreData.Items],
-									Pages: [omit(data, 'Items'), ...moreData.Pages]
-								};
-							} else {
-								return {
-									Items: data.Items,
-									Pages: [omit(data, 'Items')]
-								};
-							}
-						};
-
-						return getPages(listQuery);
-					};
+				const getAll = getAllFn<ISIdx, TIdxA, TIdxATL, TPIdxN, TIdxCfg, Item>();
 
 				return {
 					hashKey: getAll(queryFns.hashKey),
@@ -214,13 +165,17 @@ export const getters =
 			};
 		};
 
-		const indexFunctionSet: { [x in IIdx[number]]: ReturnType<typeof indexFunctions<x>> } = constructObject(
-			Item.secondaryIndices,
-			Item.secondaryIndices.map(index => indexFunctions(index))
+		const indexFunctionSet: { [x in ISIdx]: ReturnType<typeof indexFunctions<x>> } = constructObject(
+			Item.secondaryIndexes,
+			Item.secondaryIndexes.map(index => indexFunctions(index))
 		);
 
-		return Object.assign(indexFunctions(Table.tableConfig.primaryIndex).one, {
-			...indexFunctions(Table.tableConfig.primaryIndex),
+		const gettersBase = indexFunctions(Table.config.primaryIndex).one;
+
+		const gettersObject = Object.assign(gettersBase, {
+			...indexFunctions(Table.config.primaryIndex),
 			...indexFunctionSet
 		});
+
+		return gettersObject;
 	};

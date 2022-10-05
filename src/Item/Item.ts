@@ -1,71 +1,78 @@
 import _get from 'lodash/get';
 import _flatten from 'lodash/flatten';
 import { constructObject } from '../utils';
-import { _delete } from '../Table/methods/delete';
-import { update } from '../Table/methods/update';
-import { create } from '../Table/methods/create';
-import { put } from '../Table/methods/put';
-import { IdxALiteral } from '../Index/Index';
-import { IdxCfgProps, Table } from '../Table/Table';
+import { Table, IdxATL, IdxKey, IdxCfgSet } from '../Table/Table';
+
+export type StaticItem<
+	ISIdx extends (string & Exclude<keyof TIdxCfg, TPIdxN>) | never,
+	TIdxA extends string,
+	TIdxATL extends IdxATL,
+	TPIdxN extends string & keyof TIdxCfg,
+	TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
+> = {
+	[x in keyof IdxKey<TIdxCfg[ISIdx | TPIdxN]>]: (...params: any[]) => IdxKey<TIdxCfg[ISIdx | TPIdxN]>[x];
+} & { new (...args: any[]): any; secondaryIndexes: Array<ISIdx> };
 
 export class Item<
-	A extends object,
-	IIdx extends Array<TIdxN>,
-	TIdxN extends PropertyKey,
-	TPIdxN extends TIdxN,
-	TIdxA extends PropertyKey,
-	TIdxAL extends IdxALiteral,
-	IdxCfg extends IdxCfgProps<TIdxN, TIdxA, TIdxAL>
+	IA extends object,
+	ISIdx extends (string & Exclude<keyof TIdxCfg, TPIdxN>) | never,
+	TIdxA extends string,
+	TIdxATL extends IdxATL,
+	TPIdxN extends string & keyof TIdxCfg,
+	TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 > {
-	secondaryIndices: IIdx;
-	Item: { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
-		[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
-	};
-	Table: Table<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>;
+	Item: StaticItem<ISIdx, TIdxA, TIdxATL, TPIdxN, TIdxCfg>;
+	Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>;
 
-	_initial: A;
-	_current: A;
+	_initial: IA;
+	_current: IA;
+
+	static defaults<D>(props: D) {
+		return props;
+	}
 
 	constructor(
-		props: A,
-		secondaryIndices: IIdx,
-		Item: { [x in keyof IdxCfg[IIdx[number]]['key']]: (props: any) => IdxCfg[IIdx[number]]['key'][x] } & {
-			[x in keyof IdxCfg[TPIdxN]['key']]: (props: any) => IdxCfg[TPIdxN]['key'][x];
-		},
-		Table: Table<TIdxN, TPIdxN, TIdxA, TIdxAL, IdxCfg>
+		props: IA,
+		Item: StaticItem<ISIdx, TIdxA, TIdxATL, TPIdxN, TIdxCfg>,
+		Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
 	) {
 		this._initial = props;
 		this._current = props;
 
-		this.secondaryIndices = secondaryIndices;
 		this.Item = Item;
 		this.Table = Table;
 
 		this.onNew();
 	}
 
-	get key(): IdxCfg[TPIdxN]['key'] {
-		const index = this.Table.indexConfig[this.Table.tableConfig.primaryIndex];
+	get key(): IdxKey<TIdxCfg[TPIdxN]> {
+		const primaryIndex = this.Table.config.indexes[this.Table.config.primaryIndex];
 
-		const attributes = [index.hashKey, index.rangeKey];
+		const attributes = primaryIndex.rangeKey
+			? [primaryIndex.hashKey.attribute, primaryIndex.rangeKey.attribute]
+			: [primaryIndex.hashKey.attribute];
+
 		const values = attributes.map(attribute => this.Item[attribute](this._current));
 
 		return constructObject(attributes, values);
 	}
 
-	indexKey = <Idx extends IIdx[number]>(index: Idx): IdxCfg[Idx]['key'] => {
-		const secondaryIndex = this.Table.indexConfig[index];
+	indexKey<Idx extends ISIdx>(index: Idx): IdxKey<TIdxCfg[Idx]> {
+		const secondaryIndex = this.Table.config.indexes[index];
 
-		const attributes = [secondaryIndex.hashKey, secondaryIndex.rangeKey];
+		const attributes = secondaryIndex.rangeKey
+			? [secondaryIndex.hashKey.attribute, secondaryIndex.rangeKey.attribute]
+			: [secondaryIndex.hashKey.attribute];
+
 		const values = attributes.map(attribute => this.Item[attribute](this._current));
 
 		return constructObject(attributes, values);
-	};
+	}
 
-	get keys(): IdxCfg[IIdx[number]]['key'] & IdxCfg[TPIdxN]['key'] {
-		const secondaryIndices = this.secondaryIndices.map(index => this.Table.indexConfig[index]);
+	get indexKeys(): IdxKey<TIdxCfg[ISIdx | TPIdxN]> {
+		const secondaryIndexKeys = this.Item.secondaryIndexes.map(index => this.indexKey(index));
 
-		const attributes = _flatten(secondaryIndices.map(index => [index.hashKey, index.rangeKey]));
+		const attributes = _flatten(secondaryIndexKeys.map(key => Object.keys(key) as Array<keyof typeof key>));
 		const values = attributes.map(attribute => this.Item[attribute](this._current));
 
 		return { ...constructObject(attributes, values), ...this.key };
@@ -76,7 +83,7 @@ export class Item<
 	}
 
 	get propsWithKeys() {
-		return { ...this.keys, ...this._current };
+		return { ...this.indexKeys, ...this._current };
 	}
 
 	get init() {
@@ -90,39 +97,39 @@ export class Item<
 	async onCreate() {}
 	async onDelete() {}
 
-	set = async (props: Partial<A>) => {
+	async set(props: Partial<IA>) {
 		await this.onSet();
 
 		this._current = { ...this._current, ...props };
 
-		if (this.Table.tableConfig.logger) this.Table.tableConfig.logger.info(this._current);
+		if (this.Table.config.logger) this.Table.config.logger.info(this._current);
 
 		return;
-	};
+	}
 
-	write = async () => {
+	async write() {
 		await this.onWrite();
 
-		await put(this.Table)({
-			Item: { ...this._current, ...this.keys }
+		await this.Table.put({
+			Item: this.propsWithKeys
 		});
 
 		return this;
-	};
+	}
 
-	create = async () => {
+	async create() {
 		await this.onWrite();
 		await this.onCreate();
 
-		await create(this.Table)({
+		await this.Table.create({
 			Key: this.key,
-			Item: { ...this._current, ...this.keys }
+			Item: this.propsWithKeys
 		});
 
 		return this;
-	};
+	}
 
-	update = async (props: Partial<A>) => {
+	async update(props: Partial<IA>) {
 		await this.set(props);
 
 		let untrimmedUpdateExpression = 'SET ';
@@ -138,22 +145,22 @@ export class Item<
 
 		const UpdateExpression = untrimmedUpdateExpression.slice(0, untrimmedUpdateExpression.length - 2);
 
-		await update(this.Table)({
+		await this.Table.update({
 			Key: this.key,
 			UpdateExpression,
 			ExpressionAttributeValues
 		});
 
 		return this;
-	};
+	}
 
-	delete = async () => {
+	async delete() {
 		await this.onDelete();
 
-		await _delete(this.Table)({
+		await this.Table.delete({
 			Key: this.key
 		});
 
 		return;
-	};
+	}
 }

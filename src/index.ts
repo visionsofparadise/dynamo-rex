@@ -1,9 +1,7 @@
-import { Index } from './Index/Index';
 import { Table } from './Table/Table';
 
 export const Dx = {
-	Table,
-	Index
+	Table
 };
 
 export default Dx;

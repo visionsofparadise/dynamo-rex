@@ -1,74 +1,71 @@
-import Dx from '../index';
 import { nanoid } from 'nanoid';
-import AWS from 'aws-sdk';
-
-export const DocumentClient = new AWS.DynamoDB.DocumentClient({
-	endpoint: 'localhost:8000',
-	sslEnabled: false,
-	region: 'local-env'
-});
-
-const Table = new Dx.Table(
-	{
-		name: 'test',
-		client: DocumentClient,
-		primaryIndex: 'primary'
-	},
-	{
-		primary: new Dx.Index('primary', {
-			hashKey: {
-				attribute: 'pk',
-				type: 'S'
-			},
-			rangeKey: {
-				attribute: 'sk',
-				type: 'S'
-			}
-		}),
-		gsi1: new Dx.Index('gsi1', {
-			hashKey: {
-				attribute: 'gsi1Pk',
-				type: 'S'
-			},
-			rangeKey: {
-				attribute: 'gsi1Sk',
-				type: 'S'
-			}
-		}),
-		gsi2: new Dx.Index('gsi2', {
-			hashKey: {
-				attribute: 'gsi2Pk',
-				type: 'S'
-			},
-			rangeKey: {
-				attribute: 'gsi2Sk',
-				type: 'S'
-			}
-		})
-	}
-);
+import { randomNumber, TestTable } from '../utils';
+import { A } from 'ts-toolbelt';
 
 interface ITestItem {
-	testAttribute: string;
+	testString: string;
+	testNumber: number;
 }
 
-class TestItem extends Table.Item(['gsi1' as const])<ITestItem> {
-	static pk = () => 'test';
-	static sk = (props: Pick<ITestItem, 'testAttribute'>) => `test-${props.testAttribute}`;
-	static gsi1Pk = () => 'test';
-	static gsi1Sk = (props: Pick<ITestItem, 'testAttribute'>) => `test-${props.testAttribute}`;
+class TestItem extends TestTable.Item<ITestItem, 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4'> {
+	static secondaryIndexes = ['gsi1' as const, 'gsi2' as const, 'gsi3' as const, 'gsi4' as const];
 
-	static get = Table.getters(TestItem);
+	static pk() {
+		return 'test';
+	}
+	static sk(props: Pick<ITestItem, 'testString'>) {
+		return `test-${props.testString}`;
+	}
+	static gsi1Pk() {
+		return 'test';
+	}
+	static gsi1Sk(props: Pick<ITestItem, 'testString'>) {
+		return `test-${props.testString}`;
+	}
+	static gsi2Pk() {
+		return randomNumber();
+	}
+	static gsi2Sk() {
+		return randomNumber();
+	}
+	static gsi3Pk(props: Pick<ITestItem, 'testString'>) {
+		return props.testString;
+	}
+	static gsi3Sk(props: Pick<ITestItem, 'testNumber'>) {
+		return props.testNumber;
+	}
+	static gsi4Pk(props: Pick<ITestItem, 'testNumber'>) {
+		return props.testNumber;
+	}
+	static gsi4Sk() {
+		return nanoid();
+	}
+
+	static get = TestTable.getters(TestItem);
 
 	constructor(props: ITestItem) {
 		super(props, TestItem);
 	}
 }
 
-beforeEach(Table.reset);
+export const primaryKeyParamsCheck: A.Equals<
+	Parameters<typeof TestItem['get']['keyOf']>[0],
+	Pick<ITestItem, 'testString'>
+> = 1;
+export const gsi2KeyParamsCheck: A.Equals<Parameters<typeof TestItem['get']['gsi2']['keyOf']>[0], never> = 1;
+export const gsi3KeyParamsCheck: A.Equals<
+	Parameters<typeof TestItem['get']['gsi3']['keyOf']>[0],
+	Pick<ITestItem, 'testString'> & Pick<ITestItem, 'testNumber'>
+> = 1;
+export const gsi4KeyParamsCheck: A.Equals<
+	Parameters<typeof TestItem['get']['gsi4']['keyOf']>[0],
+	Pick<ITestItem, 'testNumber'>
+> = 1;
+
+beforeEach(TestTable.reset);
 
 it('gets primary key of item', () => {
-	const testItem = new TestItem({ testAttribute: nanoid() });
+	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
 
 	const key = TestItem.get.keyOf(testItem.props);
 
@@ -76,16 +73,16 @@ it('gets primary key of item', () => {
 });
 
 it('gets one item on primary key', async () => {
-	const testItem = await new TestItem({ testAttribute: nanoid() }).create();
+	const testItem = await new TestItem({ testString: nanoid(), testNumber: randomNumber() }).create();
 
 	const result = await TestItem.get(testItem.props);
 
-	expect(result.props.testAttribute).toBe(testItem.props.testAttribute);
+	expect(result.props.testString).toBe(testItem.props.testString);
 });
 
 it('queries items with hashKey on primary key', async () => {
 	for (let i = 0; i < 3; i++) {
-		await new TestItem({ testAttribute: String(i) }).create();
+		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
 
 	const result = await TestItem.get.query().hashKey();
@@ -95,7 +92,7 @@ it('queries items with hashKey on primary key', async () => {
 
 it('queries items with startsWith on primary key', async () => {
 	for (let i = 195; i < 205; i++) {
-		await new TestItem({ testAttribute: String(i) }).create();
+		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
 
 	const result = await TestItem.get.query().startsWith({ StartsWith: 'test-1' });
@@ -105,7 +102,7 @@ it('queries items with startsWith on primary key', async () => {
 
 it('queries items with between on primary key', async () => {
 	for (let i = 195; i < 205; i++) {
-		await new TestItem({ testAttribute: String(i) }).create();
+		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
 
 	const result = await TestItem.get.query().between({ Min: 'test-198', Max: 'test-204' });
@@ -114,7 +111,7 @@ it('queries items with between on primary key', async () => {
 });
 
 it('gets index key of item', () => {
-	const testItem = new TestItem({ testAttribute: nanoid() });
+	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
 
 	const key = TestItem.get.gsi1.keyOf(testItem.props);
 
@@ -122,16 +119,16 @@ it('gets index key of item', () => {
 });
 
 it('gets one item on index key', async () => {
-	const testItem = await new TestItem({ testAttribute: nanoid() }).create();
+	const testItem = await new TestItem({ testString: nanoid(), testNumber: randomNumber() }).create();
 
 	const result = await TestItem.get.gsi1.one(testItem.props);
 
-	expect(result.props.testAttribute).toBe(testItem.props.testAttribute);
+	expect(result.props.testString).toBe(testItem.props.testString);
 });
 
 it('queries items with hashKey on index key', async () => {
 	for (let i = 0; i < 3; i++) {
-		await new TestItem({ testAttribute: String(i) }).create();
+		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
 
 	const result = await TestItem.get.gsi1.query().hashKey();
@@ -141,7 +138,7 @@ it('queries items with hashKey on index key', async () => {
 
 it('queries items with startsWith on index key', async () => {
 	for (let i = 195; i < 205; i++) {
-		await new TestItem({ testAttribute: String(i) }).create();
+		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
 
 	const result = await TestItem.get.gsi1.query().startsWith({ StartsWith: 'test-1' });
@@ -151,7 +148,7 @@ it('queries items with startsWith on index key', async () => {
 
 it('queries items with between on index key', async () => {
 	for (let i = 195; i < 205; i++) {
-		await new TestItem({ testAttribute: String(i) }).create();
+		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
 
 	const result = await TestItem.get.gsi1.query().between({ Min: 'test-198', Max: 'test-204' });
@@ -161,33 +158,33 @@ it('queries items with between on index key', async () => {
 
 it('queries items with hashKey on primary key', async () => {
 	for (let i = 0; i < 20; i++) {
-		await new TestItem({ testAttribute: String(i) }).create();
+		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
 
 	const result = await TestItem.get.queryAll().hashKey({ Limit: 5 });
 
 	expect(result.Items.length).toBe(20);
-	expect(result.Pages.length).toBe(5);
+	expect(result.PageData.length).toBe(5);
 });
 
 it('queries items with startsWith on primary key', async () => {
 	for (let i = 180; i < 220; i++) {
-		await new TestItem({ testAttribute: String(i) }).create();
+		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
 
 	const result = await TestItem.get.queryAll().startsWith({ Limit: 5, StartsWith: 'test-1' });
 
 	expect(result.Items.length).toBe(20);
-	expect(result.Pages.length).toBe(5);
+	expect(result.PageData.length).toBe(5);
 });
 
 it('queries items with between on primary key', async () => {
 	for (let i = 180; i < 220; i++) {
-		await new TestItem({ testAttribute: String(i) }).create();
+		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
 
 	const result = await TestItem.get.queryAll().between({ Limit: 5, Min: 'test-190', Max: 'test-209' });
 
 	expect(result.Items.length).toBe(20);
-	expect(result.Pages.length).toBe(4);
+	expect(result.PageData.length).toBe(4);
 });
