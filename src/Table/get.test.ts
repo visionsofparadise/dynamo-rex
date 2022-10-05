@@ -8,7 +8,7 @@ export const getKeyValuesCheck: A.Equals<
 	string
 > = 1;
 
-beforeEach(TestTable.reset, 60 * 1000);
+beforeEach(TestTable.reset, 10 * 1000);
 
 it('gets a put item', async () => {
 	const Key = {

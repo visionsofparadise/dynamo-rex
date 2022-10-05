@@ -14,6 +14,8 @@ export const resetFn =
 	async () => {
 		const scanData = await Table.scan();
 
+		if (Table.config.logger) Table.config.logger.info(scanData);
+
 		if (scanData.Items) {
 			const batches = chunk(scanData.Items);
 

@@ -4,7 +4,7 @@ import { A } from 'ts-toolbelt';
 
 export const putItemCheck: A.Extends<Parameters<typeof TestTable['put']>[0]['Item'], { pk: string; sk: string }> = 1;
 
-beforeEach(TestTable.reset, 60 * 1000);
+beforeEach(TestTable.reset, 10 * 1000);
 
 it('puts new item', async () => {
 	const Key = {

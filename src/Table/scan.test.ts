@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import { TestTable } from '../utils';
 
-beforeEach(TestTable.reset, 60 * 1000);
+beforeEach(TestTable.reset, 10 * 1000);
 
 it('scan returns list of items', async () => {
 	for (let i = 0; i < 10; i++) {
