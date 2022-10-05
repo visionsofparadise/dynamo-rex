@@ -27,7 +27,7 @@ class TestItem extends TestTable.Item<ITestItem, never> {
 	}
 }
 
-beforeEach(TestTable.reset, 10 * 1000);
+afterEach(TestTable.reset, 10 * 1000);
 
 it('gets the current props of an item', () => {
 	const props = { testString: nanoid(), testNumber: randomNumber() };

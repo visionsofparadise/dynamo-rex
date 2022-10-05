@@ -11,6 +11,8 @@ export const resetFn =
 		Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
 	) =>
 	async () => {
+		if (Table.config.logger) Table.config.logger.info(`Resetting ${Table.config.name}`);
+
 		const scanData = await Table.scan();
 
 		if (Table.config.logger) Table.config.logger.info(scanData);

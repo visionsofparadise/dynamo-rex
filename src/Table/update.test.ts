@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import { TestTable } from '../utils';
 
-beforeEach(TestTable.reset, 10 * 1000);
+afterEach(TestTable.reset, 10 * 1000);
 
 it('updates an item attribute', async () => {
 	const Key = {

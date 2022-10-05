@@ -22,7 +22,7 @@ export const indexKeyValueCheck: A.Equals<
 	number
 > = 1;
 
-beforeEach(TestTable.reset, 10 * 1000);
+afterEach(TestTable.reset, 10 * 1000);
 
 it('creates Table', async () => {
 	expect(TestTable).toBeDefined();
