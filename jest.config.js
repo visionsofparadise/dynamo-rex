@@ -4,6 +4,7 @@ module.exports = {
 	verbose: true,
 	rootDir: 'src/',
 	timers: 'fake',
-	globalSetup: '../node_modules/@shelf/jest-dynamodb/setup.js',
-	globalTeardown: '../node_modules/@shelf/jest-dynamodb/teardown.js'
+	globalSetup: process.env.INTEGRATION_TEST !== 'true' ? '../node_modules/@shelf/jest-dynamodb/setup.js' : undefined,
+	globalTeardown:
+		process.env.INTEGRATION_TEST !== 'true' ? '../node_modules/@shelf/jest-dynamodb/teardown.js' : undefined
 };
