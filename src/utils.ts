@@ -25,14 +25,17 @@ export type Assign<A, B> = Omit<A, keyof B> & B;
 
 export type NoTableName<T> = Omit<T, 'TableName'>;
 
-export const DocumentClient = new AWS.DynamoDB.DocumentClient({
-	endpoint: 'localhost:8000',
-	sslEnabled: false,
-	region: 'local-env'
-});
+export const DocumentClient =
+	process.env.INTEGRATION_TEST === 'true'
+		? new AWS.DynamoDB.DocumentClient()
+		: new AWS.DynamoDB.DocumentClient({
+				endpoint: 'localhost:8000',
+				sslEnabled: false,
+				region: 'local-env'
+		  });
 
 export const TestTable = new Dx.Table({
-	name: 'test',
+	name: process.env.DYNAMODB_TABLE || 'test',
 	client: DocumentClient,
 	primaryIndex: 'primary',
 	indexes: {
