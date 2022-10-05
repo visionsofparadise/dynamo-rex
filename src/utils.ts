@@ -28,6 +28,8 @@ export type NoTableName<T> = Omit<T, 'TableName'>;
 export const DocumentClient =
 	process.env.INTEGRATION_TEST === 'true'
 		? new AWS.DynamoDB.DocumentClient({
+				apiVersion: '2012-08-10',
+				region: 'us-east-1',
 				logger: console
 		  })
 		: new AWS.DynamoDB.DocumentClient({

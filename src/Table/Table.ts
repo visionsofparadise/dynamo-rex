@@ -62,7 +62,11 @@ export class Table<
 	TPIdxN extends string & keyof TIdxCfg,
 	TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 > {
-	constructor(public config: TCfg<TPIdxN, TIdxCfg>) {
+	config: TCfg<TPIdxN, TIdxCfg>;
+
+	constructor(config: TCfg<TPIdxN, TIdxCfg>) {
+		this.config = config;
+
 		this.hasItem = hasItemFn();
 		this.hasItems = hasItemsFn();
 		this.hasPutAttributes = hasPutAttributesFn();
