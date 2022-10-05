@@ -10,7 +10,7 @@ export class DynamoRexPipelineStack extends Stack {
 	constructor(scope: Construct, id: string, props?: StackProps) {
 		super(scope, id, props);
 
-		const source = CodePipelineSource.gitHub(`visionsofparadise/${serviceName}`, 'master', {
+		const source = CodePipelineSource.gitHub(`visionsofparadise/${serviceName}`, 'main', {
 			authentication: SecretValue.secretsManager('GITHUB_TOKEN')
 		});
 
