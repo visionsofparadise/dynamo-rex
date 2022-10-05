@@ -24,6 +24,7 @@ export const resetFn =
 
 						const hashKey = primaryIndex.hashKey.attribute;
 						const rangeKey = primaryIndex.rangeKey ? primaryIndex.rangeKey.attribute : undefined;
+
 						return Table.delete({
 							Key: pick(Item, rangeKey ? [hashKey, rangeKey] : [hashKey])
 						});
