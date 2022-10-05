@@ -96,7 +96,7 @@ class TestItem extends mixExtraAttribute(mixTimestamps(TestTable.Item))<ITestIte
 	}
 }
 
-afterEach(TestTable.reset, 10 * 1000);
+beforeEach(TestTable.reset);
 
 it('mixes timestamps and extra attribute', async () => {
 	jest.useFakeTimers();

@@ -54,7 +54,7 @@ export class DynamoRexPipelineStack extends Stack {
 		});
 
 		const integrationTestStep = new CodeBuildStep('integrationTest', {
-			commands: ['npm ci', 'npm run compile', 'export INTEGRATION_TEST=true', 'npm run test'],
+			commands: ['npm ci', 'export INTEGRATION_TEST=true', 'npm run test'],
 			rolePolicyStatements: [testingPolicyStatement],
 			envFromCfnOutputs: {
 				DYNAMODB_TABLE: testApp.tableName

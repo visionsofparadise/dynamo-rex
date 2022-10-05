@@ -77,7 +77,8 @@ export class Table<
 		this.delete = deleteFn(this);
 		this.reset = resetFn(this);
 
-		if (config.logger) config.logger.log(`Table ${config.name} created`);
+		if (config.logger)
+			config.logger.log(`Table ${config.name} created. Integration test ${process.env.INTEGRATION_TEST}`);
 	}
 
 	Index!: keyof TIdxCfg;

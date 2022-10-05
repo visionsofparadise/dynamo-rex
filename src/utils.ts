@@ -27,7 +27,9 @@ export type NoTableName<T> = Omit<T, 'TableName'>;
 
 export const DocumentClient =
 	process.env.INTEGRATION_TEST === 'true'
-		? new AWS.DynamoDB.DocumentClient()
+		? new AWS.DynamoDB.DocumentClient({
+				logger: console
+		  })
 		: new AWS.DynamoDB.DocumentClient({
 				endpoint: 'localhost:8000',
 				sslEnabled: false,

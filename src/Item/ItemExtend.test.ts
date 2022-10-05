@@ -91,7 +91,7 @@ const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber()
 
 export const indexCheck: A.Equals<Parameters<typeof testItem['indexKey']>[0], 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4'> = 1;
 
-afterEach(TestTable.reset, 10 * 1000);
+beforeEach(TestTable.reset);
 
 it('gets the current props of an item', () => {
 	const props = { testString: nanoid(), testNumber: randomNumber() };
