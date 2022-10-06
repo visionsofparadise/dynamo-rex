@@ -15,14 +15,33 @@ export class DynamoRexStack extends Stack {
 			removalPolicy: RemovalPolicy.DESTROY
 		});
 
-		for (let i = 0; i < 10; i++) {
-			database.addGlobalSecondaryIndex({
-				indexName: `gsi${i}`,
-				partitionKey: { name: `gsi${i}Pk`, type: AttributeType.STRING },
-				sortKey: { name: `gsi${i}Sk`, type: AttributeType.STRING },
-				projectionType: ProjectionType.ALL
-			});
-		}
+		database.addGlobalSecondaryIndex({
+			indexName: `gsi1`,
+			partitionKey: { name: `gsi1Pk`, type: AttributeType.STRING },
+			sortKey: { name: `gsi1Sk`, type: AttributeType.STRING },
+			projectionType: ProjectionType.ALL
+		});
+
+		database.addGlobalSecondaryIndex({
+			indexName: `gsi2`,
+			partitionKey: { name: `gsi2Pk`, type: AttributeType.NUMBER },
+			sortKey: { name: `gsi2Sk`, type: AttributeType.NUMBER },
+			projectionType: ProjectionType.ALL
+		});
+
+		database.addGlobalSecondaryIndex({
+			indexName: `gsi3`,
+			partitionKey: { name: `gsi3Pk`, type: AttributeType.STRING },
+			sortKey: { name: `gsi3Sk`, type: AttributeType.NUMBER },
+			projectionType: ProjectionType.ALL
+		});
+
+		database.addGlobalSecondaryIndex({
+			indexName: `gsi4`,
+			partitionKey: { name: `gsi4Pk`, type: AttributeType.NUMBER },
+			sortKey: { name: `gsi4Sk`, type: AttributeType.STRING },
+			projectionType: ProjectionType.ALL
+		});
 
 		this.tableName = new CfnOutput(this, `${props.deploymentName}-tableName`, {
 			value: database.tableName,
