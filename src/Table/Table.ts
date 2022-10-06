@@ -1,7 +1,3 @@
-import _pick from 'lodash/pick';
-import _chunk from 'lodash/chunk';
-import _get from 'lodash/get';
-import _flatten from 'lodash/flatten';
 import { ILogger } from '../utils';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { Item, StaticItem } from '../Item/Item';
@@ -62,11 +58,7 @@ export class Table<
 	TPIdxN extends string & keyof TIdxCfg,
 	TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 > {
-	config: TCfg<TPIdxN, TIdxCfg>;
-
-	constructor(config: TCfg<TPIdxN, TIdxCfg>) {
-		this.config = config;
-
+	constructor(public config: TCfg<TPIdxN, TIdxCfg>) {
 		this.hasItem = hasItemFn();
 		this.hasItems = hasItemsFn();
 		this.hasPutAttributes = hasPutAttributesFn();
@@ -80,9 +72,6 @@ export class Table<
 		this.scan = scanFn(this);
 		this.delete = deleteFn(this);
 		this.reset = resetFn(this);
-
-		if (config.logger)
-			config.logger.log(`Table ${config.name} created. Integration test ${process.env.INTEGRATION_TEST}`);
 	}
 
 	Index!: keyof TIdxCfg;

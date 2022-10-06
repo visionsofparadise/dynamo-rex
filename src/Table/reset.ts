@@ -1,3 +1,4 @@
+import { chunk } from 'lodash';
 import pick from 'lodash/pick';
 import { Table, IdxATL, IdxCfgSet } from './Table';
 
@@ -15,18 +16,26 @@ export const resetFn =
 
 		const scanData = await ParentTable.scan();
 
-		if (ParentTable.config.logger) ParentTable.config.logger.info(scanData);
-
 		if (scanData.Items) {
-			for (const item of scanData.Items) {
+			const batches = chunk(scanData.Items, 25);
+
+			for (const batch of batches) {
 				const primaryIndex = ParentTable.config.indexes[ParentTable.config.primaryIndex];
 
 				const hashKey = primaryIndex.hashKey.attribute;
 				const rangeKey = primaryIndex.rangeKey ? primaryIndex.rangeKey.attribute : undefined;
 
-				await ParentTable.delete({
-					Key: pick(item, rangeKey ? [hashKey, rangeKey] : [hashKey])
-				});
+				await ParentTable.config.client
+					.batchWrite({
+						RequestItems: {
+							[ParentTable.config.name]: batch.map(item => ({
+								DeleteRequest: {
+									Key: pick(item, rangeKey ? [hashKey, rangeKey] : [hashKey])
+								}
+							}))
+						}
+					})
+					.promise();
 			}
 		}
 

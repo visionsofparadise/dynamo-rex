@@ -1,6 +1,5 @@
 import { Table, IdxCfgSet, IdxATL, IdxACfg, IdxKey } from '../Table/Table';
 import { constructObject, OptionalAttributes } from '../utils';
-import _chunk from 'lodash/chunk';
 import { omit } from 'lodash';
 import { StaticItem } from '../Item/Item';
 import { getAllFn } from './getAll';
