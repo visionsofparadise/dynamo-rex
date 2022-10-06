@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { TestTable } from '../utils';
+import { TestTable, wait } from '../utils';
 import { A } from 'ts-toolbelt';
 
 export const indexNameCheck: A.Equals<
@@ -10,6 +10,8 @@ export const indexNameCheck: A.Equals<
 beforeEach(TestTable.reset);
 
 it('query returns list of items', async () => {
+	jest.useRealTimers();
+
 	for (let i = 0; i < 10; i++) {
 		const Key = {
 			pk: 'test',
@@ -26,6 +28,8 @@ it('query returns list of items', async () => {
 		});
 	}
 
+	await wait(1000);
+
 	const result = await TestTable.query({
 		KeyConditionExpression: `pk = :pk`,
 		ExpressionAttributeValues: {
@@ -37,6 +41,8 @@ it('query returns list of items', async () => {
 });
 
 it('query on index returns list of items', async () => {
+	jest.useRealTimers();
+
 	for (let i = 0; i < 10; i++) {
 		const Key = {
 			pk: 'test',
@@ -58,6 +64,8 @@ it('query on index returns list of items', async () => {
 			Item
 		});
 	}
+
+	await wait(1000);
 
 	const result = await TestTable.query({
 		IndexName: 'gsi1',

@@ -1,9 +1,11 @@
 import { nanoid } from 'nanoid';
-import { TestTable } from '../utils';
+import { TestTable, wait } from '../utils';
 
 beforeEach(TestTable.reset);
 
 it('scan returns list of items', async () => {
+	jest.useRealTimers();
+
 	for (let i = 0; i < 10; i++) {
 		const Key = {
 			pk: 'test',
@@ -20,12 +22,16 @@ it('scan returns list of items', async () => {
 		});
 	}
 
+	await wait(1000);
+
 	const result = await TestTable.scan();
 
 	expect(result.Items!.length).toBe(10);
 });
 
 it('scan on index returns list of items', async () => {
+	jest.useRealTimers();
+
 	for (let i = 0; i < 10; i++) {
 		const Key = {
 			pk: 'test',
@@ -47,6 +53,8 @@ it('scan on index returns list of items', async () => {
 			Item
 		});
 	}
+
+	await wait(1000);
 
 	const result = await TestTable.scan({
 		IndexName: 'gsi1'

@@ -25,6 +25,11 @@ export type Assign<A, B> = Omit<A, keyof B> & B;
 
 export type NoTableName<T> = Omit<T, 'TableName'>;
 
+export const wait = async (ms: number) =>
+	new Promise(resolve => {
+		setTimeout(resolve, ms);
+	});
+
 export const DocumentClient =
 	process.env.INTEGRATION_TEST === 'true'
 		? new DynamoDB.DocumentClient()

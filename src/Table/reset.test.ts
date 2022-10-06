@@ -1,9 +1,11 @@
 import { nanoid } from 'nanoid';
-import { TestTable } from '../utils';
+import { TestTable, wait } from '../utils';
 
 beforeEach(TestTable.reset);
 
 it('reset deletes all items', async () => {
+	jest.useRealTimers();
+
 	for (let i = 0; i < 10; i++) {
 		const Key = {
 			pk: 'test',
@@ -19,6 +21,8 @@ it('reset deletes all items', async () => {
 			Item
 		});
 	}
+
+	await wait(1000);
 
 	const beforeReset = await TestTable.scan();
 

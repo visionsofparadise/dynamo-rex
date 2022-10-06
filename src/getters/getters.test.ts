@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { randomNumber, TestTable } from '../utils';
+import { randomNumber, TestTable, wait } from '../utils';
 import { A } from 'ts-toolbelt';
 
 interface ITestItem {
@@ -62,6 +62,8 @@ export const gsi4KeyParamsCheck: A.Equals<
 	Pick<ITestItem, 'testNumber'>
 > = 1;
 
+jest.useRealTimers();
+
 beforeEach(TestTable.reset);
 
 it('gets primary key of item', () => {
@@ -85,6 +87,8 @@ it('queries items with hashKey on primary key', async () => {
 		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
 
+	await wait(1000);
+
 	const result = await TestItem.get.query().hashKey();
 
 	expect(result.Items.length).toBe(3);
@@ -95,6 +99,8 @@ it('queries items with startsWith on primary key', async () => {
 		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
 
+	await wait(1000);
+
 	const result = await TestItem.get.query().startsWith({ StartsWith: 'test-1' });
 
 	expect(result.Items.length).toBe(5);
@@ -104,6 +110,8 @@ it('queries items with between on primary key', async () => {
 	for (let i = 195; i < 205; i++) {
 		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
+
+	await wait(1000);
 
 	const result = await TestItem.get.query().between({ Min: 'test-198', Max: 'test-204' });
 
@@ -131,6 +139,8 @@ it('queries items with hashKey on index key', async () => {
 		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
 
+	await wait(1000);
+
 	const result = await TestItem.get.gsi1.query().hashKey();
 
 	expect(result.Items.length).toBe(3);
@@ -140,6 +150,8 @@ it('queries items with startsWith on index key', async () => {
 	for (let i = 195; i < 205; i++) {
 		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
+
+	await wait(1000);
 
 	const result = await TestItem.get.gsi1.query().startsWith({ StartsWith: 'test-1' });
 
@@ -151,6 +163,8 @@ it('queries items with between on index key', async () => {
 		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
 
+	await wait(1000);
+
 	const result = await TestItem.get.gsi1.query().between({ Min: 'test-198', Max: 'test-204' });
 
 	expect(result.Items.length).toBe(7);
@@ -160,6 +174,8 @@ it('queries items with hashKey on primary key', async () => {
 	for (let i = 0; i < 20; i++) {
 		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
+
+	await wait(1000);
 
 	const result = await TestItem.get.queryAll().hashKey({ Limit: 5 });
 
@@ -172,6 +188,8 @@ it('queries items with startsWith on primary key', async () => {
 		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
 
+	await wait(1000);
+
 	const result = await TestItem.get.queryAll().startsWith({ Limit: 5, StartsWith: 'test-1' });
 
 	expect(result.Items.length).toBe(20);
@@ -182,6 +200,8 @@ it('queries items with between on primary key', async () => {
 	for (let i = 180; i < 220; i++) {
 		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
 	}
+
+	await wait(1000);
 
 	const result = await TestItem.get.queryAll().between({ Limit: 5, Min: 'test-190', Max: 'test-209' });
 
