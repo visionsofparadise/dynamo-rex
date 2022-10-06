@@ -24,16 +24,16 @@ export const updateFn =
 		TPIdxN extends string & keyof TIdxCfg,
 		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 	>(
-		Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
+		ParentTable: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
 	) =>
 	async <A extends IdxKey<TIdxCfg[TPIdxN]>, RV extends UpdateReturnValues>(
 		query: UpdateItemInput<IdxKey<TIdxCfg[TPIdxN]>, RV>
 	): Promise<UpdateItemOutput<A, RV>> => {
-		const data = await Table.config.client.update({ TableName: Table.config.name, ...query }).promise();
+		const data = await ParentTable.config.client.update({ TableName: ParentTable.config.name, ...query }).promise();
 
-		Table.hasUpdateAttributes<A, RV>(data);
+		ParentTable.hasUpdateAttributes<A, RV>(data);
 
-		if (Table.config.logger) Table.config.logger.info(data);
+		if (ParentTable.config.logger) ParentTable.config.logger.info(data);
 
 		return data;
 	};

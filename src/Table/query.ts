@@ -30,18 +30,18 @@ export const queryFn =
 		TPIdxN extends string & keyof TIdxCfg,
 		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 	>(
-		Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
+		ParentTable: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
 	) =>
 	async <A extends IdxKey<TIdxCfg[TPIdxN]>, SIdx extends (string & Exclude<keyof TIdxCfg, TPIdxN>) | never>(
 		query: QueryInput<TPIdxN, SIdx, TIdxCfg>
 	): Promise<QueryOutput<A>> => {
-		const data = await Table.config.client
-			.query({ TableName: Table.config.name, ...query, IndexName: query.IndexName && String(query.IndexName) })
+		const data = await ParentTable.config.client
+			.query({ TableName: ParentTable.config.name, ...query, IndexName: query.IndexName && String(query.IndexName) })
 			.promise();
 
-		if (Table.config.logger) Table.config.logger.info(data);
+		if (ParentTable.config.logger) ParentTable.config.logger.info(data);
 
-		Table.hasItems<A>(data);
+		ParentTable.hasItems<A>(data);
 
 		return data;
 	};

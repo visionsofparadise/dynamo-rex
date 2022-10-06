@@ -26,16 +26,16 @@ export const putFn =
 		TPIdxN extends string & keyof TIdxCfg,
 		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 	>(
-		Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
+		ParentTable: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
 	) =>
 	async <A extends IdxKey<TIdxCfg[TPIdxN]>, RV extends PutReturnValues>(
 		query: PutItemInput<A, RV>
 	): Promise<PutItemOutput<A, RV>> => {
-		const data = await Table.config.client.put({ TableName: Table.config.name, ...query }).promise();
+		const data = await ParentTable.config.client.put({ TableName: ParentTable.config.name, ...query }).promise();
 
-		Table.hasPutAttributes<A, RV>(data, query.ReturnValues);
+		if (ParentTable.config.logger) ParentTable.config.logger.info(data);
 
-		if (Table.config.logger) Table.config.logger.info(data);
+		ParentTable.hasPutAttributes<A, RV>(data, query.ReturnValues);
 
 		return data;
 	};

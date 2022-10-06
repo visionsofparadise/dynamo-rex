@@ -21,16 +21,16 @@ export const getFn =
 		TPIdxN extends string & keyof TIdxCfg,
 		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 	>(
-		Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
+		ParentTable: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
 	) =>
 	async <A extends IdxKey<TIdxCfg[TPIdxN]>>(
 		query: GetItemInput<A, IdxKey<TIdxCfg[TPIdxN]>>
 	): Promise<GetItemOutput<A>> => {
-		const data = await Table.config.client.get({ TableName: Table.config.name, ...query }).promise();
+		const data = await ParentTable.config.client.get({ TableName: ParentTable.config.name, ...query }).promise();
 
-		Table.hasItem<A>(data);
+		ParentTable.hasItem<A>(data);
 
-		if (Table.config.logger) Table.config.logger.info(data.Item);
+		if (ParentTable.config.logger) ParentTable.config.logger.info(data.Item);
 
 		return data;
 	};

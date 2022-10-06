@@ -30,18 +30,20 @@ export const scanFn =
 		TPIdxN extends string & keyof TIdxCfg,
 		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 	>(
-		Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
+		ParentTable: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
 	) =>
 	async <A extends IdxKey<TIdxCfg[TPIdxN]>, SIdx extends (string & Exclude<keyof TIdxCfg, TPIdxN>) | never>(
 		query?: ScanInput<TPIdxN, SIdx, TIdxCfg>
 	): Promise<ScanOutput<A>> => {
 		const fallbackQuery = query || {};
 
-		const data = await Table.config.client.scan({ TableName: Table.config.name, ...fallbackQuery }).promise();
+		const data = await ParentTable.config.client
+			.scan({ TableName: ParentTable.config.name, ...fallbackQuery })
+			.promise();
 
-		if (Table.config.logger) Table.config.logger.info(data);
+		if (ParentTable.config.logger) ParentTable.config.logger.info(data);
 
-		Table.hasItems<A>(data);
+		ParentTable.hasItems<A>(data);
 
 		return data;
 	};

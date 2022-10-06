@@ -30,16 +30,16 @@ export const deleteFn =
 		TPIdxN extends string & keyof TIdxCfg,
 		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 	>(
-		Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
+		ParentTable: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
 	) =>
 	async <A extends IdxKey<TIdxCfg[TPIdxN]>, RV extends PutReturnValues>(
 		query: DeleteItemInput<A, IdxKey<TIdxCfg[TPIdxN]>, RV>
 	): Promise<DeleteItemOutput<A, RV>> => {
-		await Table.get(query);
+		await ParentTable.get(query);
 
-		const data = await Table.config.client.delete({ TableName: Table.config.name, ...query }).promise();
+		const data = await ParentTable.config.client.delete({ TableName: ParentTable.config.name, ...query }).promise();
 
-		Table.hasPutAttributes<A, RV>(data, query.ReturnValues);
+		ParentTable.hasPutAttributes<A, RV>(data, query.ReturnValues);
 
 		return data;
 	};

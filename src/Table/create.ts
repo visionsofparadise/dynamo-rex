@@ -16,15 +16,15 @@ export const createFn =
 		TPIdxN extends string & keyof TIdxCfg,
 		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 	>(
-		Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
+		ParentTable: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
 	) =>
 	async <A extends IdxKey<TIdxCfg[TPIdxN]>, RV extends PutReturnValues>(
 		query: CreateItemInput<A, IdxKey<TIdxCfg[TPIdxN]>, RV>
 	): Promise<PutItemOutput<A, RV>> => {
 		try {
-			await Table.get<A>(query);
+			await ParentTable.get<A>(query);
 		} catch (error) {
-			return Table.put<A, RV>(query);
+			return ParentTable.put<A, RV>(query);
 		}
 
 		throw new Error('Item already exists');
