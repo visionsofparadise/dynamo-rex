@@ -49,7 +49,8 @@ export class DynamoRexPipelineStack extends Stack {
 				'dynamodb:Scan',
 				'dynamodb:PutItem',
 				'dynamodb:UpdateItem',
-				'dynamodb:DeleteItem'
+				'dynamodb:DeleteItem',
+				'dynamodb:BatchWriteItem'
 			]
 		});
 
