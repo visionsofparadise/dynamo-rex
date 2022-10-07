@@ -10,7 +10,9 @@ export type StaticItem<
 	TPIdxN extends string & keyof TIdxCfg,
 	TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 > = {
-	[x in keyof IdxKey<TIdxCfg[ISIdx | TPIdxN]>]: (...params: any[]) => IdxKey<TIdxCfg[ISIdx | TPIdxN]>[x];
+	[x in keyof IdxKey<TIdxCfg[TPIdxN]>]: (...params: any[]) => IdxKey<TIdxCfg[TPIdxN]>[x];
+} & {
+	[x in keyof IdxKey<TIdxCfg[ISIdx]>]: (...params: any[]) => IdxKey<TIdxCfg[ISIdx]>[x] | undefined;
 } & { new (...args: any[]): any; secondaryIndexes: Array<ISIdx> };
 
 export class Item<
