@@ -4,6 +4,41 @@ type C<T> = {
 	new (...args: any[]): T;
 };
 
+interface IBaseItem {
+	itemName: string;
+	createdAt: number;
+	updatedAt: number;
+}
+
+class BaseItem<IExtend extends IBaseItem, ISIdx extends typeof TestTable.SecondaryIndex> extends TestTable.Item<
+	IExtend,
+	ISIdx
+> {
+	constructor(
+		props: Omit<IExtend, 'createdAt' | 'updatedAt' | 'itemName'>,
+		SelfItem: ConstructorParameters<typeof TestTable.Item<IExtend, ISIdx>>[1] & { itemName: IBaseItem['itemName'] }
+	) {
+		super(
+			{
+				...props,
+				itemName: SelfItem.itemName,
+				createdAt: new Date().getTime(),
+				updatedAt: new Date().getTime()
+			} as IExtend,
+			SelfItem
+		);
+	}
+
+	async onWrite() {
+		super.onWrite();
+
+		await this.set({
+			...this.props,
+			updatedAt: new Date().getTime()
+		});
+	}
+}
+
 class TimestampsBaseItem<
 	IExtend extends ITimestamps,
 	ISIdx extends typeof TestTable.SecondaryIndex | never
@@ -63,11 +98,12 @@ const mixExtraAttribute = <
 	};
 };
 
-interface ITestItem extends ITimestamps, IExtraAttribute {
+interface ITestItem extends ITimestamps, IExtraAttribute, IBaseItem {
 	testAttribute: string;
 }
 
-class TestItem extends mixExtraAttribute(mixTimestamps(TestTable.Item))<ITestItem, 'gsi1'> {
+class TestItem extends mixExtraAttribute(mixTimestamps(BaseItem))<ITestItem, 'gsi1'> {
+	static itemName = 'TestItem';
 	static secondaryIndexes = ['gsi1' as const];
 
 	static pk() {
