@@ -3,7 +3,7 @@ import { TestTable } from '../utils';
 
 export const indexCheck: A.Equals<
 	typeof TestTable['Index'],
-	'primary' | 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4' | 'gsi5' | 'gsi6'
+	'primary' | 'gsi0' | 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4' | 'gsi5'
 > = 1;
 
 export const primaryIndexCheck: A.Equals<typeof TestTable['PrimaryIndex'], 'primary'> = 1;
@@ -15,10 +15,10 @@ export const primaryIndexKeyValuesCheck: A.Equals<
 	string
 > = 1;
 
-export const indexKeySingleAttribtuesCheck: A.Equals<keyof typeof TestTable['IndexKeyMap']['gsi6'], 'gsi6Pk'> = 1;
+export const indexKeySingleAttribtuesCheck: A.Equals<keyof typeof TestTable['IndexKeyMap']['gsi5'], 'gsi5Pk'> = 1;
 
 export const indexKeyValueCheck: A.Equals<
-	typeof TestTable['IndexKeyMap']['gsi6'][keyof typeof TestTable['IndexKeyMap']['gsi6']],
+	typeof TestTable['IndexKeyMap']['gsi5'][keyof typeof TestTable['IndexKeyMap']['gsi5']],
 	number
 > = 1;
 

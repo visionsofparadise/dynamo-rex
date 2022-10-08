@@ -4,7 +4,7 @@ import { A } from 'ts-toolbelt';
 
 export const indexNameCheck: A.Equals<
 	Parameters<typeof TestTable['query']>[0]['IndexName'],
-	'gsi1' | 'gsi2' | 'gsi3' | 'gsi4' | 'gsi5' | 'gsi6' | undefined
+	'gsi0' | 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4' | 'gsi5' | undefined
 > = 1;
 
 beforeEach(TestTable.reset);
@@ -50,8 +50,8 @@ it('query on index returns list of items', async () => {
 		};
 
 		const IndexKey = {
-			gsi1Pk: 'test',
-			gsi1Sk: nanoid()
+			gsi0Pk: 'test',
+			gsi0Sk: nanoid()
 		};
 
 		const Item = {
@@ -68,10 +68,10 @@ it('query on index returns list of items', async () => {
 	await wait(1000);
 
 	const result = await TestTable.query({
-		IndexName: 'gsi1',
-		KeyConditionExpression: `gsi1Pk = :gsi1Pk`,
+		IndexName: 'gsi0',
+		KeyConditionExpression: `gsi0Pk = :gsi0Pk`,
 		ExpressionAttributeValues: {
-			':gsi1Pk': 'test'
+			':gsi0Pk': 'test'
 		}
 	});
 

@@ -13,12 +13,16 @@ import { resetFn } from './reset';
 import { hasItemFn, hasItemsFn } from './hasItem';
 import { hasPutAttributesFn, hasUpdateAttributesFn } from './hasAttributes';
 
-export type IdxATL = 'string' | 'number';
+export type IdxATL = 'string' | 'string?' | 'number' | 'number?';
 
 type IdxATLToType<TIdxATL extends IdxATL> = TIdxATL extends 'string'
 	? string
+	: TIdxATL extends 'string?'
+	? string | undefined
 	: TIdxATL extends 'number'
 	? number
+	: TIdxATL extends 'number?'
+	? number | undefined
 	: string | number;
 
 export type IdxACfg<TIdxA extends string, TIdxATL extends IdxATL> = {
@@ -27,7 +31,7 @@ export type IdxACfg<TIdxA extends string, TIdxATL extends IdxATL> = {
 };
 
 export type IdxCfg<HKA extends string, RKA extends string, HKATL extends IdxATL, RKATL extends IdxATL> = {
-	hashKey: IdxACfg<HKA, HKATL>;
+	hashKey: IdxACfg<HKA, Exclude<HKATL, 'string?' | 'number?'>>;
 	rangeKey?: IdxACfg<RKA, RKATL>;
 };
 
@@ -36,13 +40,13 @@ export type IdxCfgSet<TIdxA extends string, TIdxATL extends IdxATL> = Record<
 	IdxCfg<TIdxA, TIdxA, TIdxATL, TIdxATL>
 >;
 
-export type IdxKey<TIdxCfg extends IdxCfg<string, string, IdxATL, IdxATL>> = Record<
-	TIdxCfg['hashKey']['attribute'],
-	IdxATLToType<TIdxCfg['hashKey']['type']>
-> &
-	(TIdxCfg['rangeKey'] extends IdxACfg<string, IdxATL>
-		? Record<TIdxCfg['rangeKey']['attribute'], IdxATLToType<TIdxCfg['rangeKey']['type']>>
-		: {});
+export type IdxKey<TIdxCfg extends IdxCfg<string, string, IdxATL, IdxATL>> = TIdxCfg['rangeKey'] extends IdxACfg<
+	string,
+	IdxATL
+>
+	? Record<TIdxCfg['hashKey']['attribute'], IdxATLToType<TIdxCfg['hashKey']['type']>> &
+			Record<TIdxCfg['rangeKey']['attribute'], IdxATLToType<TIdxCfg['rangeKey']['type']>>
+	: Record<TIdxCfg['hashKey']['attribute'], IdxATLToType<TIdxCfg['hashKey']['type']>>;
 
 type TCfg<TPIdxN extends string & keyof InputIdxCfgSet, InputIdxCfgSet extends IdxCfgSet<string, IdxATL>> = {
 	name: string;

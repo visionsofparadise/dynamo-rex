@@ -47,9 +47,16 @@ class BaseItem<IExtend extends IBaseItem, ISIdx extends typeof TestTable.Seconda
 	}
 }
 
-class TestItem extends BaseItem<ITestItem, 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4'> {
+class TestItem extends BaseItem<ITestItem, 'gsi0' | 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4' | 'gsi5'> {
 	static itemName = 'TestItem';
-	static secondaryIndexes = ['gsi1' as const, 'gsi2' as const, 'gsi3' as const, 'gsi4' as const];
+	static secondaryIndexes = [
+		'gsi0' as const,
+		'gsi1' as const,
+		'gsi2' as const,
+		'gsi3' as const,
+		'gsi4' as const,
+		'gsi5' as const
+	];
 
 	static pk() {
 		return 'test';
@@ -57,29 +64,35 @@ class TestItem extends BaseItem<ITestItem, 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4'> {
 	static sk(props: Pick<ITestItem, 'testString'>) {
 		return `test-${props.testString}`;
 	}
-	static gsi1Pk() {
+	static gsi0Pk() {
 		return 'test';
 	}
-	static gsi1Sk(props: Pick<ITestItem, 'testString'>) {
+	static gsi0Sk(props: Pick<ITestItem, 'testString'>) {
 		return `test-${props.testString}`;
 	}
-	static gsi2Pk(props: Pick<ITestItem, 'testNumber'>) {
+	static gsi1Pk(props: Pick<ITestItem, 'testNumber'>) {
 		return props.testNumber;
+	}
+	static gsi1Sk(props: Pick<ITestItem, 'testNumber'>) {
+		return props.testNumber;
+	}
+	static gsi2Pk(props: Pick<ITestItem, 'testString'>) {
+		return props.testString;
 	}
 	static gsi2Sk(props: Pick<ITestItem, 'testNumber'>) {
 		return props.testNumber;
 	}
-	static gsi3Pk(props: Pick<ITestItem, 'testString'>) {
-		return props.testString;
-	}
-	static gsi3Sk(props: Pick<ITestItem, 'testNumber'>) {
+	static gsi3Pk(props: Pick<ITestItem, 'testNumber'>) {
 		return props.testNumber;
 	}
-	static gsi4Pk(props: Pick<ITestItem, 'testNumber'>) {
-		return props.testNumber;
-	}
-	static gsi4Sk(props: Pick<ITestItem, 'testString'>) {
+	static gsi3Sk(props: Pick<ITestItem, 'testString'>) {
 		return props.testString;
+	}
+	static gsi4Pk(props: Pick<ITestItem, 'testString'>) {
+		return props.testString;
+	}
+	static gsi5Pk(props: Pick<ITestItem, 'testNumber'>) {
+		return props.testNumber;
 	}
 
 	constructor(props: RequiredAttributes<ITestItem, 'testString' | 'testNumber'>) {
@@ -89,7 +102,10 @@ class TestItem extends BaseItem<ITestItem, 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4'> {
 
 const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
 
-export const indexCheck: A.Equals<Parameters<typeof testItem['indexKey']>[0], 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4'> = 1;
+export const indexCheck: A.Equals<
+	Parameters<typeof testItem['indexKey']>[0],
+	'primary' | 'gsi0' | 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4' | 'gsi5'
+> = 1;
 
 beforeEach(TestTable.reset);
 
@@ -108,7 +124,7 @@ it('gets the current props and keys of an item', () => {
 
 	expect(testItem.propsWithKeys.testString).toBeDefined();
 	expect(testItem.propsWithKeys.pk).toBeDefined();
-	expect(testItem.propsWithKeys.gsi1Sk).toBeDefined();
+	expect(testItem.propsWithKeys.gsi0Sk).toBeDefined();
 });
 
 it('gets primary key of item', () => {
@@ -123,10 +139,10 @@ it('gets primary key of item', () => {
 it('gets index key of item', () => {
 	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
 
-	const key = testItem.indexKey('gsi1');
+	const key = testItem.indexKey('gsi0');
 
-	expect(key.gsi1Pk).toBe('test');
-	expect(key.gsi1Sk).toBe(`test-${testItem.props.testString}`);
+	expect(key.gsi0Pk).toBe('test');
+	expect(key.gsi0Sk).toBe(`test-${testItem.props.testString}`);
 });
 
 it('gets the current updated props of an item', async () => {

@@ -9,19 +9,30 @@ module.exports = {
 			AttributeDefinitions: [
 				{ AttributeName: 'pk', AttributeType: 'S' },
 				{ AttributeName: 'sk', AttributeType: 'S' },
-				{ AttributeName: 'gsi1Pk', AttributeType: 'S' },
-				{ AttributeName: 'gsi1Sk', AttributeType: 'S' },
-				{ AttributeName: 'gsi2Pk', AttributeType: 'N' },
+				{ AttributeName: 'gsi0Pk', AttributeType: 'S' },
+				{ AttributeName: 'gsi0Sk', AttributeType: 'S' },
+				{ AttributeName: 'gsi1Pk', AttributeType: 'N' },
+				{ AttributeName: 'gsi1Sk', AttributeType: 'N' },
+				{ AttributeName: 'gsi2Pk', AttributeType: 'S' },
 				{ AttributeName: 'gsi2Sk', AttributeType: 'N' },
-				{ AttributeName: 'gsi3Pk', AttributeType: 'S' },
-				{ AttributeName: 'gsi3Sk', AttributeType: 'N' },
-				{ AttributeName: 'gsi4Pk', AttributeType: 'N' },
-				{ AttributeName: 'gsi4Sk', AttributeType: 'S' },
-				{ AttributeName: 'gsi5Pk', AttributeType: 'S' },
-				{ AttributeName: 'gsi6Pk', AttributeType: 'N' }
+				{ AttributeName: 'gsi3Pk', AttributeType: 'N' },
+				{ AttributeName: 'gsi3Sk', AttributeType: 'S' },
+				{ AttributeName: 'gsi4Pk', AttributeType: 'S' },
+				{ AttributeName: 'gsi5Pk', AttributeType: 'N' }
 			],
 			ProvisionedThroughput: { ReadCapacityUnits: 1, WriteCapacityUnits: 1 },
 			GlobalSecondaryIndexes: [
+				{
+					IndexName: 'gsi0',
+					KeySchema: [
+						{ AttributeName: 'gsi0Pk', KeyType: 'HASH' },
+						{ AttributeName: 'gsi0Sk', KeyType: 'RANGE' }
+					],
+					Projection: {
+						ProjectionType: 'ALL'
+					},
+					ProvisionedThroughput: { ReadCapacityUnits: 1, WriteCapacityUnits: 1 }
+				},
 				{
 					IndexName: 'gsi1',
 					KeySchema: [
@@ -57,10 +68,7 @@ module.exports = {
 				},
 				{
 					IndexName: 'gsi4',
-					KeySchema: [
-						{ AttributeName: 'gsi4Pk', KeyType: 'HASH' },
-						{ AttributeName: 'gsi4Sk', KeyType: 'RANGE' }
-					],
+					KeySchema: [{ AttributeName: 'gsi4Pk', KeyType: 'HASH' }],
 					Projection: {
 						ProjectionType: 'ALL'
 					},
@@ -69,14 +77,6 @@ module.exports = {
 				{
 					IndexName: 'gsi5',
 					KeySchema: [{ AttributeName: 'gsi5Pk', KeyType: 'HASH' }],
-					Projection: {
-						ProjectionType: 'ALL'
-					},
-					ProvisionedThroughput: { ReadCapacityUnits: 1, WriteCapacityUnits: 1 }
-				},
-				{
-					IndexName: 'gsi6',
-					KeySchema: [{ AttributeName: 'gsi6Pk', KeyType: 'HASH' }],
 					Projection: {
 						ProjectionType: 'ALL'
 					},

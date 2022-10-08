@@ -39,8 +39,8 @@ it('scan on index returns list of items', async () => {
 		};
 
 		const IndexKey = {
-			gsi1Pk: 'test',
-			gsi1Sk: nanoid()
+			gsi0Pk: 'test',
+			gsi0Sk: nanoid()
 		};
 
 		const Item = {
@@ -57,7 +57,7 @@ it('scan on index returns list of items', async () => {
 	await wait(1000);
 
 	const result = await TestTable.scan({
-		IndexName: 'gsi1'
+		IndexName: 'gsi0'
 	});
 
 	expect(result.Items!.length).toBe(10);

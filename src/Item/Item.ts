@@ -1,6 +1,6 @@
 import _get from 'lodash/get';
 import _flatten from 'lodash/flatten';
-import { constructObject } from '../utils';
+import { constructObject, UnionToIntersection } from '../utils';
 import { Table, IdxATL, IdxKey, IdxCfgSet } from '../Table/Table';
 
 export type StaticItem<
@@ -10,9 +10,9 @@ export type StaticItem<
 	TPIdxN extends string & keyof TIdxCfg,
 	TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 > = {
-	[x in keyof IdxKey<TIdxCfg[TPIdxN]>]: (...params: any[]) => IdxKey<TIdxCfg[TPIdxN]>[x];
+	[x in keyof IdxKey<TIdxCfg[TPIdxN]>]: (params: any) => IdxKey<TIdxCfg[TPIdxN]>[x];
 } & {
-	[x in keyof IdxKey<TIdxCfg[ISIdx]>]: (...params: any[]) => IdxKey<TIdxCfg[ISIdx]>[x] | undefined;
+	[x in keyof IdxKey<TIdxCfg[ISIdx]>]: (params: any) => IdxKey<TIdxCfg[ISIdx]>[x];
 } & { new (...args: any[]): any; secondaryIndexes: Array<ISIdx> };
 
 export class Item<
@@ -29,10 +29,6 @@ export class Item<
 	_initial: IA;
 	_current: IA;
 
-	static defaults<D>(props: D) {
-		return props;
-	}
-
 	constructor(
 		props: IA,
 		Item: StaticItem<ISIdx, TIdxA, TIdxATL, TPIdxN, TIdxCfg>,
@@ -48,36 +44,26 @@ export class Item<
 	}
 
 	get key(): IdxKey<TIdxCfg[TPIdxN]> {
-		const primaryIndex = this.Table.config.indexes[this.Table.config.primaryIndex];
+		return this.indexKey(this.Table.config.primaryIndex);
+	}
 
-		const attributes = primaryIndex.rangeKey
-			? [primaryIndex.hashKey.attribute, primaryIndex.rangeKey.attribute]
-			: [primaryIndex.hashKey.attribute];
+	indexKey<Idx extends ISIdx | TPIdxN>(index: Idx): IdxKey<TIdxCfg[Idx]> {
+		const { hashKey, rangeKey } = this.Table.config.indexes[index];
+
+		const attributes = rangeKey ? [hashKey.attribute, rangeKey.attribute] : [hashKey.attribute];
 
 		const values = attributes.map(attribute => this.Item[attribute](this._current));
 
 		return constructObject(attributes, values);
 	}
 
-	indexKey<Idx extends ISIdx>(index: Idx): IdxKey<TIdxCfg[Idx]> {
-		const secondaryIndex = this.Table.config.indexes[index];
+	get indexKeys() {
+		const mergedKeys = this.Item.secondaryIndexes.reduce(
+			(prev, cur) => ({ ...prev, ...this.indexKey(cur) }),
+			{}
+		) as {} & UnionToIntersection<Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>['IndexKeyMap'][ISIdx]>;
 
-		const attributes = secondaryIndex.rangeKey
-			? [secondaryIndex.hashKey.attribute, secondaryIndex.rangeKey.attribute]
-			: [secondaryIndex.hashKey.attribute];
-
-		const values = attributes.map(attribute => this.Item[attribute](this._current));
-
-		return constructObject(attributes, values);
-	}
-
-	get indexKeys(): IdxKey<TIdxCfg[ISIdx | TPIdxN]> {
-		const secondaryIndexKeys = this.Item.secondaryIndexes.map(index => this.indexKey(index));
-
-		const attributes = _flatten(secondaryIndexKeys.map(key => Object.keys(key) as Array<keyof typeof key>));
-		const values = attributes.map(attribute => this.Item[attribute](this._current));
-
-		return { ...constructObject(attributes, values), ...this.key };
+		return { ...mergedKeys, ...this.key };
 	}
 
 	get props() {

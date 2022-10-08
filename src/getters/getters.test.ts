@@ -7,8 +7,15 @@ interface ITestItem {
 	testNumber: number;
 }
 
-class TestItem extends TestTable.Item<ITestItem, 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4'> {
-	static secondaryIndexes = ['gsi1' as const, 'gsi2' as const, 'gsi3' as const, 'gsi4' as const];
+class TestItem extends TestTable.Item<ITestItem, 'gsi0' | 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4' | 'gsi5'> {
+	static secondaryIndexes = [
+		'gsi0' as const,
+		'gsi1' as const,
+		'gsi2' as const,
+		'gsi3' as const,
+		'gsi4' as const,
+		'gsi5' as const
+	];
 
 	static pk() {
 		return 'test';
@@ -16,29 +23,35 @@ class TestItem extends TestTable.Item<ITestItem, 'gsi1' | 'gsi2' | 'gsi3' | 'gsi
 	static sk(props: Pick<ITestItem, 'testString'>) {
 		return `test-${props.testString}`;
 	}
-	static gsi1Pk() {
+	static gsi0Pk() {
 		return 'test';
 	}
-	static gsi1Sk(props: Pick<ITestItem, 'testString'>) {
+	static gsi0Sk(props: Pick<ITestItem, 'testString'>) {
 		return `test-${props.testString}`;
 	}
-	static gsi2Pk() {
+	static gsi1Pk() {
 		return randomNumber();
 	}
-	static gsi2Sk() {
-		return randomNumber();
+	static gsi1Sk() {
+		return undefined;
 	}
-	static gsi3Pk(props: Pick<ITestItem, 'testString'>) {
+	static gsi2Pk(props: Pick<ITestItem, 'testString'>) {
 		return props.testString;
 	}
-	static gsi3Sk(props: Pick<ITestItem, 'testNumber'>) {
+	static gsi2Sk(props: Pick<ITestItem, 'testNumber'>) {
 		return props.testNumber;
 	}
-	static gsi4Pk(props: Pick<ITestItem, 'testNumber'>) {
+	static gsi3Pk(props: Pick<ITestItem, 'testNumber'>) {
 		return props.testNumber;
 	}
-	static gsi4Sk() {
-		return nanoid();
+	static gsi3Sk() {
+		return undefined;
+	}
+	static gsi4Pk(props: Pick<ITestItem, 'testString'>) {
+		return props.testString;
+	}
+	static gsi5Pk(props: Pick<ITestItem, 'testNumber'>) {
+		return props.testNumber;
 	}
 
 	static get = TestTable.getters(TestItem);
@@ -52,13 +65,21 @@ export const primaryKeyParamsCheck: A.Equals<
 	Parameters<typeof TestItem['get']['keyOf']>[0],
 	Pick<ITestItem, 'testString'>
 > = 1;
-export const gsi2KeyParamsCheck: A.Equals<Parameters<typeof TestItem['get']['gsi2']['keyOf']>[0], never> = 1;
+export const gsi1KeyParamsCheck: A.Equals<Parameters<typeof TestItem['get']['gsi1']['keyOf']>[0], void> = 1;
+export const gsi2KeyParamsCheck: A.Equals<
+	Parameters<typeof TestItem['get']['gsi2']['keyOf']>[0],
+	Pick<ITestItem, 'testString'> & Pick<ITestItem, 'testNumber'>
+> = 1;
 export const gsi3KeyParamsCheck: A.Equals<
 	Parameters<typeof TestItem['get']['gsi3']['keyOf']>[0],
-	Pick<ITestItem, 'testString'> & Pick<ITestItem, 'testNumber'>
+	Pick<ITestItem, 'testNumber'>
 > = 1;
 export const gsi4KeyParamsCheck: A.Equals<
 	Parameters<typeof TestItem['get']['gsi4']['keyOf']>[0],
+	Pick<ITestItem, 'testString'>
+> = 1;
+export const gsi5KeyParamsCheck: A.Equals<
+	Parameters<typeof TestItem['get']['gsi5']['keyOf']>[0],
 	Pick<ITestItem, 'testNumber'>
 > = 1;
 
@@ -121,15 +142,15 @@ it('queries items with between on primary key', async () => {
 it('gets index key of item', () => {
 	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
 
-	const key = TestItem.get.gsi1.keyOf(testItem.props);
+	const key = TestItem.get.gsi0.keyOf(testItem.props);
 
-	expect(key).toStrictEqual(testItem.indexKey('gsi1'));
+	expect(key).toStrictEqual(testItem.indexKey('gsi0'));
 });
 
 it('gets one item on index key', async () => {
 	const testItem = await new TestItem({ testString: nanoid(), testNumber: randomNumber() }).create();
 
-	const result = await TestItem.get.gsi1.one(testItem.props);
+	const result = await TestItem.get.gsi0.one(testItem.props);
 
 	expect(result.props.testString).toBe(testItem.props.testString);
 });
@@ -141,7 +162,7 @@ it('queries items with hashKey on index key', async () => {
 
 	await wait(1000);
 
-	const result = await TestItem.get.gsi1.query().hashKey();
+	const result = await TestItem.get.gsi0.query().hashKey();
 
 	expect(result.Items.length).toBe(3);
 });
@@ -153,7 +174,7 @@ it('queries items with startsWith on index key', async () => {
 
 	await wait(1000);
 
-	const result = await TestItem.get.gsi1.query().startsWith({ StartsWith: 'test-1' });
+	const result = await TestItem.get.gsi0.query().startsWith({ StartsWith: 'test-1' });
 
 	expect(result.Items.length).toBe(5);
 });
@@ -165,7 +186,7 @@ it('queries items with between on index key', async () => {
 
 	await wait(1000);
 
-	const result = await TestItem.get.gsi1.query().between({ Min: 'test-198', Max: 'test-204' });
+	const result = await TestItem.get.gsi0.query().between({ Min: 'test-198', Max: 'test-204' });
 
 	expect(result.Items.length).toBe(7);
 });

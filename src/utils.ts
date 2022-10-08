@@ -1,6 +1,8 @@
 import { DynamoDB } from 'aws-sdk';
 import Dx from './';
 
+export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
+
 type LogFunction = (message: unknown) => void;
 
 export interface ILogger {
@@ -55,20 +57,30 @@ export const TestTable = new Dx.Table({
 				type: 'string'
 			}
 		},
-		gsi1: {
+		gsi0: {
 			hashKey: {
-				attribute: 'gsi1Pk',
+				attribute: 'gsi0Pk',
 				type: 'string'
 			},
 			rangeKey: {
-				attribute: 'gsi1Sk',
+				attribute: 'gsi0Sk',
 				type: 'string'
+			}
+		},
+		gsi1: {
+			hashKey: {
+				attribute: 'gsi1Pk',
+				type: 'number'
+			},
+			rangeKey: {
+				attribute: 'gsi1Sk',
+				type: 'number?'
 			}
 		},
 		gsi2: {
 			hashKey: {
 				attribute: 'gsi2Pk',
-				type: 'number'
+				type: 'string'
 			},
 			rangeKey: {
 				attribute: 'gsi2Sk',
@@ -78,32 +90,22 @@ export const TestTable = new Dx.Table({
 		gsi3: {
 			hashKey: {
 				attribute: 'gsi3Pk',
-				type: 'string'
+				type: 'number'
 			},
 			rangeKey: {
 				attribute: 'gsi3Sk',
-				type: 'number'
+				type: 'string?'
 			}
 		},
 		gsi4: {
 			hashKey: {
 				attribute: 'gsi4Pk',
-				type: 'number'
-			},
-			rangeKey: {
-				attribute: 'gsi4Sk',
 				type: 'string'
 			}
 		},
 		gsi5: {
 			hashKey: {
 				attribute: 'gsi5Pk',
-				type: 'string'
-			}
-		},
-		gsi6: {
-			hashKey: {
-				attribute: 'gsi6Pk',
 				type: 'number'
 			}
 		}
