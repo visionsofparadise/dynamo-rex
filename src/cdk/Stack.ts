@@ -43,6 +43,18 @@ export class DynamoRexStack extends Stack {
 			projectionType: ProjectionType.ALL
 		});
 
+		database.addGlobalSecondaryIndex({
+			indexName: `gsi4`,
+			partitionKey: { name: `gsi4Pk`, type: AttributeType.STRING },
+			projectionType: ProjectionType.ALL
+		});
+
+		database.addGlobalSecondaryIndex({
+			indexName: `gsi5`,
+			partitionKey: { name: `gsi5Pk`, type: AttributeType.NUMBER },
+			projectionType: ProjectionType.ALL
+		});
+
 		this.tableName = new CfnOutput(this, `${props.deploymentName}-tableName`, {
 			value: database.tableName,
 			exportName: `${props.deploymentName}-tableName`
