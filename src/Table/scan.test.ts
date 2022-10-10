@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid';
-import { TestTable, wait } from '../utils';
+import wait from 'wait';
+import { TestTable } from '../TestTable.dev';
 
 beforeEach(TestTable.reset);
 

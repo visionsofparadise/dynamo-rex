@@ -1,42 +1,47 @@
-import { chunk } from 'lodash';
-import pick from 'lodash/pick';
-import { Table, IdxATL, IdxCfgSet } from './Table';
+import { chunk } from '../utils';
+import { scanFn } from './scan';
+import { IdxATL, MCfg, IdxCfg, IdxKey } from './Table';
+
+interface ResetCfg extends MCfg {
+	hashKey: string;
+	rangeKey: string | undefined;
+}
 
 export const resetFn =
 	<
-		TIdxA extends string,
-		TIdxATL extends IdxATL,
-		TPIdxN extends string & keyof TIdxCfg,
-		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
+		TPIdxN extends string & keyof IdxKeyMap,
+		IdxKeyMap extends Record<string, IdxKey<IdxCfg<string, string, IdxATL, IdxATL>>>
 	>(
-		ParentTable: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
+		config: ResetCfg
 	) =>
 	async () => {
-		if (ParentTable.config.logger) ParentTable.config.logger.info(`Resetting ${ParentTable.config.name}`);
+		if (config.logger) config.logger.info(`Resetting ${config.name}`);
 
-		const scanData = await ParentTable.scan();
+		const scanData = await scanFn<TPIdxN, IdxKeyMap>(config)();
 
-		if (scanData.Items) {
-			const batches = chunk(scanData.Items, 25);
+		const { hashKey, rangeKey } = config;
 
-			for (const batch of batches) {
-				const primaryIndex = ParentTable.config.indexes[ParentTable.config.primaryIndex];
+		const batches = chunk(scanData.Items, 25);
 
-				const hashKey = primaryIndex.hashKey.attribute;
-				const rangeKey = primaryIndex.rangeKey ? primaryIndex.rangeKey.attribute : undefined;
-
-				await ParentTable.config.client
-					.batchWrite({
-						RequestItems: {
-							[ParentTable.config.name]: batch.map(item => ({
-								DeleteRequest: {
-									Key: pick(item, rangeKey ? [hashKey, rangeKey] : [hashKey])
-								}
-							}))
-						}
-					})
-					.promise();
-			}
+		for (const batch of batches) {
+			await config.client
+				.batchWrite({
+					RequestItems: {
+						[config.name]: batch.map(item => ({
+							DeleteRequest: {
+								Key: rangeKey
+									? {
+											[hashKey]: item[hashKey],
+											[rangeKey]: item[rangeKey]
+									  }
+									: {
+											[hashKey]: item[hashKey]
+									  }
+							}
+						}))
+					}
+				})
+				.promise();
 		}
 
 		return;

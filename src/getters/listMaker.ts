@@ -1,4 +1,3 @@
-import chunk from 'lodash/chunk';
 import { QueryOutput } from '../Table/query';
 import { StaticItem } from '../Item/Item';
 import { IdxATL, IdxCfgSet } from '../Table/Table';
@@ -6,30 +5,22 @@ import { itemizeFn } from './itemize';
 
 export const listMakerFn =
 	<
-		ISIdx extends string & Exclude<keyof TIdxCfg, TPIdxN>,
-		TIdxA extends string,
-		TIdxATL extends IdxATL,
-		TPIdxN extends string & keyof TIdxCfg,
-		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>,
-		Item extends StaticItem<ISIdx, TIdxA, TIdxATL, TPIdxN, TIdxCfg>
+		Idx extends string & keyof TIdxCfg,
+		TIdxCfg extends IdxCfgSet<string, IdxATL>,
+		Item extends StaticItem<Idx, TIdxCfg>
 	>(
 		Item: Item
 	) =>
 	async <A extends object>(data: QueryOutput<A>) => {
-		const itemize = itemizeFn<ISIdx, TIdxA, TIdxATL, TPIdxN, TIdxCfg, Item>(Item);
+		const itemize = itemizeFn<Idx, TIdxCfg, Item>(Item);
 
-		const batches = chunk(data.Items, 10);
+		let Items: Array<InstanceType<Item>> = [];
 
-		let items: Array<InstanceType<Item>> = [];
+		for (const Item of data.Items) {
+			const newItem = await itemize(Item);
 
-		for (const batch of batches) {
-			const newItems = await Promise.all(batch.map(itemize));
-
-			items = [...items, ...newItems];
+			Items.push(newItem);
 		}
 
-		return {
-			...data,
-			Items: items
-		};
+		return { ...data, Items };
 	};

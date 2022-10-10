@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { TestTable } from '../utils';
+import { TestTable } from '../TestTable.dev';
 import { A } from 'ts-toolbelt';
 
 export const getKeyAttributesCheck: A.Equals<keyof Parameters<typeof TestTable['get']>[0]['Key'], 'pk' | 'sk'> = 1;

@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { TestTable } from '../utils';
+import { TestTable } from '../TestTable.dev';
 
 beforeEach(TestTable.reset);
 

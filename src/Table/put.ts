@@ -1,11 +1,12 @@
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { Assign, NoTableName } from '../utils';
-import { Table, IdxATL, IdxCfgSet, IdxKey } from './Table';
+import { Assign, NoTN } from '../utils';
+import { hasPutAttributes } from './hasAttributes';
+import { MCfg } from './Table';
 
 export type PutReturnValues = 'NONE' | 'ALL_OLD' | undefined | never;
 
 export type PutItemInput<A extends DocumentClient.AttributeMap, RV extends PutReturnValues> = Assign<
-	NoTableName<DocumentClient.PutItemInput>,
+	NoTN<DocumentClient.PutItemInput>,
 	{
 		Item: A;
 		ReturnValues?: RV;
@@ -20,22 +21,13 @@ export type PutItemOutput<A extends DocumentClient.AttributeMap, RV extends PutR
 >;
 
 export const putFn =
-	<
-		TIdxA extends string,
-		TIdxATL extends IdxATL,
-		TPIdxN extends string & keyof TIdxCfg,
-		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
-	>(
-		ParentTable: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
-	) =>
-	async <A extends IdxKey<TIdxCfg[TPIdxN]>, RV extends PutReturnValues>(
-		query: PutItemInput<A, RV>
-	): Promise<PutItemOutput<A, RV>> => {
-		const data = await ParentTable.config.client.put({ TableName: ParentTable.config.name, ...query }).promise();
+	<PKey extends object>(config: MCfg) =>
+	async <A extends PKey, RV extends PutReturnValues>(query: PutItemInput<A, RV>): Promise<PutItemOutput<A, RV>> => {
+		const data = await config.client.put({ TableName: config.name, ...query }).promise();
 
-		if (ParentTable.config.logger) ParentTable.config.logger.info(data);
+		if (config.logger) config.logger.info(data);
 
-		ParentTable.hasPutAttributes<A, RV>(data, query.ReturnValues);
+		hasPutAttributes<A, RV>(data, query.ReturnValues);
 
 		return data;
 	};

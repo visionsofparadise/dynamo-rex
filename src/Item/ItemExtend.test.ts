@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid';
-import { randomNumber, RequiredAttributes, TestTable } from '../utils';
+import { randomNumber, RA } from '../utils';
 import { A } from 'ts-toolbelt';
+import { TestTable } from '../TestTable.dev';
 
 interface IKey {
 	pk: string;
@@ -95,7 +96,7 @@ class TestItem extends BaseItem<ITestItem, 'gsi0' | 'gsi1' | 'gsi2' | 'gsi3' | '
 		return props.testNumber;
 	}
 
-	constructor(props: RequiredAttributes<ITestItem, 'testString' | 'testNumber'>) {
+	constructor(props: RA<ITestItem, 'testString' | 'testNumber'>) {
 		super(props, TestItem);
 	}
 }

@@ -1,41 +1,31 @@
-import _get from 'lodash/get';
-import _flatten from 'lodash/flatten';
-import { constructObject, UnionToIntersection } from '../utils';
+import { zipObject, UnionToIntersection } from '../utils';
 import { Table, IdxATL, IdxKey, IdxCfgSet } from '../Table/Table';
 
-export type StaticItem<
-	ISIdx extends (string & Exclude<keyof TIdxCfg, TPIdxN>) | never,
-	TIdxA extends string,
-	TIdxATL extends IdxATL,
-	TPIdxN extends string & keyof TIdxCfg,
-	TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
-> = {
-	[x in keyof IdxKey<TIdxCfg[TPIdxN]>]: (params: any) => IdxKey<TIdxCfg[TPIdxN]>[x];
-} & {
-	[x in keyof IdxKey<TIdxCfg[ISIdx]>]: (params: any) => IdxKey<TIdxCfg[ISIdx]>[x];
-} & { new (...args: any[]): any; secondaryIndexes: Array<ISIdx> };
+export type StaticItem<IdxN extends string & keyof TIdxCfg, TIdxCfg extends IdxCfgSet<string, IdxATL>> = {
+	[x in keyof IdxKey<TIdxCfg[IdxN]>]: (params: any) => IdxKey<TIdxCfg[IdxN]>[x];
+} & { new (...args: any[]): any };
 
 export class Item<
-	IA extends object,
+	IA extends Record<string, any>,
 	ISIdx extends (string & Exclude<keyof TIdxCfg, TPIdxN>) | never,
 	TIdxA extends string,
 	TIdxATL extends IdxATL,
 	TPIdxN extends string & keyof TIdxCfg,
 	TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 > {
-	Item: StaticItem<ISIdx, TIdxA, TIdxATL, TPIdxN, TIdxCfg>;
+	Item: StaticItem<ISIdx | TPIdxN, TIdxCfg> & { secondaryIndexes: Array<ISIdx> };
 	Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>;
 
-	_initial: IA;
-	_current: IA;
+	#initial: IA;
+	#current: IA;
 
 	constructor(
 		props: IA,
-		Item: StaticItem<ISIdx, TIdxA, TIdxATL, TPIdxN, TIdxCfg>,
+		Item: StaticItem<ISIdx | TPIdxN, TIdxCfg> & { secondaryIndexes: Array<ISIdx> },
 		Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
 	) {
-		this._initial = props;
-		this._current = props;
+		this.#initial = props;
+		this.#current = props;
 
 		this.Item = Item;
 		this.Table = Table;
@@ -52,9 +42,9 @@ export class Item<
 
 		const attributes = rangeKey ? [hashKey.attribute, rangeKey.attribute] : [hashKey.attribute];
 
-		const values = attributes.map(attribute => this.Item[attribute](this._current));
+		const values = attributes.map(attribute => this.Item[attribute](this.#current));
 
-		return constructObject(attributes, values);
+		return zipObject(attributes, values);
 	}
 
 	get indexKeys() {
@@ -67,19 +57,18 @@ export class Item<
 	}
 
 	get props() {
-		return this._current;
+		return this.#current;
 	}
 
 	get propsWithKeys() {
-		return { ...this.indexKeys, ...this._current };
+		return { ...this.indexKeys, ...this.#current };
 	}
 
 	get init() {
-		return this._initial;
+		return this.#initial;
 	}
 
 	onNew() {}
-	async onGet() {}
 	async onSet() {}
 	async onWrite() {}
 	async onCreate() {}
@@ -88,9 +77,9 @@ export class Item<
 	async set(props: Partial<IA>) {
 		await this.onSet();
 
-		this._current = { ...this._current, ...props };
+		this.#current = { ...this.#current, ...props };
 
-		if (this.Table.config.logger) this.Table.config.logger.info(this._current);
+		if (this.Table.config.logger) this.Table.config.logger.info(this.#current);
 
 		return;
 	}
@@ -123,11 +112,11 @@ export class Item<
 		let untrimmedUpdateExpression = 'SET ';
 		let ExpressionAttributeValues = {};
 
-		for (const key of Object.keys(props)) {
-			untrimmedUpdateExpression += `${key} = :${key}, `;
+		for (const key of Object.keys(props) as Array<keyof IA>) {
+			untrimmedUpdateExpression += `${String(key)} = :${String(key)}, `;
 			ExpressionAttributeValues = {
 				...ExpressionAttributeValues,
-				[`:${key}`]: _get(props, key)
+				[`:${String(key)}`]: props[key]
 			};
 		}
 

@@ -10,12 +10,10 @@ import { scanFn } from './scan';
 import { deleteFn } from './delete';
 import { queryFn } from './query';
 import { resetFn } from './reset';
-import { hasItemFn, hasItemsFn } from './hasItem';
-import { hasPutAttributesFn, hasUpdateAttributesFn } from './hasAttributes';
 
 export type IdxATL = 'string' | 'string?' | 'number' | 'number?';
 
-type IdxATLToType<TIdxATL extends IdxATL> = TIdxATL extends 'string'
+export type IdxATLToType<TIdxATL extends IdxATL> = TIdxATL extends 'string'
 	? string
 	: TIdxATL extends 'string?'
 	? string | undefined
@@ -25,15 +23,15 @@ type IdxATLToType<TIdxATL extends IdxATL> = TIdxATL extends 'string'
 	? number | undefined
 	: string | number;
 
-export type IdxACfg<TIdxA extends string, TIdxATL extends IdxATL> = {
+export interface IdxACfg<TIdxA extends string, TIdxATL extends IdxATL> {
 	attribute: TIdxA;
 	type: TIdxATL;
-};
+}
 
-export type IdxCfg<HKA extends string, RKA extends string, HKATL extends IdxATL, RKATL extends IdxATL> = {
+export interface IdxCfg<HKA extends string, RKA extends string, HKATL extends IdxATL, RKATL extends IdxATL> {
 	hashKey: IdxACfg<HKA, Exclude<HKATL, 'string?' | 'number?'>>;
 	rangeKey?: IdxACfg<RKA, RKATL>;
-};
+}
 
 export type IdxCfgSet<TIdxA extends string, TIdxATL extends IdxATL> = Record<
 	string,
@@ -48,13 +46,17 @@ export type IdxKey<TIdxCfg extends IdxCfg<string, string, IdxATL, IdxATL>> = TId
 			Record<TIdxCfg['rangeKey']['attribute'], IdxATLToType<TIdxCfg['rangeKey']['type']>>
 	: Record<TIdxCfg['hashKey']['attribute'], IdxATLToType<TIdxCfg['hashKey']['type']>>;
 
-type TCfg<TPIdxN extends string & keyof InputIdxCfgSet, InputIdxCfgSet extends IdxCfgSet<string, IdxATL>> = {
+export interface MCfg {
 	name: string;
 	client: DocumentClient;
+	logger?: ILogger;
+}
+
+interface TCfg<TPIdxN extends string & keyof InputIdxCfgSet, InputIdxCfgSet extends IdxCfgSet<string, IdxATL>>
+	extends MCfg {
 	primaryIndex: TPIdxN;
 	indexes: InputIdxCfgSet;
-	logger?: ILogger;
-};
+}
 
 export class Table<
 	TIdxA extends string,
@@ -63,22 +65,25 @@ export class Table<
 	TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
 > {
 	constructor(public config: TCfg<TPIdxN, TIdxCfg>) {
-		this.hasItem = hasItemFn();
-		this.hasItems = hasItemsFn();
-		this.hasPutAttributes = hasPutAttributesFn();
-		this.hasUpdateAttributes = hasUpdateAttributesFn();
+		const { primaryIndex, indexes, ...methodConfig } = config;
 
-		this.put = putFn(this);
-		this.get = getFn(this);
-		this.create = createFn(this);
-		this.update = updateFn(this);
-		this.query = queryFn(this);
-		this.scan = scanFn(this);
-		this.delete = deleteFn(this);
-		this.reset = resetFn(this);
+		const primaryIndexCfg = config.indexes[config.primaryIndex];
+
+		this.put = putFn(methodConfig);
+		this.get = getFn(methodConfig);
+		this.create = createFn(methodConfig);
+		this.update = updateFn(methodConfig);
+		this.query = queryFn(methodConfig);
+		this.scan = scanFn(methodConfig);
+		this.delete = deleteFn(methodConfig);
+		this.reset = resetFn({
+			...methodConfig,
+			hashKey: primaryIndexCfg.hashKey.attribute,
+			rangeKey: primaryIndexCfg.rangeKey ? primaryIndexCfg.rangeKey.attribute : undefined
+		});
 	}
 
-	Index!: keyof TIdxCfg;
+	Index!: string & keyof TIdxCfg;
 	IndexKeyMap!: {
 		[x in keyof TIdxCfg]: IdxKey<TIdxCfg[x]>;
 	};
@@ -91,28 +96,23 @@ export class Table<
 		[x in Exclude<keyof TIdxCfg, TPIdxN>]: IdxKey<TIdxCfg[x]>;
 	};
 
-	hasItem: ReturnType<typeof hasItemFn<TIdxA, TIdxATL, TPIdxN, TIdxCfg>>;
-	hasItems: ReturnType<typeof hasItemsFn<TIdxA, TIdxATL, TPIdxN, TIdxCfg>>;
-	hasPutAttributes: ReturnType<typeof hasPutAttributesFn<TIdxA, TIdxATL, TPIdxN, TIdxCfg>>;
-	hasUpdateAttributes: ReturnType<typeof hasUpdateAttributesFn<TIdxA, TIdxATL, TPIdxN, TIdxCfg>>;
-
-	put: ReturnType<typeof putFn<TIdxA, TIdxATL, TPIdxN, TIdxCfg>>;
-	get: ReturnType<typeof getFn<TIdxA, TIdxATL, TPIdxN, TIdxCfg>>;
-	create: ReturnType<typeof createFn<TIdxA, TIdxATL, TPIdxN, TIdxCfg>>;
-	update: ReturnType<typeof updateFn<TIdxA, TIdxATL, TPIdxN, TIdxCfg>>;
-	query: ReturnType<typeof queryFn<TIdxA, TIdxATL, TPIdxN, TIdxCfg>>;
-	scan: ReturnType<typeof scanFn<TIdxA, TIdxATL, TPIdxN, TIdxCfg>>;
-	delete: ReturnType<typeof deleteFn<TIdxA, TIdxATL, TPIdxN, TIdxCfg>>;
-	reset: ReturnType<typeof resetFn<TIdxA, TIdxATL, TPIdxN, TIdxCfg>>;
+	put: ReturnType<typeof putFn<typeof this['PrimaryIndexKey']>>;
+	get: ReturnType<typeof getFn<typeof this['PrimaryIndexKey']>>;
+	create: ReturnType<typeof createFn<typeof this['PrimaryIndexKey']>>;
+	update: ReturnType<typeof updateFn<typeof this['PrimaryIndexKey']>>;
+	query: ReturnType<typeof queryFn<TPIdxN, typeof this['IndexKeyMap']>>;
+	scan: ReturnType<typeof scanFn<TPIdxN, typeof this['IndexKeyMap']>>;
+	delete: ReturnType<typeof deleteFn<typeof this['PrimaryIndexKey']>>;
+	reset: ReturnType<typeof resetFn<TPIdxN, typeof this['IndexKeyMap']>>;
 
 	get Item() {
 		const ParentTable = this;
 
 		return class TableItem<
-			IA extends object,
+			IA extends Record<string, any>,
 			ISIdx extends (string & Exclude<keyof TIdxCfg, TPIdxN>) | never
 		> extends Item<IA, ISIdx, TIdxA, TIdxATL, TPIdxN, TIdxCfg> {
-			constructor(props: IA, Item: StaticItem<ISIdx, TIdxA, TIdxATL, TPIdxN, TIdxCfg>) {
+			constructor(props: IA, Item: StaticItem<ISIdx | TPIdxN, TIdxCfg> & { secondaryIndexes: Array<ISIdx> }) {
 				super(props, Item, ParentTable);
 			}
 		};

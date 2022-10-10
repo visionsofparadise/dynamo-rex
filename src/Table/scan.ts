@@ -1,49 +1,44 @@
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { Assign, NoTableName } from '../utils';
-import { Table, IdxATL, IdxCfgSet, IdxKey } from './Table';
+import { Assign, NoTN } from '../utils';
+import { hasItems } from './hasItem';
+import { IdxATL, IdxKey, MCfg, IdxCfg } from './Table';
 
 export type ScanInput<
-	TPIdxN extends string & keyof TIdxCfg,
-	SIdx extends Exclude<keyof TIdxCfg, TPIdxN> | never,
-	TIdxCfg extends IdxCfgSet<string, IdxATL>
+	TPIdxN extends string & keyof IdxKeyMap,
+	SIdx extends Exclude<keyof IdxKeyMap, TPIdxN> | never,
+	IdxKeyMap extends Record<string, IdxKey<IdxCfg<string, string, IdxATL, IdxATL>>>
 > = Assign<
-	NoTableName<DocumentClient.ScanInput>,
+	NoTN<DocumentClient.ScanInput>,
 	{
 		IndexName?: SIdx;
-		ExclusiveStartKey?: IdxKey<TIdxCfg[TPIdxN]> & SIdx extends Exclude<keyof TIdxCfg, TPIdxN>
-			? IdxKey<TIdxCfg[SIdx]>
-			: {};
+		ExclusiveStartKey?: IdxKeyMap[TPIdxN] & (SIdx extends Exclude<keyof IdxKeyMap, TPIdxN> ? IdxKeyMap[SIdx] : {});
 	}
 >;
 
 export type ScanOutput<A extends DocumentClient.AttributeMap> = Assign<
 	DocumentClient.ScanOutput,
 	{
-		Items?: Array<A>;
+		Items: Array<A>;
 	}
 >;
 
 export const scanFn =
 	<
-		TIdxA extends string,
-		TIdxATL extends IdxATL,
-		TPIdxN extends string & keyof TIdxCfg,
-		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
+		TPIdxN extends string & keyof IdxKeyMap,
+		IdxKeyMap extends Record<string, IdxKey<IdxCfg<string, string, IdxATL, IdxATL>>>
 	>(
-		ParentTable: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
+		config: MCfg
 	) =>
-	async <A extends IdxKey<TIdxCfg[TPIdxN]>, SIdx extends (string & Exclude<keyof TIdxCfg, TPIdxN>) | never>(
-		query?: ScanInput<TPIdxN, SIdx, TIdxCfg>
+	async <A extends IdxKeyMap[TPIdxN], SIdx extends (string & Exclude<keyof IdxKeyMap, TPIdxN>) | never>(
+		query?: ScanInput<TPIdxN, SIdx, IdxKeyMap>
 	): Promise<ScanOutput<A>> => {
 		const fallbackQuery = query || {};
 
-		const data = await ParentTable.config.client
-			.scan({ TableName: ParentTable.config.name, ...fallbackQuery })
-			.promise();
+		const data = await config.client.scan({ TableName: config.name, ...fallbackQuery }).promise();
 
-		if (ParentTable.config.logger) ParentTable.config.logger.info(data);
+		if (config.logger) config.logger.info(data);
 
-		ParentTable.hasItems<A>(data);
+		hasItems<A>(data);
 
 		return data;
 	};

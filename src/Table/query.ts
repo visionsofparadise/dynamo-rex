@@ -1,18 +1,18 @@
 import { DocumentClient } from 'aws-sdk/clients/dynamodb';
-import { Assign, NoTableName } from '../utils';
-import { Table, IdxATL, IdxCfgSet, IdxKey } from './Table';
+import { Assign, NoTN } from '../utils';
+import { hasItems } from './hasItem';
+import { IdxATL, IdxKey, MCfg, IdxCfg } from './Table';
 
 export type QueryInput<
-	TPIdxN extends string & keyof TIdxCfg,
-	SIdx extends Exclude<keyof TIdxCfg, TPIdxN> | never,
-	TIdxCfg extends IdxCfgSet<string, IdxATL>
+	TPIdxN extends string & keyof IdxKeyMap,
+	SIdx extends (string & Exclude<keyof IdxKeyMap, TPIdxN>) | never,
+	IdxKeyMap extends Record<string, IdxKey<IdxCfg<string, string, IdxATL, IdxATL>>>
 > = Assign<
-	NoTableName<DocumentClient.QueryInput>,
+	NoTN<DocumentClient.QueryInput>,
 	{
 		IndexName?: SIdx;
-		ExclusiveStartKey?: IdxKey<TIdxCfg[TPIdxN]> & SIdx extends Exclude<keyof TIdxCfg, TPIdxN>
-			? IdxKey<TIdxCfg[SIdx]>
-			: {};
+		ExclusiveStartKey?: IdxKeyMap[TPIdxN] &
+			(SIdx extends string & Exclude<keyof IdxKeyMap, TPIdxN> ? IdxKeyMap[SIdx] : {});
 	}
 >;
 
@@ -25,23 +25,21 @@ export type QueryOutput<A extends DocumentClient.AttributeMap> = Assign<
 
 export const queryFn =
 	<
-		TIdxA extends string,
-		TIdxATL extends IdxATL,
-		TPIdxN extends string & keyof TIdxCfg,
-		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
+		TPIdxN extends string & keyof IdxKeyMap,
+		IdxKeyMap extends Record<string, IdxKey<IdxCfg<string, string, IdxATL, IdxATL>>>
 	>(
-		ParentTable: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
+		config: MCfg
 	) =>
-	async <A extends IdxKey<TIdxCfg[TPIdxN]>, SIdx extends (string & Exclude<keyof TIdxCfg, TPIdxN>) | never>(
-		query: QueryInput<TPIdxN, SIdx, TIdxCfg>
+	async <A extends IdxKeyMap[TPIdxN], SIdx extends (string & Exclude<keyof IdxKeyMap, TPIdxN>) | never>(
+		query: QueryInput<TPIdxN, SIdx, IdxKeyMap>
 	): Promise<QueryOutput<A>> => {
-		const data = await ParentTable.config.client
-			.query({ TableName: ParentTable.config.name, ...query, IndexName: query.IndexName && String(query.IndexName) })
+		const data = await config.client
+			.query({ TableName: config.name, ...query, IndexName: query.IndexName && String(query.IndexName) })
 			.promise();
 
-		if (ParentTable.config.logger) ParentTable.config.logger.info(data);
+		if (config.logger) config.logger.info(data);
 
-		ParentTable.hasItems<A>(data);
+		hasItems<A>(data);
 
 		return data;
 	};

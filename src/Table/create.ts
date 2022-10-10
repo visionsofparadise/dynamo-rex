@@ -1,7 +1,7 @@
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { GetItemInput } from './get';
-import { PutItemInput, PutItemOutput, PutReturnValues } from './put';
-import { Table, IdxATL, IdxCfgSet, IdxKey } from './Table';
+import { getFn, GetItemInput } from './get';
+import { putFn, PutItemInput, PutItemOutput, PutReturnValues } from './put';
+import { MCfg } from './Table';
 
 export type CreateItemInput<
 	A extends DocumentClient.AttributeMap,
@@ -10,21 +10,14 @@ export type CreateItemInput<
 > = PutItemInput<A, RV> & GetItemInput<A, PK>;
 
 export const createFn =
-	<
-		TIdxA extends string,
-		TIdxATL extends IdxATL,
-		TPIdxN extends string & keyof TIdxCfg,
-		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
-	>(
-		ParentTable: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
-	) =>
-	async <A extends IdxKey<TIdxCfg[TPIdxN]>, RV extends PutReturnValues>(
-		query: CreateItemInput<A, IdxKey<TIdxCfg[TPIdxN]>, RV>
+	<PKey extends object>(config: MCfg) =>
+	async <A extends PKey, RV extends PutReturnValues>(
+		query: CreateItemInput<A, PKey, RV>
 	): Promise<PutItemOutput<A, RV>> => {
 		try {
-			await ParentTable.get<A>(query);
+			await getFn<PKey>(config)<A>(query);
 		} catch (error) {
-			return ParentTable.put<A, RV>(query);
+			return putFn<PKey>(config)<A, RV>(query);
 		}
 
 		throw new Error('Item already exists');

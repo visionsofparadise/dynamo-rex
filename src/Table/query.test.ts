@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid';
-import { TestTable, wait } from '../utils';
+import wait from 'wait';
 import { A } from 'ts-toolbelt';
+import { TestTable } from '../TestTable.dev';
 
 export const indexNameCheck: A.Equals<
 	Parameters<typeof TestTable['query']>[0]['IndexName'],

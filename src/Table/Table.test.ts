@@ -1,5 +1,5 @@
 import { A } from 'ts-toolbelt';
-import { TestTable } from '../utils';
+import { TestTable } from '../TestTable.dev';
 
 export const indexCheck: A.Equals<
 	typeof TestTable['Index'],

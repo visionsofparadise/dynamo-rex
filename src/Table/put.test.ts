@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { TestTable } from '../utils';
+import { TestTable } from '../TestTable.dev';
 import { A } from 'ts-toolbelt';
 
 export const putItemCheck: A.Extends<Parameters<typeof TestTable['put']>[0]['Item'], { pk: string; sk: string }> = 1;

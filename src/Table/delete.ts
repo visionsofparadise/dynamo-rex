@@ -1,15 +1,16 @@
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { Assign, NoTableName } from '../utils';
-import { GetItemInput } from './get';
+import { Assign, NoTN } from '../utils';
+import { getFn, GetItemInput } from './get';
+import { hasPutAttributes } from './hasAttributes';
 import { PutReturnValues } from './put';
-import { Table, IdxATL, IdxCfgSet, IdxKey } from './Table';
+import { MCfg } from './Table';
 
 export type DeleteItemInput<
 	A extends DocumentClient.AttributeMap,
 	PK extends DocumentClient.GetItemInput['Key'],
 	RV extends PutReturnValues
 > = Assign<
-	NoTableName<DocumentClient.DeleteItemInput>,
+	NoTN<DocumentClient.DeleteItemInput>,
 	{
 		Key: GetItemInput<A, PK>['Key'];
 		ReturnValues?: RV;
@@ -24,22 +25,15 @@ export type DeleteItemOutput<A extends DocumentClient.AttributeMap, RV extends P
 >;
 
 export const deleteFn =
-	<
-		TIdxA extends string,
-		TIdxATL extends IdxATL,
-		TPIdxN extends string & keyof TIdxCfg,
-		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
-	>(
-		ParentTable: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
-	) =>
-	async <A extends IdxKey<TIdxCfg[TPIdxN]>, RV extends PutReturnValues>(
-		query: DeleteItemInput<A, IdxKey<TIdxCfg[TPIdxN]>, RV>
+	<PKey extends object>(config: MCfg) =>
+	async <A extends PKey, RV extends PutReturnValues>(
+		query: DeleteItemInput<A, PKey, RV>
 	): Promise<DeleteItemOutput<A, RV>> => {
-		await ParentTable.get(query);
+		await getFn<PKey>(config)<A>(query);
 
-		const data = await ParentTable.config.client.delete({ TableName: ParentTable.config.name, ...query }).promise();
+		const data = await config.client.delete({ TableName: config.name, ...query }).promise();
 
-		ParentTable.hasPutAttributes<A, RV>(data, query.ReturnValues);
+		hasPutAttributes<A, RV>(data, query.ReturnValues);
 
 		return data;
 	};

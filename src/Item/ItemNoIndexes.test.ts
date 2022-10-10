@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid';
-import { randomNumber, RequiredAttributes, TestTable } from '../utils';
+import { randomNumber, RA } from '../utils';
+import { TestTable } from '../TestTable.dev';
 
 interface IKey {
 	pk: string;
@@ -22,7 +23,7 @@ class TestItem extends TestTable.Item<ITestItem, never> {
 		return `test-${props.testString}`;
 	}
 
-	constructor(props: RequiredAttributes<ITestItem, 'testString' | 'testNumber'>) {
+	constructor(props: RA<ITestItem, 'testString' | 'testNumber'>) {
 		super(props, TestItem);
 	}
 }

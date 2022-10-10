@@ -1,5 +1,6 @@
 .env*
 *.test.ts
+*.dev.ts
 src
 dist/cdk
 node_modules

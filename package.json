@@ -8,9 +8,7 @@
 		"patch": "npm version patch && npm publish",
 		"build": "npm run compile && npm run test && npm run patch"
 	},
-	"dependencies": {
-		"lodash": "^4.17.21"
-	},
+	"dependencies": {},
 	"devDependencies": {
 		"@shelf/jest-dynamodb": "^1.8.1",
 		"@types/jest": "^24.9.1",
@@ -28,7 +26,8 @@
 		"tslint": "^5.20.1",
 		"tslint-config-prettier": "^1.18.0",
 		"tslint-plugin-prettier": "^2.1.0",
-		"typescript": "^4.8.4"
+		"typescript": "^4.8.4",
+		"wait": "^0.4.2"
 	},
 	"peerDependencies": {
 		"aws-sdk": "^2.816.0"

@@ -1,9 +1,10 @@
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { Assign, NoTableName } from '../utils';
-import { Table, IdxATL, IdxCfgSet, IdxKey } from './Table';
+import { Assign, NoTN } from '../utils';
+import { hasItem } from './hasItem';
+import { MCfg } from './Table';
 
 export type GetItemInput<A extends DocumentClient.AttributeMap, PK extends DocumentClient.GetItemInput['Key']> = Assign<
-	NoTableName<DocumentClient.GetItemInput>,
+	NoTN<DocumentClient.GetItemInput>,
 	{ AttributesToGet?: Array<string & keyof A>; Key: PK }
 >;
 
@@ -15,22 +16,13 @@ export type GetItemOutput<A extends DocumentClient.AttributeMap> = Assign<
 >;
 
 export const getFn =
-	<
-		TIdxA extends string,
-		TIdxATL extends IdxATL,
-		TPIdxN extends string & keyof TIdxCfg,
-		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
-	>(
-		ParentTable: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
-	) =>
-	async <A extends IdxKey<TIdxCfg[TPIdxN]>>(
-		query: GetItemInput<A, IdxKey<TIdxCfg[TPIdxN]>>
-	): Promise<GetItemOutput<A>> => {
-		const data = await ParentTable.config.client.get({ TableName: ParentTable.config.name, ...query }).promise();
+	<PKey extends object>(config: MCfg) =>
+	async <A extends PKey>(query: GetItemInput<A, PKey>): Promise<GetItemOutput<A>> => {
+		const data = await config.client.get({ TableName: config.name, ...query }).promise();
 
-		ParentTable.hasItem<A>(data);
+		hasItem<A>(data);
 
-		if (ParentTable.config.logger) ParentTable.config.logger.info(data.Item);
+		if (config.logger) config.logger.info(data.Item);
 
 		return data;
 	};
