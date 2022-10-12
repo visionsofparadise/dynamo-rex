@@ -1,18 +1,20 @@
 import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import { Assign, NoTN } from '../utils';
 import { hasItems } from './hasItem';
-import { IdxATL, IdxKey, MCfg, IdxCfg } from './Table';
+import { IdxATL, MCfg, IdxCfgM, IdxCfgMToKeyM, IdxP, NotPIdxN, TIdxN } from './Table';
 
 export type QueryInput<
-	TPIdxN extends string & keyof IdxKeyMap,
-	SIdx extends (string & Exclude<keyof IdxKeyMap, TPIdxN>) | never,
-	IdxKeyMap extends Record<string, IdxKey<IdxCfg<string, string, IdxATL, IdxATL>>>
+	TPIdxN extends TIdxN<TIdxCfgM>,
+	TSIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> | never,
+	TIdxPA extends string,
+	TIdxP extends IdxP<TIdxPA>,
+	TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>
 > = Assign<
 	NoTN<DocumentClient.QueryInput>,
 	{
-		IndexName?: SIdx;
-		ExclusiveStartKey?: IdxKeyMap[TPIdxN] &
-			(SIdx extends string & Exclude<keyof IdxKeyMap, TPIdxN> ? IdxKeyMap[SIdx] : {});
+		IndexName?: TSIdxN;
+		ExclusiveStartKey?: IdxCfgMToKeyM<TIdxCfgM>[TPIdxN] &
+			(TSIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> ? IdxCfgMToKeyM<TIdxCfgM>[TSIdxN] : {});
 	}
 >;
 
@@ -23,23 +25,43 @@ export type QueryOutput<A extends DocumentClient.AttributeMap> = Assign<
 	}
 >;
 
+export type QueryA<
+	A extends DocumentClient.AttributeMap,
+	TPIdxN extends TIdxN<TIdxCfgM>,
+	TSIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> | never,
+	TIdxPA extends string,
+	TIdxP extends IdxP<TIdxPA>,
+	TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>,
+	TIdxKeyM extends IdxCfgMToKeyM<TIdxCfgM> = IdxCfgMToKeyM<TIdxCfgM>
+> = TIdxKeyM[TPIdxN] &
+	(TSIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>
+		? TIdxKeyM[TSIdxN] &
+				(TIdxCfgM[TSIdxN]['project'] extends string[]
+					? { [x in TIdxCfgM[TSIdxN]['project'][number] & keyof A]: x extends keyof A ? A[x] : never }
+					: TIdxP extends never[]
+					? never
+					: A)
+		: A);
+
 export const queryFn =
 	<
-		TPIdxN extends string & keyof IdxKeyMap,
-		IdxKeyMap extends Record<string, IdxKey<IdxCfg<string, string, IdxATL, IdxATL>>>
+		TPIdxN extends TIdxN<TIdxCfgM>,
+		TIdxPA extends string,
+		TIdxP extends IdxP<TIdxPA>,
+		TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>
 	>(
 		config: MCfg
 	) =>
-	async <A extends IdxKeyMap[TPIdxN], SIdx extends (string & Exclude<keyof IdxKeyMap, TPIdxN>) | never>(
-		query: QueryInput<TPIdxN, SIdx, IdxKeyMap>
-	): Promise<QueryOutput<A>> => {
+	async <A extends DocumentClient.AttributeMap, TSIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> | never>(
+		query: QueryInput<TPIdxN, TSIdxN, TIdxPA, TIdxP, TIdxCfgM>
+	): Promise<QueryOutput<QueryA<A, TPIdxN, TSIdxN, TIdxPA, TIdxP, TIdxCfgM>>> => {
 		const data = await config.client
 			.query({ TableName: config.name, ...query, IndexName: query.IndexName && String(query.IndexName) })
 			.promise();
 
 		if (config.logger) config.logger.info(data);
 
-		hasItems<A>(data);
+		hasItems<QueryA<A, TPIdxN, TSIdxN, TIdxPA, TIdxP, TIdxCfgM>>(data);
 
 		return data;
 	};

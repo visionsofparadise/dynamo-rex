@@ -1,25 +1,16 @@
 import { chunk } from '../utils';
 import { scanFn } from './scan';
-import { IdxATL, MCfg, IdxCfg, IdxKey } from './Table';
-
-interface ResetCfg extends MCfg {
-	hashKey: string;
-	rangeKey: string | undefined;
-}
+import { MCfg, PIdxCfg, IdxKey } from './Table';
 
 export const resetFn =
-	<
-		TPIdxN extends string & keyof IdxKeyMap,
-		IdxKeyMap extends Record<string, IdxKey<IdxCfg<string, string, IdxATL, IdxATL>>>
-	>(
-		config: ResetCfg
-	) =>
+	<TPIdxCfg extends PIdxCfg>(config: MCfg, primaryIndexConfig: TPIdxCfg) =>
 	async () => {
 		if (config.logger) config.logger.info(`Resetting ${config.name}`);
 
-		const scanData = await scanFn<TPIdxN, IdxKeyMap>(config)();
+		const scanData = await scanFn(config)<IdxKey<TPIdxCfg>>();
 
-		const { hashKey, rangeKey } = config;
+		const hashKey = primaryIndexConfig.hashKey.attribute;
+		const rangeKey = primaryIndexConfig.rangeKey ? primaryIndexConfig.rangeKey.attribute : undefined;
 
 		const batches = chunk(scanData.Items, 25);
 

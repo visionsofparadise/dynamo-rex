@@ -1,68 +1,84 @@
-import { StaticItem } from '../Item/Item';
-import { Table, IdxCfgSet, IdxATL, IdxACfg } from '../Table/Table';
+import { IdxAFns } from '../Item/Item';
+import { Table, IdxCfgM, IdxATL, IdxACfg, IdxATLToType, IdxP, TIdxN, NotPIdxN } from '../Table/Table';
 import { HKP } from './getters';
-import { allFn } from './all';
 import { keyOfFn } from './keyOf';
 import { oneFn } from './one';
 import { hashKeyOnlyFn } from './hashKeyOnly';
 import { startsWithFn } from './startsWith';
 import { betweenFn } from './between';
+import { assertRangeKeyIsOptional } from './assertRangeKeyIsOptional';
+import { assertIndexNameIsNotPrimaryIndex } from './assertIndexNameIsNotPrimaryIndex';
+
+export interface GetterCfg<IdxN extends TIdxN<TIdxCfgM>, TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfgM> {
+	hashKey: TIdxCfgM[IdxN]['hashKey']['attribute'];
+	rangeKey: TIdxCfgM[IdxN]['rangeKey'] extends IdxACfg<string, IdxATL>
+		? TIdxCfgM[IdxN]['rangeKey']['attribute']
+		: undefined;
+	IndexName: Exclude<IdxN, TPIdxN> | undefined;
+}
+
+export interface QueryGetterCfg<IdxN extends TIdxN<TIdxCfgM>, TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfgM>
+	extends GetterCfg<IdxN, TPIdxN, TIdxCfgM> {
+	hashKeyValue: IdxATLToType<TIdxCfgM[IdxN]['hashKey']['type']>;
+}
 
 export const indexGettersFn =
 	<
-		ISIdx extends string & Exclude<keyof TIdxCfg, TPIdxN>,
+		IA extends {},
+		ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
+		IIdxAFns extends IdxAFns<TPIdxN | ISIdxN, TIdxCfgM>,
+		TPIdxN extends TIdxN<TIdxCfgM>,
 		TIdxA extends string,
 		TIdxATL extends IdxATL,
-		TPIdxN extends string & keyof TIdxCfg,
-		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>,
-		Item extends StaticItem<TPIdxN | ISIdx, TIdxCfg>
+		TIdxPA extends string,
+		TIdxP extends IdxP<TIdxPA>,
+		TIdxCfgM extends IdxCfgM<TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP>
 	>(
-		Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>,
-		Item: Item
+		Table: Table<TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP, TIdxCfgM>,
+		Item: IIdxAFns
 	) =>
-	<Idx extends TPIdxN | ISIdx>(
-		index: Idx
+	<IdxN extends TPIdxN | ISIdxN>(
+		index: (TPIdxN | ISIdxN) & IdxN
 	): {
-		keyOf: ReturnType<typeof keyOfFn<Idx, TIdxCfg, Item>>;
-		one: ReturnType<typeof oneFn<Idx, ISIdx, TPIdxN, TIdxCfg, Item>>;
-		all: ReturnType<typeof allFn<ISIdx, TPIdxN, TIdxCfg, Item>>;
-		query: (props: HKP<Idx, TIdxCfg, Item>) => {
-			hashKeyOnly: ReturnType<typeof hashKeyOnlyFn<Idx, ISIdx, TPIdxN, TIdxCfg, Item>>;
-			startsWith: ReturnType<typeof startsWithFn<Idx, ISIdx, TPIdxN, TIdxCfg, Item>>;
-			between: ReturnType<typeof betweenFn<Idx, ISIdx, TPIdxN, TIdxCfg, Item>>;
+		keyOf: ReturnType<typeof keyOfFn<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>>;
+		one: ReturnType<typeof oneFn<IdxN, IA, ISIdxN, IIdxAFns, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
+		query: (props: HKP<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>) => {
+			hashKeyOnly: ReturnType<typeof hashKeyOnlyFn<IdxN, IA, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
+			startsWith: ReturnType<typeof startsWithFn<IdxN, IA, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
+			between: ReturnType<typeof betweenFn<IdxN, IA, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
 		};
 	} => {
 		const Index = Table.config.indexes[index];
 
 		const hashKey = Index.hashKey.attribute;
 		const rangeKey = Index.rangeKey ? Index.rangeKey.attribute : undefined;
-		const IndexName = index === (Table.config.primaryIndex as string) ? undefined : (index as Exclude<Idx, TPIdxN>);
+		const IndexName = index === Table.config.primaryIndex ? undefined : index;
+
+		assertRangeKeyIsOptional<IdxN, TIdxCfgM>(rangeKey, index, Table.config.indexes);
+		assertIndexNameIsNotPrimaryIndex<IdxN, TPIdxN>(IndexName, index, Table.config.primaryIndex);
 
 		const config = {
 			hashKey,
-			rangeKey: rangeKey as TIdxCfg[Idx]['rangeKey'] extends IdxACfg<string, IdxATL>
-				? TIdxCfg[Idx]['rangeKey']['attribute']
-				: undefined,
+			rangeKey,
 			IndexName
 		};
 
-		const query = (props: HKP<Idx, TIdxCfg, Item>) => {
+		const query = (props: HKP<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>) => {
 			const queryConfig = {
 				...config,
 				hashKeyValue: Item[hashKey](props)
 			};
 
 			return {
-				hashKeyOnly: hashKeyOnlyFn<Idx, ISIdx, TPIdxN, TIdxCfg, Item>(Table, Item, queryConfig),
-				startsWith: startsWithFn<Idx, ISIdx, TPIdxN, TIdxCfg, Item>(Table, Item, queryConfig),
-				between: betweenFn<Idx, ISIdx, TPIdxN, TIdxCfg, Item>(Table, Item, queryConfig)
+				hashKeyOnly: hashKeyOnlyFn<IdxN, IA, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, queryConfig),
+				startsWith: startsWithFn<IdxN, IA, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, queryConfig),
+				between: betweenFn<IdxN, IA, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, queryConfig)
 			};
 		};
 
 		return {
-			keyOf: keyOfFn<Idx, TIdxCfg, Item>(Item, config),
-			one: oneFn<Idx, ISIdx, TPIdxN, TIdxCfg, Item>(Table, Item, config),
-			all: allFn<ISIdx, TPIdxN, TIdxCfg, Item>(),
+			keyOf: keyOfFn<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>(Item, config),
+			one: oneFn<IdxN, IA, ISIdxN, IIdxAFns, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, Item, config),
 			query
 		};
 	};

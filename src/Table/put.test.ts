@@ -2,8 +2,6 @@ import { nanoid } from 'nanoid';
 import { TestTable } from '../TestTable.dev';
 import { A } from 'ts-toolbelt';
 
-export const putItemCheck: A.Extends<Parameters<typeof TestTable['put']>[0]['Item'], { pk: string; sk: string }> = 1;
-
 beforeEach(TestTable.reset);
 
 it('puts new item', async () => {
@@ -44,9 +42,43 @@ it('puts over existing item', async () => {
 		test: 'test2'
 	};
 
-	await TestTable.put({
+	const result = await TestTable.put({
 		Item: Item2
 	});
 
-	expect(true).toBe(true);
+	const putItemReturnValuesCheck: A.Equals<typeof result['Attributes'], never> = 1;
+
+	expect(putItemReturnValuesCheck).toBe(1);
+	expect(result.Attributes).toBe(undefined);
+});
+
+it('puts over existing item and returns old values', async () => {
+	const Key = {
+		pk: nanoid(),
+		sk: nanoid()
+	};
+
+	const Item = {
+		...Key,
+		test: 'test1'
+	};
+
+	await TestTable.put({
+		Item
+	});
+
+	const Item2 = {
+		...Key,
+		test: 'test2'
+	};
+
+	const result = await TestTable.put({
+		Item: Item2,
+		ReturnValues: 'ALL_OLD'
+	});
+
+	const putItemReturnValuesCheck: A.Equals<typeof result['Attributes'], typeof Item> = 1;
+
+	expect(putItemReturnValuesCheck).toBe(1);
+	expect(result.Attributes).toStrictEqual(Item);
 });

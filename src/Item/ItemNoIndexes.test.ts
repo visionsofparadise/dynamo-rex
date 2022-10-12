@@ -12,7 +12,7 @@ interface ITestItem {
 	testNumber: number;
 }
 
-class TestItem extends TestTable.Item<ITestItem, never> {
+class TestItem extends TestTable.Item<ITestItem> {
 	static itemName = 'TestItem';
 	static secondaryIndexes = [];
 

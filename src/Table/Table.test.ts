@@ -15,10 +15,10 @@ export const primaryIndexKeyValuesCheck: A.Equals<
 	string
 > = 1;
 
-export const indexKeySingleAttribtuesCheck: A.Equals<keyof typeof TestTable['IndexKeyMap']['gsi5'], 'gsi5Pk'> = 1;
+export const indexKeySingleAttribtuesCheck: A.Equals<keyof typeof TestTable['IndexKeyM']['gsi5'], 'gsi5Pk'> = 1;
 
 export const indexKeyValueCheck: A.Equals<
-	typeof TestTable['IndexKeyMap']['gsi5'][keyof typeof TestTable['IndexKeyMap']['gsi5']],
+	typeof TestTable['IndexKeyM']['gsi5'][keyof typeof TestTable['IndexKeyM']['gsi5']],
 	number
 > = 1;
 

@@ -1,50 +1,33 @@
-import { IdxATL, IdxCfgSet, Table } from '../Table/Table';
-import { OA } from '../utils';
-import { QueryInput, QueryOutput } from '../Table/query';
-import { StaticItem } from '../Item/Item';
+import { QueryOutput } from '../Table/query';
 
-export const allFn =
-	<
-		ISIdx extends string & Exclude<keyof TIdxCfg, TPIdxN>,
-		TPIdxN extends string & keyof TIdxCfg,
-		TIdxCfg extends IdxCfgSet<string, IdxATL>,
-		Item extends StaticItem<ISIdx | TPIdxN, TIdxCfg>
-	>() =>
-	<
-		ListFunctionQuery extends OA<
-			QueryInput<TPIdxN, ISIdx, Table<string, IdxATL, TPIdxN, TIdxCfg>['IndexKeyMap']>,
-			'KeyConditionExpression' | 'ExpressionAttributeValues'
-		>
-	>(
-		listFunction: (listQuery: ListFunctionQuery) => Promise<QueryOutput<InstanceType<Item>>>
-	) => {
-		return {
-			query: async (listQuery: ListFunctionQuery) => {
-				const getPages = async (
-					internalListQuery: ListFunctionQuery
-				): Promise<
-					Pick<QueryOutput<InstanceType<Item>>, 'Items'> & {
-						PageData: Array<Omit<QueryOutput<InstanceType<Item>>, 'Items'>>;
-					}
-				> => {
-					const { Items, ...PageData } = await listFunction(internalListQuery);
+type QueryAllOutput<ListQueryReturn extends QueryOutput<any>> = Pick<ListQueryReturn, 'Items'> & {
+	PageData: Array<Omit<ListQueryReturn, 'Items'>>;
+};
 
-					if (PageData.LastEvaluatedKey) {
-						const moreData = await getPages({ ...internalListQuery, ExclusiveStartKey: PageData.LastEvaluatedKey });
+export const all = <ListFunctionQuery, ListQueryReturn extends QueryOutput<any>>(
+	listFunction: (listFunctionQuery: ListFunctionQuery) => Promise<ListQueryReturn>
+) => {
+	return {
+		query: async (listAllQuery: ListFunctionQuery) => {
+			const queryAll = async (listQuery: ListFunctionQuery): Promise<QueryAllOutput<ListQueryReturn>> => {
+				const { Items, ...PageData } = await listFunction(listQuery);
 
-						return {
-							Items: [...Items, ...moreData.Items],
-							PageData: [PageData, ...moreData.PageData]
-						};
-					} else {
-						return {
-							Items,
-							PageData: [PageData]
-						};
-					}
-				};
+				if (PageData.LastEvaluatedKey) {
+					const moreData = await queryAll({ ...listQuery, ExclusiveStartKey: PageData.LastEvaluatedKey });
 
-				return getPages(listQuery);
-			}
-		};
+					return {
+						Items: [...Items, ...moreData.Items],
+						PageData: [PageData, ...moreData.PageData]
+					};
+				} else {
+					return {
+						Items,
+						PageData: [PageData]
+					};
+				}
+			};
+
+			return queryAll(listAllQuery);
+		}
 	};
+};

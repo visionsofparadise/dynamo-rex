@@ -40,7 +40,7 @@ module.exports = {
 						{ AttributeName: 'gsi1Sk', KeyType: 'RANGE' }
 					],
 					Projection: {
-						ProjectionType: 'ALL'
+						ProjectionType: 'KEYS_ONLY'
 					},
 					ProvisionedThroughput: { ReadCapacityUnits: 1, WriteCapacityUnits: 1 }
 				},
@@ -51,7 +51,8 @@ module.exports = {
 						{ AttributeName: 'gsi2Sk', KeyType: 'RANGE' }
 					],
 					Projection: {
-						ProjectionType: 'ALL'
+						ProjectionType: 'INCLUDE',
+						NonKeyAttributes: ['testString']
 					},
 					ProvisionedThroughput: { ReadCapacityUnits: 1, WriteCapacityUnits: 1 }
 				},

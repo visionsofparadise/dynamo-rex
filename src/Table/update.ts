@@ -2,13 +2,13 @@ import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import { Assign, NoTN } from '../utils';
 import { hasUpdateAttributes } from './hasAttributes';
 import { PutReturnValues } from './put';
-import { MCfg } from './Table';
+import { IdxATL, IdxCfgM, IdxKey, IdxKeys, MCfg, NotPIdxN, TIdxN } from './Table';
 
 export type UpdateReturnValues = 'UPDATED_OLD' | 'ALL_NEW' | 'UPDATED_NEW' | PutReturnValues;
 
-export type UpdateItemInput<PK extends DocumentClient.UpdateItemInput['Key'], RV extends UpdateReturnValues> = Assign<
+export type UpdateItemInput<Key extends DocumentClient.UpdateItemInput['Key'], RV extends UpdateReturnValues> = Assign<
 	NoTN<DocumentClient.UpdateItemInput>,
-	{ Key: PK; ReturnValues?: RV }
+	{ Key: Key; ReturnValues?: RV }
 >;
 
 export type UpdateItemOutput<A extends DocumentClient.AttributeMap, RV extends UpdateReturnValues> = Assign<
@@ -19,13 +19,25 @@ export type UpdateItemOutput<A extends DocumentClient.AttributeMap, RV extends U
 >;
 
 export const updateFn =
-	<PKey extends object>(config: MCfg) =>
-	async <A extends PKey, RV extends UpdateReturnValues>(
-		query: UpdateItemInput<PKey, RV>
-	): Promise<UpdateItemOutput<A, RV>> => {
+	<
+		TPIdxN extends TIdxN<TIdxCfgM>,
+		TIdxA extends string,
+		TIdxATL extends IdxATL,
+		TIdxCfgM extends IdxCfgM<TPIdxN, TIdxA, TIdxATL>
+	>(
+		config: MCfg
+	) =>
+	async <
+		A extends {},
+		Idx extends NotPIdxN<TPIdxN, TIdxCfgM> | never = never,
+		RV extends PutReturnValues = never,
+		AIdxA extends DocumentClient.AttributeMap = A & IdxKeys<TPIdxN | Idx, TIdxCfgM>
+	>(
+		query: UpdateItemInput<IdxKey<TIdxCfgM[TPIdxN]>, RV>
+	): Promise<UpdateItemOutput<AIdxA, RV>> => {
 		const data = await config.client.update({ TableName: config.name, ...query }).promise();
 
-		hasUpdateAttributes<A, RV>(data);
+		hasUpdateAttributes<AIdxA, RV>(data);
 
 		if (config.logger) config.logger.info(data);
 

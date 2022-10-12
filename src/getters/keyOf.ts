@@ -1,23 +1,20 @@
-import { StaticItem } from '../Item/Item';
+import { IdxAFns } from '../Item/Item';
 import { zipObject } from '../utils';
-import { IdxACfg, IdxATL, IdxCfgSet, IdxKey } from '../Table/Table';
+import { IdxCfgM, IdxKey, TIdxN } from '../Table/Table';
 import { HKRKP } from './getters';
+import { GetterCfg } from './indexGetters';
 
 export const keyOfFn =
 	<
-		Idx extends string & keyof TIdxCfg,
-		TIdxCfg extends IdxCfgSet<string, IdxATL>,
-		Item extends StaticItem<Idx, TIdxCfg>
+		IdxN extends string & keyof TIdxCfgM,
+		IIdxAFns extends IdxAFns<IdxN, TIdxCfgM>,
+		TPIdxN extends TIdxN<TIdxCfgM>,
+		TIdxCfgM extends IdxCfgM<TPIdxN>
 	>(
-		Item: Item,
-		config: {
-			hashKey: TIdxCfg[Idx]['hashKey']['attribute'];
-			rangeKey: TIdxCfg[Idx]['rangeKey'] extends IdxACfg<string, IdxATL>
-				? TIdxCfg[Idx]['rangeKey']['attribute']
-				: undefined;
-		}
+		Item: IIdxAFns,
+		config: GetterCfg<IdxN, TPIdxN, TIdxCfgM>
 	) =>
-	(props: HKRKP<Idx, TIdxCfg, Item>): IdxKey<TIdxCfg[Idx]> => {
+	(props: HKRKP<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>): IdxKey<TIdxCfgM[IdxN]> => {
 		const { hashKey, rangeKey } = config;
 
 		const attributes = rangeKey ? [hashKey, rangeKey] : [hashKey];

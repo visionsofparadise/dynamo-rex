@@ -1,60 +1,82 @@
-import { Table, IdxCfgSet, IdxATL, IdxACfg } from '../Table/Table';
-import { zipObject } from '../utils';
-import { StaticItem } from '../Item/Item';
+import { Table, IdxCfgM, IdxATL, IdxACfg, IdxP, NotPIdxN, TIdxN } from '../Table/Table';
+import { OA, zipObject } from '../utils';
+import { IdxAFns, ISIdxCfg } from '../Item/Item';
 import { indexGettersFn } from './indexGetters';
+import { QueryInput } from '../Table/query';
+import { all } from './all';
+
+export type GetterQueryInput<
+	TPIdxN extends TIdxN<TIdxCfgM>,
+	TSIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> | never,
+	TIdxP extends IdxP<TIdxPA>,
+	TIdxPA extends string,
+	TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>
+> = Omit<
+	OA<QueryInput<TPIdxN, TSIdxN, TIdxPA, TIdxP, TIdxCfgM>, 'KeyConditionExpression' | 'ExpressionAttributeValues'>,
+	'IndexName'
+>;
 
 export type HKP<
-	Idx extends string & keyof TIdxCfg,
-	TIdxCfg extends IdxCfgSet<string, IdxATL>,
-	Item extends StaticItem<Idx, TIdxCfg>,
-	HKPT = Parameters<Item[TIdxCfg[Idx]['hashKey']['attribute']]>[0]
+	IdxN extends TIdxN<TIdxCfgM>,
+	IIdxAFns extends IdxAFns<IdxN, TIdxCfgM>,
+	TPIdxN extends TIdxN<TIdxCfgM> & keyof TIdxCfgM,
+	TIdxCfgM extends IdxCfgM<TPIdxN>,
+	HKPT = Parameters<IIdxAFns[TIdxCfgM[IdxN]['hashKey']['attribute']]>[0]
 > = HKPT extends undefined ? void : HKPT;
 
 export type RKP<
-	Idx extends string & keyof TIdxCfg,
-	TIdxCfg extends IdxCfgSet<string, IdxATL>,
-	Item extends StaticItem<Idx, TIdxCfg>,
-	RKCfg = TIdxCfg[Idx]['rangeKey']
+	IdxN extends TIdxN<TIdxCfgM>,
+	IIdxAFns extends IdxAFns<IdxN, TIdxCfgM>,
+	TPIdxN extends TIdxN<TIdxCfgM>,
+	TIdxCfgM extends IdxCfgM<TPIdxN>,
+	RKCfg = TIdxCfgM[IdxN]['rangeKey']
 > = RKCfg extends IdxACfg<string, IdxATL>
-	? Parameters<Item[RKCfg['attribute']]>[0] extends undefined
+	? Parameters<IIdxAFns[RKCfg['attribute']]>[0] extends undefined
 		? void
-		: Parameters<Item[RKCfg['attribute']]>[0]
+		: Parameters<IIdxAFns[RKCfg['attribute']]>[0]
 	: void;
 
 export type HKRKP<
-	Idx extends string & keyof TIdxCfg,
-	TIdxCfg extends IdxCfgSet<string, IdxATL>,
-	Item extends StaticItem<Idx, TIdxCfg>,
-	HKPT = HKP<Idx, TIdxCfg, Item>,
-	RKPT = RKP<Idx, TIdxCfg, Item>
+	IdxN extends TIdxN<TIdxCfgM>,
+	IIdxAFns extends IdxAFns<IdxN, TIdxCfgM>,
+	TPIdxN extends TIdxN<TIdxCfgM>,
+	TIdxCfgM extends IdxCfgM<TPIdxN>,
+	HKPT = HKP<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>,
+	RKPT = RKP<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>
 > = HKPT extends void ? (RKPT extends void ? void : RKPT) : RKPT extends void ? HKPT : HKPT & RKPT;
 
 export const getters =
 	<
+		TPIdxN extends TIdxN<TIdxCfgM>,
 		TIdxA extends string,
 		TIdxATL extends IdxATL,
-		TPIdxN extends string & keyof TIdxCfg,
-		TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
+		TIdxPA extends string,
+		TIdxP extends IdxP<TIdxPA>,
+		TIdxCfgM extends IdxCfgM<TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP>
 	>(
-		Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
+		Table: Table<TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP, TIdxCfgM>
 	) =>
-	<ISIdx extends string & Exclude<keyof TIdxCfg, TPIdxN>, Item extends StaticItem<ISIdx | TPIdxN, TIdxCfg>>(
-		Item: Item & {
-			secondaryIndexes: Array<ISIdx>;
-		}
+	<IA extends {}, ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>, IIdxAFns extends IdxAFns<ISIdxN | TPIdxN, TIdxCfgM>>(
+		Item: IIdxAFns & ISIdxCfg<ISIdxN>
 	) => {
-		const indexGetters = indexGettersFn<ISIdx, TIdxA, TIdxATL, TPIdxN, TIdxCfg, Item>(Table, Item);
+		const indexGetters = indexGettersFn<IA, ISIdxN, IIdxAFns, TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP, TIdxCfgM>(
+			Table,
+			Item
+		);
 
-		const indexFunctionSet: { [x in ISIdx]: ReturnType<typeof indexGetters<x>> } = zipObject(
+		const primaryOneGetter = indexGetters(Table.config.primaryIndex).one;
+
+		const primaryIndexGetters = indexGetters(Table.config.primaryIndex);
+
+		const secondaryIndexGetters: { [x in ISIdxN]: ReturnType<typeof indexGetters<x>> } = zipObject(
 			Item.secondaryIndexes,
 			Item.secondaryIndexes.map(index => indexGetters(index))
 		);
 
-		const primaryOne = indexGetters(Table.config.primaryIndex).one;
-
-		const gettersObject = Object.assign(primaryOne, {
-			...indexGetters(Table.config.primaryIndex),
-			...indexFunctionSet
+		const gettersObject = Object.assign(primaryOneGetter, {
+			all,
+			...primaryIndexGetters,
+			...secondaryIndexGetters
 		});
 
 		return gettersObject;

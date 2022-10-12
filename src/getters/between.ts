@@ -1,44 +1,32 @@
-import { QueryInput, QueryOutput } from '../Table/query';
-import { StaticItem } from '../Item/Item';
-import { Table, IdxCfgSet, IdxATL, IdxATLToType, IdxACfg } from '../Table/Table';
-import { OA } from '../utils';
-import { listMakerFn } from './listMaker';
+import { QueryA, QueryOutput } from '../Table/query';
+import { Table, IdxCfgM, IdxATL, IdxP, NotPIdxN, TIdxN } from '../Table/Table';
+import { GetterQueryInput } from './getters';
+import { QueryGetterCfg } from './indexGetters';
 
 export const betweenFn =
 	<
-		Idx extends ISIdx | TPIdxN,
-		ISIdx extends string & Exclude<keyof TIdxCfg, TPIdxN>,
-		TPIdxN extends string & keyof TIdxCfg,
-		TIdxCfg extends IdxCfgSet<string, IdxATL>,
-		Item extends StaticItem<Idx, TIdxCfg>
+		IdxN extends ISIdxN | TPIdxN,
+		IA extends {},
+		ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
+		TPIdxN extends TIdxN<TIdxCfgM>,
+		TIdxPA extends string,
+		TIdxP extends IdxP<TIdxPA>,
+		TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP> = IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>
 	>(
-		Table: Table<string, IdxATL, TPIdxN, TIdxCfg>,
-		Item: Item,
-		config: {
-			hashKey: TIdxCfg[Idx]['hashKey']['attribute'];
-			hashKeyValue: IdxATLToType<TIdxCfg[Idx]['hashKey']['type']>;
-			rangeKey: TIdxCfg[Idx]['rangeKey'] extends IdxACfg<string, IdxATL>
-				? TIdxCfg[Idx]['rangeKey']['attribute']
-				: undefined;
-			IndexName: Exclude<Idx, TPIdxN> | undefined;
-		}
+		Table: Table<TPIdxN, string, IdxATL, TIdxPA, TIdxP, TIdxCfgM>,
+		config: QueryGetterCfg<IdxN, TPIdxN, TIdxCfgM>
 	) =>
 	async (
-		listQuery: OA<
-			QueryInput<TPIdxN, ISIdx, typeof Table['IndexKeyMap']>,
-			'KeyConditionExpression' | 'ExpressionAttributeValues'
-		> & {
+		listQuery: GetterQueryInput<TPIdxN, Exclude<IdxN, TPIdxN>, TIdxP, TIdxPA, TIdxCfgM> & {
 			Min: string | number;
 			Max: string | number;
 		}
-	): Promise<QueryOutput<InstanceType<typeof Item>>> => {
+	): Promise<QueryOutput<QueryA<IA, TPIdxN, Exclude<IdxN, TPIdxN>, TIdxPA, TIdxP, TIdxCfgM>>> => {
 		const { hashKey, hashKeyValue, rangeKey, IndexName } = config;
 
 		const { Min, Max, ...restOfQuery } = listQuery;
 
-		const listMaker = listMakerFn<Idx, TIdxCfg, Item>(Item);
-
-		return Table.query({
+		return Table.query<IA, Exclude<IdxN, TPIdxN>>({
 			IndexName,
 			KeyConditionExpression: `${hashKey} = :hashKey AND ${rangeKey} BETWEEN :min AND :max`,
 			ExpressionAttributeValues: {
@@ -47,5 +35,5 @@ export const betweenFn =
 				[`:max`]: Max
 			},
 			...restOfQuery
-		}).then(listMaker);
+		});
 	};

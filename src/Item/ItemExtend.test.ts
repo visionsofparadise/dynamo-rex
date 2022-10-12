@@ -19,13 +19,13 @@ interface ITestItem extends IBaseItem {
 	testNumber: number;
 }
 
-class BaseItem<IExtend extends IBaseItem, ISIdx extends typeof TestTable.SecondaryIndex> extends TestTable.Item<
+class BaseItem<IExtend extends IBaseItem, ISIdxN extends typeof TestTable.SecondaryIndex> extends TestTable.Item<
 	IExtend,
-	ISIdx
+	ISIdxN
 > {
 	constructor(
 		props: Omit<IExtend, 'createdAt' | 'updatedAt' | 'itemName'>,
-		SelfItem: ConstructorParameters<typeof TestTable.Item<IExtend, ISIdx>>[1] & { itemName: IBaseItem['itemName'] }
+		SelfItem: ConstructorParameters<typeof TestTable.Item<IExtend, ISIdxN>>[1] & { itemName: IBaseItem['itemName'] }
 	) {
 		super(
 			{

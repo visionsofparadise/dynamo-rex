@@ -1,28 +1,33 @@
-import { zipObject, UnionToIntersection } from '../utils';
-import { Table, IdxATL, IdxKey, IdxCfgSet } from '../Table/Table';
+import { zipObject } from '../utils';
+import { Table, IdxATL, IdxKey, IdxCfgM, NotPIdxN, IdxKeys, TIdxN } from '../Table/Table';
 
-export type StaticItem<IdxN extends string & keyof TIdxCfg, TIdxCfg extends IdxCfgSet<string, IdxATL>> = {
-	[x in keyof IdxKey<TIdxCfg[IdxN]>]: (params: any) => IdxKey<TIdxCfg[IdxN]>[x];
-} & { new (...args: any[]): any };
+export type IdxAFns<IdxN extends string & keyof TIdxCfgM, TIdxCfgM extends IdxCfgM> = {
+	[x in keyof IdxKey<TIdxCfgM[IdxN]>]: (params: any) => IdxKey<TIdxCfgM[IdxN]>[x];
+};
+
+export interface ISIdxCfg<ISIdxN extends string> {
+	secondaryIndexes: Array<ISIdxN>;
+}
 
 export class Item<
-	IA extends Record<string, any>,
-	ISIdx extends (string & Exclude<keyof TIdxCfg, TPIdxN>) | never,
-	TIdxA extends string,
-	TIdxATL extends IdxATL,
-	TPIdxN extends string & keyof TIdxCfg,
-	TIdxCfg extends IdxCfgSet<TIdxA, TIdxATL>
+	IA extends {} = {},
+	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> | never = never,
+	TPIdxN extends TIdxN<TIdxCfgM> = string,
+	TIdxA extends string = string,
+	TIdxATL extends IdxATL = IdxATL,
+	TIdxCfgM extends IdxCfgM<TPIdxN, TIdxA, TIdxATL> = IdxCfgM<TPIdxN, TIdxA, TIdxATL>
 > {
-	Item: StaticItem<ISIdx | TPIdxN, TIdxCfg> & { secondaryIndexes: Array<ISIdx> };
-	Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>;
+	Table: Table<TPIdxN, TIdxA, TIdxATL, string, never, TIdxCfgM>;
+	Item: IdxAFns<ISIdxN | TPIdxN, TIdxCfgM> & ISIdxCfg<ISIdxN>;
 
+	Attributes!: IA;
 	#initial: IA;
 	#current: IA;
 
 	constructor(
 		props: IA,
-		Item: StaticItem<ISIdx | TPIdxN, TIdxCfg> & { secondaryIndexes: Array<ISIdx> },
-		Table: Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>
+		Item: IdxAFns<ISIdxN | TPIdxN, TIdxCfgM> & ISIdxCfg<ISIdxN>,
+		Table: Table<TPIdxN, TIdxA, TIdxATL, string, never, TIdxCfgM>
 	) {
 		this.#initial = props;
 		this.#current = props;
@@ -33,11 +38,11 @@ export class Item<
 		this.onNew();
 	}
 
-	get key(): IdxKey<TIdxCfg[TPIdxN]> {
+	get key(): IdxKey<TIdxCfgM[TPIdxN]> {
 		return this.indexKey(this.Table.config.primaryIndex);
 	}
 
-	indexKey<Idx extends ISIdx | TPIdxN>(index: Idx): IdxKey<TIdxCfg[Idx]> {
+	indexKey<IdxN extends ISIdxN | TPIdxN>(index: IdxN): IdxKey<TIdxCfgM[IdxN]> {
 		const { hashKey, rangeKey } = this.Table.config.indexes[index];
 
 		const attributes = rangeKey ? [hashKey.attribute, rangeKey.attribute] : [hashKey.attribute];
@@ -48,12 +53,12 @@ export class Item<
 	}
 
 	get indexKeys() {
-		const mergedKeys = this.Item.secondaryIndexes.reduce(
-			(prev, cur) => ({ ...prev, ...this.indexKey(cur) }),
-			{}
-		) as {} & UnionToIntersection<Table<TIdxA, TIdxATL, TPIdxN, TIdxCfg>['IndexKeyMap'][ISIdx]>;
+		const keys = this.Item.secondaryIndexes.reduce((prev, cur) => ({ ...prev, ...this.indexKey(cur) }), {}) as IdxKeys<
+			ISIdxN,
+			TIdxCfgM
+		>;
 
-		return { ...mergedKeys, ...this.key };
+		return { ...keys, ...this.key };
 	}
 
 	get props() {

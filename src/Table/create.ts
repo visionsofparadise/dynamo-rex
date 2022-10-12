@@ -1,23 +1,36 @@
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { getFn, GetItemInput } from './get';
-import { putFn, PutItemInput, PutItemOutput, PutReturnValues } from './put';
-import { MCfg } from './Table';
+import { putFn, PutItemInput, PutReturnValues } from './put';
+import { IdxATL, IdxCfgM, IdxKey, IdxKeys, MCfg, NotPIdxN, TIdxN } from './Table';
 
 export type CreateItemInput<
 	A extends DocumentClient.AttributeMap,
 	PK extends DocumentClient.GetItemInput['Key'],
-	RV extends PutReturnValues
-> = PutItemInput<A, RV> & GetItemInput<A, PK>;
+	RV extends PutReturnValues = never,
+	AIdxA extends DocumentClient.AttributeMap = A & PK
+> = PutItemInput<AIdxA, RV> & GetItemInput<A, PK>;
 
 export const createFn =
-	<PKey extends object>(config: MCfg) =>
-	async <A extends PKey, RV extends PutReturnValues>(
-		query: CreateItemInput<A, PKey, RV>
-	): Promise<PutItemOutput<A, RV>> => {
+	<
+		TPIdxN extends TIdxN<TIdxCfgM>,
+		TIdxA extends string,
+		TIdxATL extends IdxATL,
+		TIdxCfgM extends IdxCfgM<TPIdxN, TIdxA, TIdxATL>
+	>(
+		config: MCfg
+	) =>
+	async <
+		A extends {},
+		Idx extends NotPIdxN<TPIdxN, TIdxCfgM> | never = never,
+		RV extends PutReturnValues = never,
+		AIdxA extends DocumentClient.AttributeMap = A & IdxKeys<TPIdxN | Idx, TIdxCfgM>
+	>(
+		query: CreateItemInput<A, IdxKey<TIdxCfgM[TPIdxN]>, RV, AIdxA>
+	) => {
 		try {
-			await getFn<PKey>(config)<A>(query);
+			await getFn<TPIdxN, TIdxA, TIdxATL, TIdxCfgM>(config)<A, Idx, AIdxA>(query);
 		} catch (error) {
-			return putFn<PKey>(config)<A, RV>(query);
+			return putFn<TPIdxN, TIdxA, TIdxATL, TIdxCfgM>(config)<A, Idx, RV, AIdxA>(query);
 		}
 
 		throw new Error('Item already exists');

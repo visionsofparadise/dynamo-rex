@@ -44,7 +44,8 @@ export const TestTable = new Dx.Table({
 			rangeKey: {
 				attribute: 'gsi1Sk',
 				type: 'number?'
-			}
+			},
+			project: []
 		},
 		gsi2: {
 			hashKey: {
@@ -54,7 +55,8 @@ export const TestTable = new Dx.Table({
 			rangeKey: {
 				attribute: 'gsi2Sk',
 				type: 'number'
-			}
+			},
+			project: ['testString']
 		},
 		gsi3: {
 			hashKey: {

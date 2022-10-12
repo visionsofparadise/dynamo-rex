@@ -34,7 +34,7 @@ it('gets a put item', async () => {
 		Item: Item2
 	});
 
-	const result = await TestTable.get({
+	const result = await TestTable.get<typeof Item>({
 		Key
 	});
 
