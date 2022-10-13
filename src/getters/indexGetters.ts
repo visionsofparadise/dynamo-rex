@@ -8,19 +8,43 @@ import { startsWithFn } from './startsWith';
 import { betweenFn } from './between';
 import { assertRangeKeyIsOptional } from './assertRangeKeyIsOptional';
 import { assertIndexNameIsNotPrimaryIndex } from './assertIndexNameIsNotPrimaryIndex';
+import { OA } from '../utils';
+import { QueryInput } from '../Table/query';
 
-export interface GetterCfg<IdxN extends TIdxN<TIdxCfgM>, TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfgM> {
+export type GetterQueryInput<
+	IdxN extends NotPIdxN<TPIdxN, TIdxCfgM> | never,
+	TPIdxN extends TIdxN<TIdxCfgM>,
+	TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL>
+> = Omit<OA<QueryInput<IdxN, TPIdxN, TIdxCfgM>, 'KeyConditionExpression' | 'ExpressionAttributeValues'>, 'IndexName'>;
+
+export interface GetterCfg<
+	IdxN extends TPIdxN | ISIdxN,
+	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
+	TPIdxN extends TIdxN<TIdxCfgM>,
+	TIdxCfgM extends IdxCfgM
+> {
 	hashKey: TIdxCfgM[IdxN]['hashKey']['attribute'];
 	rangeKey: TIdxCfgM[IdxN]['rangeKey'] extends IdxACfg<string, IdxATL>
 		? TIdxCfgM[IdxN]['rangeKey']['attribute']
 		: undefined;
-	IndexName: Exclude<IdxN, TPIdxN> | undefined;
+	IndexName?: Exclude<IdxN, TPIdxN>;
 }
 
-export interface QueryGetterCfg<IdxN extends TIdxN<TIdxCfgM>, TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfgM>
-	extends GetterCfg<IdxN, TPIdxN, TIdxCfgM> {
+export interface QueryGetterCfg<
+	IdxN extends TPIdxN | ISIdxN,
+	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
+	TPIdxN extends TIdxN<TIdxCfgM>,
+	TIdxCfgM extends IdxCfgM
+> extends GetterCfg<IdxN, ISIdxN, TPIdxN, TIdxCfgM> {
 	hashKeyValue: IdxATLToType<TIdxCfgM[IdxN]['hashKey']['type']>;
 }
+
+export type QueryIdxN<
+	IdxN extends TPIdxN | ISIdxN,
+	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
+	TPIdxN extends TIdxN<TIdxCfgM>,
+	TIdxCfgM extends IdxCfgM<TPIdxN>
+> = IdxN extends TPIdxN ? never : IdxN;
 
 export const indexGettersFn =
 	<
@@ -40,12 +64,12 @@ export const indexGettersFn =
 	<IdxN extends TPIdxN | ISIdxN>(
 		index: (TPIdxN | ISIdxN) & IdxN
 	): {
-		keyOf: ReturnType<typeof keyOfFn<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>>;
-		one: ReturnType<typeof oneFn<IdxN, IA, ISIdxN, IIdxAFns, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
+		keyOf: ReturnType<typeof keyOfFn<IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxCfgM>>;
+		one: ReturnType<typeof oneFn<IA, IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
 		query: (props: HKP<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>) => {
-			hashKeyOnly: ReturnType<typeof hashKeyOnlyFn<IdxN, IA, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
-			startsWith: ReturnType<typeof startsWithFn<IdxN, IA, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
-			between: ReturnType<typeof betweenFn<IdxN, IA, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
+			hashKeyOnly: ReturnType<typeof hashKeyOnlyFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
+			startsWith: ReturnType<typeof startsWithFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
+			between: ReturnType<typeof betweenFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
 		};
 	} => {
 		const Index = Table.config.indexes[index];
@@ -70,15 +94,15 @@ export const indexGettersFn =
 			};
 
 			return {
-				hashKeyOnly: hashKeyOnlyFn<IdxN, IA, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, queryConfig),
-				startsWith: startsWithFn<IdxN, IA, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, queryConfig),
-				between: betweenFn<IdxN, IA, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, queryConfig)
+				hashKeyOnly: hashKeyOnlyFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, queryConfig),
+				startsWith: startsWithFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, queryConfig),
+				between: betweenFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, queryConfig)
 			};
 		};
 
 		return {
-			keyOf: keyOfFn<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>(Item, config),
-			one: oneFn<IdxN, IA, ISIdxN, IIdxAFns, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, Item, config),
+			keyOf: keyOfFn<IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxCfgM>(Item, config),
+			one: oneFn<IA, IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, Item, config),
 			query
 		};
 	};

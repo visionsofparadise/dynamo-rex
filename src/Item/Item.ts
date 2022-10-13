@@ -1,7 +1,7 @@
 import { zipObject } from '../utils';
 import { Table, IdxATL, IdxKey, IdxCfgM, NotPIdxN, IdxKeys, TIdxN } from '../Table/Table';
 
-export type IdxAFns<IdxN extends string & keyof TIdxCfgM, TIdxCfgM extends IdxCfgM> = {
+export type IdxAFns<IdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfgM> = {
 	[x in keyof IdxKey<TIdxCfgM[IdxN]>]: (params: any) => IdxKey<TIdxCfgM[IdxN]>[x];
 };
 
@@ -92,7 +92,7 @@ export class Item<
 	async write() {
 		await this.onWrite();
 
-		await this.Table.put({
+		await this.Table.put<IA, never, ISIdxN>({
 			Item: this.propsWithKeys
 		});
 
@@ -103,7 +103,7 @@ export class Item<
 		await this.onWrite();
 		await this.onCreate();
 
-		await this.Table.create({
+		await this.Table.create<IA, never, ISIdxN>({
 			Key: this.key,
 			Item: this.propsWithKeys
 		});
@@ -127,7 +127,7 @@ export class Item<
 
 		const UpdateExpression = untrimmedUpdateExpression.slice(0, untrimmedUpdateExpression.length - 2);
 
-		await this.Table.update({
+		await this.Table.update<IA, never, ISIdxN>({
 			Key: this.key,
 			UpdateExpression,
 			ExpressionAttributeValues
@@ -139,7 +139,7 @@ export class Item<
 	async delete() {
 		await this.onDelete();
 
-		await this.Table.delete({
+		await this.Table.delete<IA, never, ISIdxN>({
 			Key: this.key
 		});
 

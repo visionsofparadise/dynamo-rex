@@ -1,5 +1,9 @@
 export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
 
+export interface Constructor<T> {
+	new (...params: any[]): T;
+}
+
 type Log = (message: unknown) => void;
 
 export interface ILogger {

@@ -1,12 +1,11 @@
 import { IdxATL, IdxCfgM, IdxP, NotPIdxN, TIdxN, Table } from '../Table/Table';
-import { QueryA, QueryOutput } from '../Table/query';
-import { GetterQueryInput } from './getters';
-import { QueryGetterCfg } from './indexGetters';
+import { QueryOutput } from '../Table/query';
+import { QueryGetterCfg, GetterQueryInput, QueryIdxN } from './indexGetters';
 
 export const hashKeyOnlyFn =
 	<
-		IdxN extends ISIdxN | TPIdxN,
 		IA extends {},
+		IdxN extends TPIdxN | ISIdxN,
 		ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
 		TPIdxN extends TIdxN<TIdxCfgM>,
 		TIdxPA extends string,
@@ -14,14 +13,14 @@ export const hashKeyOnlyFn =
 		TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>
 	>(
 		Table: Table<TPIdxN, string, IdxATL, TIdxPA, TIdxP, TIdxCfgM>,
-		config: QueryGetterCfg<IdxN, TPIdxN, TIdxCfgM>
+		config: QueryGetterCfg<IdxN, ISIdxN, TPIdxN, TIdxCfgM>
 	) =>
 	async (
-		listQuery?: GetterQueryInput<TPIdxN, Exclude<IdxN, TPIdxN>, TIdxP, TIdxPA, TIdxCfgM>
-	): Promise<QueryOutput<QueryA<IA, TPIdxN, Exclude<IdxN, TPIdxN>, TIdxPA, TIdxP, TIdxCfgM>>> => {
+		listQuery?: GetterQueryInput<QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, TPIdxN, TIdxCfgM>
+	): Promise<QueryOutput<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>> => {
 		const { hashKey, hashKeyValue, IndexName } = config;
 
-		return Table.query<IA, Exclude<IdxN, TPIdxN>>({
+		return Table.query<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
 			IndexName,
 			KeyConditionExpression: `${hashKey} = :hashKey`,
 			ExpressionAttributeValues: {

@@ -1,10 +1,13 @@
 import { QueryOutput } from '../Table/query';
 
-type QueryAllOutput<ListQueryReturn extends QueryOutput<any>> = Pick<ListQueryReturn, 'Items'> & {
+type QueryAllOutput<ListQueryReturn extends QueryOutput<any, never, never, any, any>> = Pick<
+	ListQueryReturn,
+	'Items'
+> & {
 	PageData: Array<Omit<ListQueryReturn, 'Items'>>;
 };
 
-export const all = <ListFunctionQuery, ListQueryReturn extends QueryOutput<any>>(
+export const all = <ListFunctionQuery, ListQueryReturn extends QueryOutput<any, never, never, any, any>>(
 	listFunction: (listFunctionQuery: ListFunctionQuery) => Promise<ListQueryReturn>
 ) => {
 	return {

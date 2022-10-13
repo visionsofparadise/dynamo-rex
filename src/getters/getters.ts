@@ -1,27 +1,15 @@
 import { Table, IdxCfgM, IdxATL, IdxACfg, IdxP, NotPIdxN, TIdxN } from '../Table/Table';
-import { OA, zipObject } from '../utils';
-import { IdxAFns, ISIdxCfg } from '../Item/Item';
+import { Constructor, zipObject } from '../utils';
+import { IdxAFns, ISIdxCfg, Item } from '../Item/Item';
 import { indexGettersFn } from './indexGetters';
-import { QueryInput } from '../Table/query';
 import { all } from './all';
-
-export type GetterQueryInput<
-	TPIdxN extends TIdxN<TIdxCfgM>,
-	TSIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> | never,
-	TIdxP extends IdxP<TIdxPA>,
-	TIdxPA extends string,
-	TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>
-> = Omit<
-	OA<QueryInput<TPIdxN, TSIdxN, TIdxPA, TIdxP, TIdxCfgM>, 'KeyConditionExpression' | 'ExpressionAttributeValues'>,
-	'IndexName'
->;
 
 export type HKP<
 	IdxN extends TIdxN<TIdxCfgM>,
 	IIdxAFns extends IdxAFns<IdxN, TIdxCfgM>,
 	TPIdxN extends TIdxN<TIdxCfgM> & keyof TIdxCfgM,
 	TIdxCfgM extends IdxCfgM<TPIdxN>,
-	HKPT = Parameters<IIdxAFns[TIdxCfgM[IdxN]['hashKey']['attribute']]>[0]
+	HKPT = Parameters<IIdxAFns[TIdxCfgM[IdxN extends never ? TPIdxN : IdxN]['hashKey']['attribute']]>[0]
 > = HKPT extends undefined ? void : HKPT;
 
 export type RKP<
@@ -29,7 +17,7 @@ export type RKP<
 	IIdxAFns extends IdxAFns<IdxN, TIdxCfgM>,
 	TPIdxN extends TIdxN<TIdxCfgM>,
 	TIdxCfgM extends IdxCfgM<TPIdxN>,
-	RKCfg = TIdxCfgM[IdxN]['rangeKey']
+	RKCfg = TIdxCfgM[IdxN extends never ? TPIdxN : IdxN]['rangeKey']
 > = RKCfg extends IdxACfg<string, IdxATL>
 	? Parameters<IIdxAFns[RKCfg['attribute']]>[0] extends undefined
 		? void
@@ -57,7 +45,7 @@ export const getters =
 		Table: Table<TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP, TIdxCfgM>
 	) =>
 	<IA extends {}, ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>, IIdxAFns extends IdxAFns<ISIdxN | TPIdxN, TIdxCfgM>>(
-		Item: IIdxAFns & ISIdxCfg<ISIdxN>
+		Item: IIdxAFns & ISIdxCfg<ISIdxN> & Constructor<Item<IA, ISIdxN, TPIdxN, TIdxA, TIdxATL, TIdxCfgM>>
 	) => {
 		const indexGetters = indexGettersFn<IA, ISIdxN, IIdxAFns, TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP, TIdxCfgM>(
 			Table,

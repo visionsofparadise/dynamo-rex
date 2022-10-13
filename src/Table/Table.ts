@@ -79,8 +79,9 @@ export type IdxKey<TIdxCfg extends PIdxCfg> = Record<
 
 export type TIdxN<TIdxCfgM extends IdxCfgM> = string & keyof TIdxCfgM;
 
-export type NotPIdxN<TPIdxN extends TIdxN<TIdxCfgM> & keyof TIdxCfgM, TIdxCfgM extends IdxCfgM<TPIdxN>> = string &
-	Exclude<keyof TIdxCfgM, TPIdxN>;
+export type NotPIdxN<TPIdxN extends TIdxN<TIdxCfgM> & keyof TIdxCfgM, TIdxCfgM extends IdxCfgM<TPIdxN>> =
+	| (string & Exclude<keyof TIdxCfgM, TPIdxN>)
+	| never;
 
 export interface MCfg {
 	name: string;
@@ -160,13 +161,13 @@ export class Table<
 		[x in NotPIdxN<TPIdxN, TIdxCfgM>]: IdxKey<TIdxCfgM[x]>;
 	};
 
-	put: ReturnType<typeof putFn<TPIdxN, TIdxA, TIdxATL, TIdxCfgM>>;
-	get: ReturnType<typeof getFn<TPIdxN, TIdxA, TIdxATL, TIdxCfgM>>;
-	create: ReturnType<typeof createFn<TPIdxN, TIdxA, TIdxATL, TIdxCfgM>>;
-	update: ReturnType<typeof updateFn<TPIdxN, TIdxA, TIdxATL, TIdxCfgM>>;
-	query: ReturnType<typeof queryFn<TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
-	scan: ReturnType<typeof scanFn<TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
-	delete: ReturnType<typeof deleteFn<TPIdxN, TIdxA, TIdxATL, TIdxCfgM>>;
+	put: ReturnType<typeof putFn<TPIdxN, TIdxCfgM>>;
+	get: ReturnType<typeof getFn<TPIdxN, TIdxCfgM>>;
+	create: ReturnType<typeof createFn<TPIdxN, TIdxCfgM>>;
+	update: ReturnType<typeof updateFn<TPIdxN, TIdxCfgM>>;
+	query: ReturnType<typeof queryFn<TPIdxN, TIdxCfgM>>;
+	scan: ReturnType<typeof scanFn<TPIdxN, TIdxCfgM>>;
+	delete: ReturnType<typeof deleteFn<TPIdxN, TIdxCfgM>>;
 	reset: ReturnType<typeof resetFn<TIdxCfgM[TPIdxN]>>;
 
 	get Item() {
