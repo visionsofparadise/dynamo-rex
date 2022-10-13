@@ -173,7 +173,7 @@ export class Table<
 	get Item() {
 		const ParentTable = this;
 
-		return class TableItem<IA extends {} = {}, ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> | never = never> extends Item<
+		return class TableItem<IA extends {} = {}, ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> = never> extends Item<
 			IA,
 			ISIdxN,
 			TPIdxN,

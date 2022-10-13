@@ -21,16 +21,16 @@ export class Item<
 	Item: IdxAFns<ISIdxN | TPIdxN, TIdxCfgM> & ISIdxCfg<ISIdxN>;
 
 	Attributes!: IA;
-	#initial: IA;
-	#current: IA;
+	initial: IA;
+	current: IA;
 
 	constructor(
 		props: IA,
 		Item: IdxAFns<ISIdxN | TPIdxN, TIdxCfgM> & ISIdxCfg<ISIdxN>,
 		Table: Table<TPIdxN, TIdxA, TIdxATL, string, never, TIdxCfgM>
 	) {
-		this.#initial = props;
-		this.#current = props;
+		this.initial = props;
+		this.current = props;
 
 		this.Item = Item;
 		this.Table = Table;
@@ -47,7 +47,7 @@ export class Item<
 
 		const attributes = rangeKey ? [hashKey.attribute, rangeKey.attribute] : [hashKey.attribute];
 
-		const values = attributes.map(attribute => this.Item[attribute](this.#current));
+		const values = attributes.map(attribute => this.Item[attribute](this.current));
 
 		return zipObject(attributes, values);
 	}
@@ -62,15 +62,15 @@ export class Item<
 	}
 
 	get props() {
-		return this.#current;
+		return this.current;
 	}
 
 	get propsWithKeys() {
-		return { ...this.indexKeys, ...this.#current };
+		return { ...this.indexKeys, ...this.current };
 	}
 
 	get init() {
-		return this.#initial;
+		return this.initial;
 	}
 
 	onNew() {}
@@ -82,9 +82,9 @@ export class Item<
 	async set(props: Partial<IA>) {
 		await this.onSet();
 
-		this.#current = { ...this.#current, ...props };
+		this.current = { ...this.current, ...props };
 
-		if (this.Table.config.logger) this.Table.config.logger.info(this.#current);
+		if (this.Table.config.logger) this.Table.config.logger.info(this.current);
 
 		return;
 	}
