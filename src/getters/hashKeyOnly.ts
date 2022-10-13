@@ -1,6 +1,8 @@
 import { IdxATL, IdxCfgM, IdxP, NotPIdxN, TIdxN, Table } from '../Table/Table';
-import { QueryOutput } from '../Table/query';
-import { QueryGetterCfg, GetterQueryInput, QueryIdxN } from './indexGetters';
+import { QueryGetterCfg, GetterQueryInput, QueryIdxN, GetterQueryOutput } from './indexGetters';
+import { assertQueryOutputItemType } from './assertQueryOutputItemType';
+import { Constructor } from '../utils';
+import { Item } from '../Item/Item';
 
 export const hashKeyOnlyFn =
 	<
@@ -10,17 +12,21 @@ export const hashKeyOnlyFn =
 		TPIdxN extends TIdxN<TIdxCfgM>,
 		TIdxPA extends string,
 		TIdxP extends IdxP<TIdxPA>,
-		TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>
+		TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>,
+		GItem extends Constructor<Item<IA, ISIdxN, TPIdxN, string, IdxATL, TIdxCfgM>>
 	>(
 		Table: Table<TPIdxN, string, IdxATL, TIdxPA, TIdxP, TIdxCfgM>,
+		Item: GItem,
 		config: QueryGetterCfg<IdxN, ISIdxN, TPIdxN, TIdxCfgM>
 	) =>
 	async (
 		listQuery?: GetterQueryInput<QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, TPIdxN, TIdxCfgM>
-	): Promise<QueryOutput<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>> => {
+	): Promise<
+		GetterQueryOutput<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>
+	> => {
 		const { hashKey, hashKeyValue, IndexName } = config;
 
-		return Table.query<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
+		let output = await Table.query<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
 			IndexName,
 			KeyConditionExpression: `${hashKey} = :hashKey`,
 			ExpressionAttributeValues: {
@@ -28,4 +34,18 @@ export const hashKeyOnlyFn =
 			},
 			...(listQuery || {})
 		});
+
+		let isItems = false;
+
+		if (!Table.config.indexes[config.index].project) {
+			output = Object.assign(output, {
+				Items: output.Items.map(item => new Item(item))
+			});
+
+			isItems = true;
+		}
+
+		assertQueryOutputItemType<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>(output, isItems, config, Table);
+
+		return output;
 	};

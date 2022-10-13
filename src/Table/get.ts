@@ -1,6 +1,6 @@
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { Assign, NoTN } from '../utils';
-import { hasItem } from './hasItem';
+import { assertItem } from './assertItem';
 import { IdxCfgM, IdxKey, IdxKeys, MCfg, NotPIdxN, TIdxN } from './Table';
 
 export type GetItemInput<Key extends DocumentClient.GetItemInput['Key']> = Assign<
@@ -27,7 +27,7 @@ export const getFn =
 	): Promise<GetItemOutput<A, ISIdxN, TPIdxN, TIdxCfgM>> => {
 		const data = await config.client.get({ TableName: config.name, ...query }).promise();
 
-		hasItem<A, ISIdxN, TPIdxN, TIdxCfgM>(data);
+		assertItem<A, ISIdxN, TPIdxN, TIdxCfgM>(data);
 
 		if (config.logger) config.logger.info(data.Item);
 

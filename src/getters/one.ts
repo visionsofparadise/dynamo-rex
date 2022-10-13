@@ -1,11 +1,22 @@
-import { GetItemOutput } from '../Table/get';
-import { hasItems } from '../Table/hasItem';
-import { IdxAFns } from '../Item/Item';
+import { assertItems } from '../Table/assertItem';
+import { IdxAFns, Item } from '../Item/Item';
 import { Table, IdxATL, IdxCfgM, IdxP, NotPIdxN, TIdxN } from '../Table/Table';
 import { HKRKP } from './getters';
 import { keyOfFn } from './keyOf';
-import { QueryOutput } from '../Table/query';
-import { GetterCfg, QueryIdxN } from './indexGetters';
+import { GetterCfg, GetterQueryOutput, QueryIdxN } from './indexGetters';
+import { Constructor } from '../utils';
+import { assertOneOutputItemType } from './assertQueryOutputItemType';
+
+export type GetterOneOutput<
+	IA extends {},
+	IdxN extends TPIdxN | ISIdxN,
+	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
+	TPIdxN extends TIdxN<TIdxCfgM>,
+	TIdxPA extends string,
+	TIdxP extends IdxP<TIdxPA>,
+	TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>,
+	GItem extends Constructor<Item<IA, ISIdxN, TPIdxN, string, IdxATL, TIdxCfgM>>
+> = GetterQueryOutput<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>['Items'][number];
 
 export const oneFn =
 	<
@@ -16,18 +27,17 @@ export const oneFn =
 		TPIdxN extends TIdxN<TIdxCfgM>,
 		TIdxPA extends string,
 		TIdxP extends IdxP<TIdxPA>,
-		TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>
+		TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>,
+		GItem extends Constructor<Item<IA, ISIdxN, TPIdxN, string, IdxATL, TIdxCfgM>>
 	>(
 		Table: Table<TPIdxN, string, IdxATL, TIdxPA, TIdxP, TIdxCfgM>,
-		Item: IIdxAFns,
+		Item: IIdxAFns & GItem,
 		config: GetterCfg<IdxN, ISIdxN, TPIdxN, TIdxCfgM>
 	) =>
 	async (
 		props: HKRKP<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>
 	): Promise<
-		IdxN extends TPIdxN
-			? GetItemOutput<IA, ISIdxN, TPIdxN, TIdxCfgM>['Item']
-			: QueryOutput<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>['Items'][number]
+		GetterOneOutput<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>
 	> => {
 		const { hashKey, rangeKey, IndexName } = config;
 
@@ -49,30 +59,15 @@ export const oneFn =
 								[`:hashKey`]: Key[hashKey]
 						  }
 			  }).then(data => {
-					hasItems<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>(data);
+					assertItems<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>(data);
 
 					return data.Items[0];
 			  });
 
-		const assertOutputIsConditional: (
-			output:
-				| GetItemOutput<IA, ISIdxN, TPIdxN, TIdxCfgM>['Item']
-				| QueryOutput<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>['Items'][number]
-		) => asserts output is IdxN extends TPIdxN
-			? GetItemOutput<IA, ISIdxN, TPIdxN, TIdxCfgM>['Item']
-			: QueryOutput<
-					IA,
-					QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>,
-					ISIdxN,
-					TPIdxN,
-					TIdxCfgM
-			  >['Items'][number] = output => {
-			if (!output) {
-				throw new Error('Failed to create output');
-			}
-		};
+		const item = Table.config.indexes[config.index].project ? output : new Item(output);
+		const isItem = Table.config.indexes[config.index].project ? false : true;
 
-		assertOutputIsConditional(output);
+		assertOneOutputItemType<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>(item, isItem, config, Table);
 
-		return output;
+		return item;
 	};

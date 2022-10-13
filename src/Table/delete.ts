@@ -1,7 +1,7 @@
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { Assign, NoTN } from '../utils';
 import { getFn, GetItemInput } from './get';
-import { hasPutAttributes } from './hasAttributes';
+import { assertPutAttributes } from './assertAttributes';
 import { PutReturnValues } from './put';
 import { IdxCfgM, IdxKey, IdxKeys, MCfg, NotPIdxN, TIdxN } from './Table';
 
@@ -38,7 +38,7 @@ export const deleteFn =
 
 		const data = await config.client.delete({ TableName: config.name, ...query }).promise();
 
-		hasPutAttributes<A, RV, ISIdxN, TPIdxN, TIdxCfgM>(data, query.ReturnValues);
+		assertPutAttributes<A, RV, ISIdxN, TPIdxN, TIdxCfgM>(data, query.ReturnValues);
 
 		return data;
 	};

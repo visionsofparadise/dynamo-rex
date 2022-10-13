@@ -1,6 +1,8 @@
-import { QueryOutput } from '../Table/query';
 import { Table, IdxCfgM, IdxATL, IdxP, NotPIdxN, TIdxN } from '../Table/Table';
-import { QueryGetterCfg, GetterQueryInput, QueryIdxN } from './indexGetters';
+import { QueryGetterCfg, GetterQueryInput, QueryIdxN, GetterQueryOutput } from './indexGetters';
+import { Item } from '../Item/Item';
+import { Constructor } from '../utils';
+import { assertQueryOutputItemType } from './assertQueryOutputItemType';
 
 export const startsWithFn =
 	<
@@ -10,21 +12,25 @@ export const startsWithFn =
 		TPIdxN extends TIdxN<TIdxCfgM>,
 		TIdxPA extends string,
 		TIdxP extends IdxP<TIdxPA>,
-		TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>
+		TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>,
+		GItem extends Constructor<Item<IA, ISIdxN, TPIdxN, string, IdxATL, TIdxCfgM>>
 	>(
 		Table: Table<TPIdxN, string, IdxATL, TIdxPA, TIdxP, TIdxCfgM>,
+		Item: GItem,
 		config: QueryGetterCfg<IdxN, ISIdxN, TPIdxN, TIdxCfgM>
 	) =>
 	async (
 		listQuery: GetterQueryInput<QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, TPIdxN, TIdxCfgM> & {
 			StartsWith: string | number;
 		}
-	): Promise<QueryOutput<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>> => {
+	): Promise<
+		GetterQueryOutput<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>
+	> => {
 		const { hashKey, hashKeyValue, rangeKey, IndexName } = config;
 
 		const { StartsWith, ...restOfQuery } = listQuery;
 
-		return Table.query<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
+		let output = await Table.query<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
 			IndexName,
 			KeyConditionExpression: `${hashKey} = :hashKey AND begins_with(${rangeKey}, :startsWith)`,
 			ExpressionAttributeValues: {
@@ -33,4 +39,18 @@ export const startsWithFn =
 			},
 			...restOfQuery
 		});
+
+		let isItems = false;
+
+		if (!Table.config.indexes[config.index].project) {
+			output = Object.assign(output, {
+				Items: output.Items.map(item => new Item(item))
+			});
+
+			isItems = true;
+		}
+
+		assertQueryOutputItemType<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>(output, isItems, config, Table);
+
+		return output;
 	};

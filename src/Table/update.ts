@@ -1,6 +1,6 @@
 import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import { Assign, NoTN } from '../utils';
-import { hasUpdateAttributes } from './hasAttributes';
+import { assertUpdateAttributes } from './assertAttributes';
 import { PutReturnValues } from './put';
 import { IdxCfgM, IdxKey, IdxKeys, MCfg, NotPIdxN, TIdxN } from './Table';
 
@@ -33,7 +33,7 @@ export const updateFn =
 	): Promise<UpdateItemOutput<A, RV, TSIdxN, TPIdxN, TIdxCfgM>> => {
 		const data = await config.client.update({ TableName: config.name, ...query }).promise();
 
-		hasUpdateAttributes<A, RV, TSIdxN, TPIdxN, TIdxCfgM>(data);
+		assertUpdateAttributes<A, RV, TSIdxN, TPIdxN, TIdxCfgM>(data);
 
 		if (config.logger) config.logger.info(data);
 

@@ -1,5 +1,5 @@
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { hasItems } from './hasItem';
+import { assertItems } from './assertItem';
 import { QueryInput, QueryOutput } from './query';
 import { IdxATL, MCfg, IdxCfgM, NotPIdxN, TIdxN } from './Table';
 
@@ -32,7 +32,7 @@ export const scanFn =
 
 		if (config.logger) config.logger.info(data);
 
-		hasItems<A, IdxN, ISIdxN, TPIdxN, TIdxCfgM>(data);
+		assertItems<A, IdxN, ISIdxN, TPIdxN, TIdxCfgM>(data);
 
 		return data;
 	};

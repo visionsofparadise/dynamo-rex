@@ -1,6 +1,6 @@
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { Assign, NoTN } from '../utils';
-import { hasPutAttributes } from './hasAttributes';
+import { assertPutAttributes } from './assertAttributes';
 import { IdxCfgM, IdxKeys, MCfg, NotPIdxN, TIdxN } from './Table';
 
 export type PutReturnValues = 'NONE' | 'ALL_OLD' | undefined | never;
@@ -41,7 +41,7 @@ export const putFn =
 
 		if (config.logger) config.logger.info(data);
 
-		hasPutAttributes<A, RV, TSIdxN, TPIdxN, TIdxCfgM>(data, query.ReturnValues);
+		assertPutAttributes<A, RV, TSIdxN, TPIdxN, TIdxCfgM>(data, query.ReturnValues);
 
 		return data;
 	};

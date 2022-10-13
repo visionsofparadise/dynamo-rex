@@ -3,7 +3,7 @@ import { GetItemOutput } from './get';
 import { QueryOutput } from './query';
 import { NotPIdxN, TIdxN, IdxCfgM } from './Table';
 
-export const hasItem: <
+export const assertItem: <
 	A extends DocumentClient.AttributeMap,
 	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
 	TPIdxN extends TIdxN<TIdxCfgM>,
@@ -16,7 +16,7 @@ export const hasItem: <
 	}
 };
 
-export const hasItems: <
+export const assertItems: <
 	A extends DocumentClient.AttributeMap,
 	IdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
 	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,

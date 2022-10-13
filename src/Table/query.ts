@@ -1,6 +1,6 @@
 import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import { Assign, NoTN } from '../utils';
-import { hasItems } from './hasItem';
+import { assertItems } from './assertItem';
 import { IdxATL, MCfg, IdxCfgM, IdxCfgMToKeyM, NotPIdxN, TIdxN, IdxKeys } from './Table';
 
 export type QueryInput<
@@ -63,7 +63,7 @@ export const queryFn =
 
 		if (config.logger) config.logger.info(data);
 
-		hasItems<A, IdxN, ISIdxN, TPIdxN, TIdxCfgM>(data);
+		assertItems<A, IdxN, ISIdxN, TPIdxN, TIdxCfgM>(data);
 
 		return data;
 	};

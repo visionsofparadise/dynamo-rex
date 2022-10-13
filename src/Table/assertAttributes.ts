@@ -4,7 +4,7 @@ import { PutReturnValues, PutItemOutput } from './put';
 import { IdxCfgM, NotPIdxN, TIdxN } from './Table';
 import { UpdateReturnValues, UpdateItemOutput } from './update';
 
-export const hasPutAttributes: <
+export const assertPutAttributes: <
 	A extends DocumentClient.AttributeMap,
 	RV extends PutReturnValues,
 	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> | never,
@@ -25,7 +25,7 @@ export const hasPutAttributes: <
 	}
 };
 
-export const hasUpdateAttributes: <
+export const assertUpdateAttributes: <
 	A extends DocumentClient.AttributeMap,
 	RV extends UpdateReturnValues,
 	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> | never,
