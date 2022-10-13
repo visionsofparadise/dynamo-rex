@@ -59,25 +59,29 @@ it('puts over existing item and returns old values', async () => {
 	};
 
 	const Item = {
-		...Key,
 		test: 'test1'
 	};
 
 	await TestTable.put({
-		Item
+		Item: {
+			...Key,
+			...Item
+		}
 	});
 
 	const Item2 = {
-		...Key,
 		test: 'test2'
 	};
 
-	const result = await TestTable.put({
-		Item: Item2,
+	const result = await TestTable.put<typeof Item, 'ALL_OLD'>({
+		Item: {
+			...Key,
+			...Item2
+		},
 		ReturnValues: 'ALL_OLD'
 	});
 
-	const putItemReturnValuesCheck: A.Equals<typeof result['Attributes'], typeof Item> = 1;
+	const putItemReturnValuesCheck: A.Extends<typeof result['Attributes'], typeof Item & typeof Key> = 1;
 
 	expect(putItemReturnValuesCheck).toBe(1);
 	expect(result.Attributes).toStrictEqual(Item);
