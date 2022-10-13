@@ -1,22 +1,11 @@
 import { GetItemOutput } from '../Table/get';
-import { hasItem } from '../Table/hasItem';
+import { hasItems } from '../Table/hasItem';
 import { IdxAFns } from '../Item/Item';
 import { Table, IdxATL, IdxCfgM, IdxP, NotPIdxN, TIdxN } from '../Table/Table';
 import { HKRKP } from './getters';
 import { keyOfFn } from './keyOf';
 import { QueryOutput } from '../Table/query';
-import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { GetterCfg, QueryIdxN } from './indexGetters';
-
-type QueryOutputOne<
-	A extends DocumentClient.AttributeMap,
-	IdxN extends ISIdxN,
-	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
-	TPIdxN extends TIdxN<TIdxCfgM>,
-	TIdxCfgM extends IdxCfgM<TPIdxN>
-> = Omit<QueryOutput<A, IdxN, ISIdxN, TPIdxN, TIdxCfgM>, 'Items'> & {
-	Item: QueryOutput<A, IdxN, ISIdxN, TPIdxN, TIdxCfgM>['Items'][number];
-};
 
 export const oneFn =
 	<
@@ -37,8 +26,8 @@ export const oneFn =
 		props: HKRKP<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>
 	): Promise<
 		IdxN extends TPIdxN
-			? GetItemOutput<IA, ISIdxN, TPIdxN, TIdxCfgM>
-			: QueryOutputOne<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>
+			? GetItemOutput<IA, ISIdxN, TPIdxN, TIdxCfgM>['Item']
+			: QueryOutput<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>['Items'][number]
 	> => {
 		const { hashKey, rangeKey, IndexName } = config;
 
@@ -46,7 +35,7 @@ export const oneFn =
 		const Key = keyOf(props);
 
 		const output = !IndexName
-			? await Table.get<IA, ISIdxN>({ Key })
+			? await Table.get<IA, ISIdxN>({ Key }).then(data => data.Item)
 			: await Table.query<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
 					IndexName,
 					Limit: 1,
@@ -60,24 +49,25 @@ export const oneFn =
 								[`:hashKey`]: Key[hashKey]
 						  }
 			  }).then(data => {
-					const response = {
-						Item: data.Items[0],
-						ConsumedCapacity: data.ConsumedCapacity
-					};
+					hasItems<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>(data);
 
-					hasItem<IA, ISIdxN, TPIdxN, TIdxCfgM>(response);
-
-					return response;
+					return data.Items[0];
 			  });
 
 		const assertOutputIsConditional: (
 			output:
-				| GetItemOutput<IA, ISIdxN, TPIdxN, TIdxCfgM>
-				| QueryOutputOne<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>
+				| GetItemOutput<IA, ISIdxN, TPIdxN, TIdxCfgM>['Item']
+				| QueryOutput<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>['Items'][number]
 		) => asserts output is IdxN extends TPIdxN
-			? GetItemOutput<IA, ISIdxN, TPIdxN, TIdxCfgM>
-			: QueryOutputOne<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM> = output => {
-			if (!output.Item) {
+			? GetItemOutput<IA, ISIdxN, TPIdxN, TIdxCfgM>['Item']
+			: QueryOutput<
+					IA,
+					QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>,
+					ISIdxN,
+					TPIdxN,
+					TIdxCfgM
+			  >['Items'][number] = output => {
+			if (!output) {
 				throw new Error('Failed to create output');
 			}
 		};
