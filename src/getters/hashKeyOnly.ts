@@ -17,16 +17,16 @@ export const hashKeyOnlyFn =
 	>(
 		Table: Table<TPIdxN, string, IdxATL, TIdxPA, TIdxP, TIdxCfgM>,
 		Item: GItem,
-		config: QueryGetterCfg<IdxN, ISIdxN, TPIdxN, TIdxCfgM>
+		config: QueryGetterCfg<IdxN, TPIdxN, TIdxCfgM>
 	) =>
 	async (
-		listQuery?: GetterQueryInput<QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, TPIdxN, TIdxCfgM>
+		listQuery?: GetterQueryInput<QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, TPIdxN, TIdxCfgM>
 	): Promise<
-		GetterQueryOutput<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>
+		GetterQueryOutput<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>
 	> => {
 		const { hashKey, hashKeyValue, IndexName } = config;
 
-		let output = await Table.query<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
+		let output = await Table.query<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
 			IndexName,
 			KeyConditionExpression: `${hashKey} = :hashKey`,
 			ExpressionAttributeValues: {

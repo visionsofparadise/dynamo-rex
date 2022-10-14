@@ -16,11 +16,11 @@ export const assertQueryOutputItemType: <
 >(
 	output: {},
 	isItems: boolean,
-	config: QueryGetterCfg<IdxN, ISIdxN, TPIdxN, TIdxCfgM>,
+	config: QueryGetterCfg<IdxN, TPIdxN, TIdxCfgM>,
 	Table: Table<TPIdxN, string, IdxATL, TIdxPA, TIdxP, TIdxCfgM>
 ) => asserts output is GetterQueryOutput<
 	IA,
-	QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>,
+	QueryIdxN<IdxN, TPIdxN, TIdxCfgM>,
 	ISIdxN,
 	TPIdxN,
 	TIdxPA,
@@ -49,11 +49,11 @@ export const assertOneOutputItemType: <
 >(
 	output: {},
 	isItem: boolean,
-	config: GetterCfg<IdxN, ISIdxN, TPIdxN, TIdxCfgM>,
+	config: GetterCfg<IdxN, TPIdxN, TIdxCfgM>,
 	Table: Table<TPIdxN, string, IdxATL, TIdxPA, TIdxP, TIdxCfgM>
 ) => asserts output is GetterOneOutput<
 	IA,
-	QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>,
+	QueryIdxN<IdxN, TPIdxN, TIdxCfgM>,
 	ISIdxN,
 	TPIdxN,
 	TIdxPA,

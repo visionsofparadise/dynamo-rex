@@ -13,7 +13,7 @@ export const DocumentClient =
 export const TestTable = new Dx.Table({
 	name: process.env.DYNAMODB_TABLE || 'test',
 	client: DocumentClient,
-	logger: console,
+	// logger: console,
 	primaryIndex: 'primary',
 	indexes: {
 		primary: {

@@ -23,7 +23,7 @@ export const oneFn =
 		IA extends {},
 		IdxN extends TPIdxN | ISIdxN,
 		ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
-		IIdxAFns extends IdxAFns<IdxN, TIdxCfgM>,
+		IIdxAFns extends IdxAFns<TIdxCfgM[IdxN]>,
 		TPIdxN extends TIdxN<TIdxCfgM>,
 		TIdxPA extends string,
 		TIdxP extends IdxP<TIdxPA>,
@@ -32,12 +32,12 @@ export const oneFn =
 	>(
 		Table: Table<TPIdxN, string, IdxATL, TIdxPA, TIdxP, TIdxCfgM>,
 		Item: IIdxAFns & GItem,
-		config: GetterCfg<IdxN, ISIdxN, TPIdxN, TIdxCfgM>
+		config: GetterCfg<IdxN, TPIdxN, TIdxCfgM>
 	) =>
 	async (
-		props: HKRKP<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>
+		props: HKRKP<IIdxAFns, TIdxCfgM[IdxN]>
 	): Promise<
-		GetterOneOutput<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>
+		GetterOneOutput<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>
 	> => {
 		const { hashKey, rangeKey, IndexName } = config;
 
@@ -46,7 +46,7 @@ export const oneFn =
 
 		const output = !IndexName
 			? await Table.get<IA, ISIdxN>({ Key }).then(data => data.Item)
-			: await Table.query<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
+			: await Table.query<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
 					IndexName,
 					Limit: 1,
 					KeyConditionExpression: `${hashKey} = :hashKey${rangeKey ? ` AND ${rangeKey} = :rangeKey` : ``}`,
@@ -59,7 +59,7 @@ export const oneFn =
 								[`:hashKey`]: Key[hashKey]
 						  }
 			  }).then(data => {
-					assertItems<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>(data);
+					assertItems<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>(data);
 
 					return data.Items[0];
 			  });

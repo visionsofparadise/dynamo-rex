@@ -1,36 +1,25 @@
-import { Table, IdxCfgM, IdxATL, IdxACfg, IdxP, NotPIdxN, TIdxN } from '../Table/Table';
+import { Table, IdxCfgM, IdxATL, IdxACfg, IdxP, NotPIdxN, TIdxN, PIdxCfg } from '../Table/Table';
 import { Constructor, zipObject } from '../utils';
 import { IdxAFns, ISIdxCfg, Item } from '../Item/Item';
 import { indexGettersFn } from './indexGetters';
 import { all } from './all';
 
-export type HKP<
-	IdxN extends TIdxN<TIdxCfgM>,
-	IIdxAFns extends IdxAFns<IdxN, TIdxCfgM>,
-	TPIdxN extends TIdxN<TIdxCfgM> & keyof TIdxCfgM,
-	TIdxCfgM extends IdxCfgM<TPIdxN>,
-	HKPT = Parameters<IIdxAFns[TIdxCfgM[IdxN extends never ? TPIdxN : IdxN]['hashKey']['attribute']]>[0]
-> = HKPT extends undefined ? void : HKPT;
-
-export type RKP<
-	IdxN extends TIdxN<TIdxCfgM>,
-	IIdxAFns extends IdxAFns<IdxN, TIdxCfgM>,
-	TPIdxN extends TIdxN<TIdxCfgM>,
-	TIdxCfgM extends IdxCfgM<TPIdxN>,
-	RKCfg = TIdxCfgM[IdxN extends never ? TPIdxN : IdxN]['rangeKey']
-> = RKCfg extends IdxACfg<string, IdxATL>
+export type KP<
+	K extends keyof TIdxCfg,
+	IIdxAFns extends IdxAFns<TIdxCfg>,
+	TIdxCfg extends PIdxCfg,
+	RKCfg = TIdxCfg[K]
+> = RKCfg extends IdxACfg
 	? Parameters<IIdxAFns[RKCfg['attribute']]>[0] extends undefined
 		? void
 		: Parameters<IIdxAFns[RKCfg['attribute']]>[0]
 	: void;
 
 export type HKRKP<
-	IdxN extends TIdxN<TIdxCfgM>,
-	IIdxAFns extends IdxAFns<IdxN, TIdxCfgM>,
-	TPIdxN extends TIdxN<TIdxCfgM>,
-	TIdxCfgM extends IdxCfgM<TPIdxN>,
-	HKPT = HKP<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>,
-	RKPT = RKP<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>
+	IIdxAFns extends IdxAFns<TIdxCfg>,
+	TIdxCfg extends PIdxCfg,
+	HKPT = KP<'hashKey', IIdxAFns, TIdxCfg>,
+	RKPT = KP<'rangeKey', IIdxAFns, TIdxCfg>
 > = HKPT extends void ? (RKPT extends void ? void : RKPT) : RKPT extends void ? HKPT : HKPT & RKPT;
 
 export const getters =
@@ -44,7 +33,7 @@ export const getters =
 	>(
 		Table: Table<TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP, TIdxCfgM>
 	) =>
-	<IA extends {}, ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>, IIdxAFns extends IdxAFns<ISIdxN | TPIdxN, TIdxCfgM>>(
+	<IA extends {}, ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>, IIdxAFns extends IdxAFns<TIdxCfgM[TPIdxN | ISIdxN]>>(
 		Item: IIdxAFns & ISIdxCfg<ISIdxN> & Constructor<Item<IA, ISIdxN, TPIdxN, string, IdxATL, TIdxCfgM>>
 	) => {
 		const indexGetters = indexGettersFn<IA, ISIdxN, IIdxAFns, TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP, TIdxCfgM>(

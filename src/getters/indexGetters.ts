@@ -1,6 +1,6 @@
 import { IdxAFns, Item } from '../Item/Item';
 import { Table, IdxCfgM, IdxATL, IdxACfg, IdxATLToType, IdxP, TIdxN, NotPIdxN } from '../Table/Table';
-import { HKP } from './getters';
+import { KP } from './getters';
 import { keyOfFn } from './keyOf';
 import { oneFn } from './one';
 import { hashKeyOnlyFn } from './hashKeyOnly';
@@ -11,40 +11,28 @@ import { assertIndexNameIsNotPrimaryIndex } from './assertIndexNameIsNotPrimaryI
 import { Constructor, OA } from '../utils';
 import { QueryInput, QueryOutput } from '../Table/query';
 
-export interface GetterCfg<
-	IdxN extends TPIdxN | ISIdxN,
-	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
-	TPIdxN extends TIdxN<TIdxCfgM>,
-	TIdxCfgM extends IdxCfgM
-> {
+export interface GetterCfg<IdxN extends TIdxN<TIdxCfgM>, TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfgM> {
 	index: IdxN;
 	hashKey: TIdxCfgM[IdxN]['hashKey']['attribute'];
-	rangeKey: TIdxCfgM[IdxN]['rangeKey'] extends IdxACfg<string, IdxATL>
-		? TIdxCfgM[IdxN]['rangeKey']['attribute']
-		: undefined;
+	rangeKey: TIdxCfgM[IdxN]['rangeKey'] extends IdxACfg ? TIdxCfgM[IdxN]['rangeKey']['attribute'] : undefined;
 	IndexName?: Exclude<IdxN, TPIdxN>;
 }
 
-export interface QueryGetterCfg<
-	IdxN extends TPIdxN | ISIdxN,
-	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
-	TPIdxN extends TIdxN<TIdxCfgM>,
-	TIdxCfgM extends IdxCfgM
-> extends GetterCfg<IdxN, ISIdxN, TPIdxN, TIdxCfgM> {
+export interface QueryGetterCfg<IdxN extends TIdxN<TIdxCfgM>, TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfgM>
+	extends GetterCfg<IdxN, TPIdxN, TIdxCfgM> {
 	hashKeyValue: IdxATLToType<TIdxCfgM[IdxN]['hashKey']['type']>;
 }
 
 export type QueryIdxN<
-	IdxN extends TPIdxN | ISIdxN,
-	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
+	IdxN extends TIdxN<TIdxCfgM>,
 	TPIdxN extends TIdxN<TIdxCfgM>,
 	TIdxCfgM extends IdxCfgM<TPIdxN>
 > = IdxN extends TPIdxN ? never : IdxN;
 
 export type GetterQueryInput<
-	IdxN extends NotPIdxN<TPIdxN, TIdxCfgM> | never,
+	IdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
 	TPIdxN extends TIdxN<TIdxCfgM>,
-	TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL>
+	TIdxCfgM extends IdxCfgM<TPIdxN>
 > = Omit<OA<QueryInput<IdxN, TPIdxN, TIdxCfgM>, 'KeyConditionExpression' | 'ExpressionAttributeValues'>, 'IndexName'>;
 
 export type GetterQueryItemsOutput<
@@ -56,7 +44,7 @@ export type GetterQueryItemsOutput<
 	TIdxP extends IdxP<TIdxPA>,
 	TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>,
 	GItem extends Constructor<Item<IA, ISIdxN, TPIdxN, string, IdxATL, TIdxCfgM>>
-> = Omit<QueryOutput<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>, 'Items'> & {
+> = Omit<QueryOutput<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>, 'Items'> & {
 	Items: Array<InstanceType<GItem>>;
 };
 
@@ -72,14 +60,14 @@ export type GetterQueryOutput<
 > = TIdxCfgM[IdxN]['project'] extends never[] | string[]
 	? TIdxCfgM[IdxN]['project'] extends never
 		? GetterQueryItemsOutput<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>
-		: QueryOutput<IA, QueryIdxN<IdxN, ISIdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>
+		: QueryOutput<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxCfgM>
 	: GetterQueryItemsOutput<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>;
 
 export const indexGettersFn =
 	<
 		IA extends {},
 		ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
-		IIdxAFns extends IdxAFns<TPIdxN | ISIdxN, TIdxCfgM>,
+		IIdxAFns extends IdxAFns<TIdxCfgM[TPIdxN | ISIdxN]>,
 		TPIdxN extends TIdxN<TIdxCfgM>,
 		TIdxA extends string,
 		TIdxATL extends IdxATL,
@@ -95,7 +83,7 @@ export const indexGettersFn =
 	): {
 		keyOf: ReturnType<typeof keyOfFn<IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxCfgM>>;
 		one: ReturnType<typeof oneFn<IA, IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
-		query: (props: HKP<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>) => {
+		query: (props: KP<'hashKey', IIdxAFns, TIdxCfgM[IdxN]>) => {
 			hashKeyOnly: ReturnType<typeof hashKeyOnlyFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
 			startsWith: ReturnType<typeof startsWithFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
 			between: ReturnType<typeof betweenFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
@@ -117,7 +105,7 @@ export const indexGettersFn =
 			IndexName
 		};
 
-		const query = (props: HKP<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>) => {
+		const query = (props: KP<'hashKey', IIdxAFns, TIdxCfgM[IdxN]>) => {
 			const queryConfig = {
 				...config,
 				hashKeyValue: Item[hashKey](props)

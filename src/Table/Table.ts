@@ -12,6 +12,8 @@ import { queryFn } from './query';
 import { resetFn } from './reset';
 import { AttributeType, TableProps } from 'aws-cdk-lib/aws-dynamodb';
 
+export type IdxAT = string | number | undefined;
+
 export type IdxATL = 'string' | 'string?' | 'number' | 'number?';
 
 export type IdxATLToType<TIdxATL extends IdxATL> = TIdxATL extends 'string'
@@ -65,9 +67,10 @@ export type IdxCfgMToKeyM<TIdxCfgM extends IdxCfgM> = {
 	[x in keyof TIdxCfgM]: IdxKey<TIdxCfgM[x]>;
 };
 
-export type IdxKeys<Idx extends string & keyof TIdxCfgM, TIdxCfgM extends IdxCfgM> = UnionToIntersection<
-	IdxCfgMToKeyM<TIdxCfgM>[Idx]
-> & {};
+export type IdxKeys<
+	Idx extends string & keyof TIdxCfgM = string,
+	TIdxCfgM extends IdxCfgM = IdxCfgM
+> = UnionToIntersection<IdxCfgMToKeyM<TIdxCfgM>[Idx]> & {};
 
 export type IdxKey<TIdxCfg extends PIdxCfg> = Record<
 	TIdxCfg['hashKey']['attribute'],
@@ -145,6 +148,12 @@ export class Table<
 		this.scan = scanFn(methodConfig);
 		this.delete = deleteFn(methodConfig);
 		this.reset = resetFn(methodConfig, config.indexes[config.primaryIndex]);
+
+		this.createSet = config.client.createSet;
+		this.batchWrite = config.client.batchWrite;
+		this.batchGet = config.client.batchGet;
+		this.transactWrite = config.client.transactWrite;
+		this.transactGet = config.client.transactGet;
 	}
 
 	DocumentClient: DocumentClient;
@@ -170,6 +179,12 @@ export class Table<
 	delete: ReturnType<typeof deleteFn<TPIdxN, TIdxCfgM>>;
 	reset: ReturnType<typeof resetFn<TIdxCfgM[TPIdxN]>>;
 
+	createSet: DocumentClient['createSet'];
+	batchWrite: DocumentClient['batchWrite'];
+	batchGet: DocumentClient['batchGet'];
+	transactWrite: DocumentClient['transactWrite'];
+	transactGet: DocumentClient['transactGet'];
+
 	get Item() {
 		const ParentTable = this;
 
@@ -181,7 +196,9 @@ export class Table<
 			TIdxATL,
 			TIdxCfgM
 		> {
-			constructor(props: IA, Item: IdxAFns<ISIdxN | TPIdxN, TIdxCfgM> & ISIdxCfg<ISIdxN>) {
+			static createSet = ParentTable.config.client.createSet;
+
+			constructor(props: IA, Item: IdxAFns<TIdxCfgM[ISIdxN | TPIdxN]> & ISIdxCfg<ISIdxN>) {
 				super(props, Item, ParentTable);
 			}
 		};

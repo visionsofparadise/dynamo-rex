@@ -1,8 +1,8 @@
 import { zipObject } from '../utils';
-import { Table, IdxATL, IdxKey, IdxCfgM, NotPIdxN, IdxKeys, TIdxN } from '../Table/Table';
+import { Table, IdxATL, IdxKey, IdxCfgM, NotPIdxN, IdxKeys, TIdxN, PIdxCfg } from '../Table/Table';
 
-export type IdxAFns<IdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfgM> = {
-	[x in keyof IdxKey<TIdxCfgM[IdxN]>]: (params: any) => IdxKey<TIdxCfgM[IdxN]>[x];
+export type IdxAFns<TIdxCfg extends PIdxCfg> = {
+	[x in keyof IdxKey<TIdxCfg>]: (params: any) => IdxKey<TIdxCfg>[x];
 };
 
 export interface ISIdxCfg<ISIdxN extends string> {
@@ -18,7 +18,7 @@ export class Item<
 	TIdxCfgM extends IdxCfgM<TPIdxN, TIdxA, TIdxATL> = IdxCfgM<TPIdxN, TIdxA, TIdxATL>
 > {
 	Table: Table<TPIdxN, TIdxA, TIdxATL, string, never, TIdxCfgM>;
-	Item: IdxAFns<ISIdxN | TPIdxN, TIdxCfgM> & ISIdxCfg<ISIdxN>;
+	Item: IdxAFns<TIdxCfgM[ISIdxN | TPIdxN]> & ISIdxCfg<ISIdxN>;
 
 	Attributes!: IA;
 	initial: IA;
@@ -26,7 +26,7 @@ export class Item<
 
 	constructor(
 		props: IA,
-		Item: IdxAFns<ISIdxN | TPIdxN, TIdxCfgM> & ISIdxCfg<ISIdxN>,
+		Item: IdxAFns<TIdxCfgM[ISIdxN | TPIdxN]> & ISIdxCfg<ISIdxN>,
 		Table: Table<TPIdxN, TIdxA, TIdxATL, string, never, TIdxCfgM>
 	) {
 		this.initial = props;

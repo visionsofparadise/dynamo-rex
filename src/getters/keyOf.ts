@@ -8,14 +8,14 @@ export const keyOfFn =
 	<
 		IdxN extends TPIdxN | ISIdxN,
 		ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
-		IIdxAFns extends IdxAFns<IdxN, TIdxCfgM>,
+		IIdxAFns extends IdxAFns<TIdxCfgM[IdxN]>,
 		TPIdxN extends TIdxN<TIdxCfgM>,
 		TIdxCfgM extends IdxCfgM<TPIdxN>
 	>(
 		Item: IIdxAFns,
-		config: GetterCfg<IdxN, ISIdxN, TPIdxN, TIdxCfgM>
+		config: GetterCfg<IdxN, TPIdxN, TIdxCfgM>
 	) =>
-	(props: HKRKP<IdxN, IIdxAFns, TPIdxN, TIdxCfgM>): IdxKey<TIdxCfgM[IdxN]> => {
+	(props: HKRKP<IIdxAFns, TIdxCfgM[IdxN]>): IdxKey<TIdxCfgM[IdxN]> => {
 		const { hashKey, rangeKey } = config;
 
 		const attributes = rangeKey ? [hashKey, rangeKey] : [hashKey];
