@@ -1,6 +1,6 @@
 {
-	"name": "dynamo-rex",
-	"version": "0.0.40",
+	"name": "dynamox",
+	"version": "0.0.1",
 	"main": "./dist/index.js",
 	"scripts": {
 		"compile": "tsc",
@@ -36,10 +36,10 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/visionsofparadise/dynamo-rex.git"
+		"url": "git+https://github.com/visionsofparadise/dynamox.git"
 	},
 	"bugs": {
-		"url": "https://github.com/visionsofparadise/dynamo-rex/issues"
+		"url": "https://github.com/visionsofparadise/dynamox/issues"
 	},
-	"homepage": "https://github.com/visionsofparadise/dynamo-rex#readme"
+	"homepage": "https://github.com/visionsofparadise/dynamox#readme"
 }

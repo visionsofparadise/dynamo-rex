@@ -4,9 +4,9 @@ import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { CodeBuildStep, CodePipeline, CodePipelineSource, ShellStep } from 'aws-cdk-lib/pipelines';
 import { Construct } from 'constructs';
 import { serviceName } from './App';
-import { DynamoRexStage } from './Stage';
+import { DynamoXStage } from './Stage';
 
-export class DynamoRexPipelineStack extends Stack {
+export class DynamoXPipelineStack extends Stack {
 	constructor(scope: Construct, id: string, props?: StackProps) {
 		super(scope, id, props);
 
@@ -22,7 +22,7 @@ export class DynamoRexPipelineStack extends Stack {
 			})
 		});
 
-		const testApp = new DynamoRexStage(this, 'testStage', {
+		const testApp = new DynamoXStage(this, 'testStage', {
 			stage: 'test',
 			env: {
 				region: process.env.CDK_DEFAULT_REGION,

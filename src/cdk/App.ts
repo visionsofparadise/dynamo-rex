@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { DynamoRexPipelineStack } from './Pipeline';
+import { DynamoXPipelineStack } from './Pipeline';
 
-export const serviceName = 'dynamo-rex';
+export const serviceName = 'dynamox';
 
 const app = new cdk.App();
 
-new DynamoRexPipelineStack(app, 'DynamoRexPipelineStack', {
+new DynamoXPipelineStack(app, 'DynamoXPipelineStack', {
 	env: {
 		region: process.env.CDK_DEFAULT_REGION,
 		account: process.env.CDK_DEFAULT_ACCOUNT

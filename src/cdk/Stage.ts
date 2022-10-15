@@ -1,9 +1,9 @@
 import { CfnOutput, Stage, StageProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { serviceName } from './App';
-import { DynamoRexStack } from './Stack';
+import { DynamoXStack } from './Stack';
 
-export class DynamoRexStage extends Stage {
+export class DynamoXStage extends Stage {
 	public readonly tableName: CfnOutput;
 
 	constructor(scope: Construct, id: string, props: StageProps & { stage: string }) {
@@ -11,7 +11,7 @@ export class DynamoRexStage extends Stage {
 
 		const deploymentName = `${serviceName}-${props.stage}`;
 
-		const stack = new DynamoRexStack(this, `${deploymentName}-stack`, {
+		const stack = new DynamoXStack(this, `${deploymentName}-stack`, {
 			stage: props.stage,
 			deploymentName,
 			env: {

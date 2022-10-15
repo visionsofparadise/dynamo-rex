@@ -2,7 +2,7 @@ import { CfnOutput, RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
 import { Table, BillingMode, AttributeType, ProjectionType } from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
 import { TestTable } from '../TestTable.dev';
-export class DynamoRexStack extends Stack {
+export class DynamoXStack extends Stack {
 	public readonly tableName: CfnOutput;
 
 	constructor(scope: Construct, id: string, props: StackProps & { stage: string; deploymentName: string }) {

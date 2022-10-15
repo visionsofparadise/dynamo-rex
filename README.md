@@ -1,1 +1,1 @@
-# dynamo-rex
+# dynamox
