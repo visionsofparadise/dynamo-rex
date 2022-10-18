@@ -1,7 +1,7 @@
 import { Table } from './Table/Table';
 
-export const Dx = {
+export const DynamoX = {
 	Table
 };
 
-export default Dx;
+export default DynamoX;

@@ -89,7 +89,7 @@ export class Item<
 		return;
 	}
 
-	async write() {
+	async write(): Promise<Item<IA, ISIdxN, TPIdxN, TIdxA, TIdxATL, TIdxCfgM>> {
 		await this.onWrite();
 
 		await this.Table.put<IA, never, ISIdxN>({
@@ -99,7 +99,7 @@ export class Item<
 		return this;
 	}
 
-	async create() {
+	async create(): Promise<Item<IA, ISIdxN, TPIdxN, TIdxA, TIdxATL, TIdxCfgM>> {
 		await this.onWrite();
 		await this.onCreate();
 
@@ -111,7 +111,7 @@ export class Item<
 		return this;
 	}
 
-	async update(props: Partial<IA>) {
+	async update(props: Partial<IA>): Promise<Item<IA, ISIdxN, TPIdxN, TIdxA, TIdxATL, TIdxCfgM>> {
 		await this.set(props);
 
 		let untrimmedUpdateExpression = 'SET ';

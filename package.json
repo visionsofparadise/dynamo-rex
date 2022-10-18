@@ -6,7 +6,8 @@
 		"compile": "tsc",
 		"test": "jest --run-in-band",
 		"patch": "npm version patch && npm publish",
-		"build": "npm run compile && npm run test && npm run patch"
+		"build": "npm run compile && npm run test && npm run patch",
+		"cdk": "cdk"
 	},
 	"dependencies": {},
 	"devDependencies": {
