@@ -1,4 +1,4 @@
-import { zipObject } from '../utils';
+import { Constructor, zipObject } from '../utils';
 import { Table, IdxATL, IdxKey, IdxCfgM, NotPIdxN, IdxKeys, TIdxN, PIdxCfg } from '../Table/Table';
 
 export type IdxAFns<TIdxCfg extends PIdxCfg> = {
@@ -18,7 +18,9 @@ export class Item<
 	TIdxCfgM extends IdxCfgM<TPIdxN, TIdxA, TIdxATL> = IdxCfgM<TPIdxN, TIdxA, TIdxATL>
 > {
 	Table: Table<TPIdxN, TIdxA, TIdxATL, string, never, TIdxCfgM>;
-	Item: IdxAFns<TIdxCfgM[ISIdxN | TPIdxN]> & ISIdxCfg<ISIdxN>;
+	Item: IdxAFns<TIdxCfgM[ISIdxN | TPIdxN]> &
+		ISIdxCfg<ISIdxN> &
+		Constructor<Item<IA, ISIdxN, TPIdxN, TIdxA, TIdxATL, TIdxCfgM>>;
 
 	Attributes!: IA;
 	initial: IA;
@@ -26,7 +28,9 @@ export class Item<
 
 	constructor(
 		props: IA,
-		Item: IdxAFns<TIdxCfgM[ISIdxN | TPIdxN]> & ISIdxCfg<ISIdxN>,
+		Item: IdxAFns<TIdxCfgM[ISIdxN | TPIdxN]> &
+			ISIdxCfg<ISIdxN> &
+			Constructor<Item<IA, ISIdxN, TPIdxN, TIdxA, TIdxATL, TIdxCfgM>>,
 		Table: Table<TPIdxN, TIdxA, TIdxATL, string, never, TIdxCfgM>
 	) {
 		this.initial = props;
@@ -79,7 +83,7 @@ export class Item<
 	async onCreate() {}
 	async onDelete() {}
 
-	async set(props: Partial<IA>) {
+	set = async (props: Partial<IA>) => {
 		await this.onSet();
 
 		this.current = { ...this.current, ...props };
@@ -87,19 +91,19 @@ export class Item<
 		if (this.Table.config.logger) this.Table.config.logger.info(this.current);
 
 		return;
-	}
+	};
 
-	async write(): Promise<this> {
+	write = async () => {
 		await this.onWrite();
 
 		await this.Table.put<IA, never, ISIdxN>({
 			Item: this.propsWithKeys
 		});
 
-		return this;
-	}
+		return;
+	};
 
-	async create(): Promise<this> {
+	create = async () => {
 		await this.onWrite();
 		await this.onCreate();
 
@@ -108,10 +112,10 @@ export class Item<
 			Item: this.propsWithKeys
 		});
 
-		return this;
-	}
+		return;
+	};
 
-	async update(props: Partial<IA>): Promise<this> {
+	update = async (props: Partial<IA>) => {
 		await this.set(props);
 
 		let untrimmedUpdateExpression = 'SET ';
@@ -133,10 +137,10 @@ export class Item<
 			ExpressionAttributeValues
 		});
 
-		return this;
-	}
+		return;
+	};
 
-	async delete() {
+	delete = async () => {
 		await this.onDelete();
 
 		await this.Table.delete<IA, never, ISIdxN>({
@@ -144,5 +148,5 @@ export class Item<
 		});
 
 		return;
-	}
+	};
 }

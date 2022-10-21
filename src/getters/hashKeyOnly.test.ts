@@ -9,7 +9,9 @@ beforeEach(TestTable.reset);
 
 it('queries items with hashKey on primary key', async () => {
 	for (let i = 0; i < 3; i++) {
-		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
+		const testItem = new TestItem({ testString: String(i), testNumber: randomNumber() });
+
+		await testItem.create();
 	}
 
 	await wait(1000);
@@ -21,7 +23,9 @@ it('queries items with hashKey on primary key', async () => {
 
 it('queries items with hashKey on index key', async () => {
 	for (let i = 0; i < 3; i++) {
-		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
+		const testItem = new TestItem({ testString: String(i), testNumber: randomNumber() });
+
+		await testItem.create();
 	}
 
 	await wait(1000);

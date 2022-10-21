@@ -8,7 +8,9 @@ jest.useRealTimers();
 beforeEach(TestTable.reset);
 
 it('gets one item on primary key', async () => {
-	const testItem = await new TestItem({ testString: nanoid(), testNumber: randomNumber() }).create();
+	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
+
+	await testItem.create();
 
 	const result = await TestItem.get(testItem.props);
 
@@ -16,7 +18,9 @@ it('gets one item on primary key', async () => {
 });
 
 it('gets one item on index key', async () => {
-	const testItem = await new TestItem({ testString: nanoid(), testNumber: randomNumber() }).create();
+	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
+
+	await testItem.create();
 
 	const result = await TestItem.get.gsi0.one(testItem.props);
 

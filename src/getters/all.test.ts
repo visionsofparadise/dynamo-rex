@@ -9,7 +9,9 @@ beforeEach(TestTable.reset);
 
 it('queries all items with hashKey on primary key', async () => {
 	for (let i = 0; i < 20; i++) {
-		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
+		const testItem = new TestItem({ testString: String(i), testNumber: randomNumber() });
+
+		await testItem.create();
 	}
 
 	await wait(1000);
@@ -22,7 +24,9 @@ it('queries all items with hashKey on primary key', async () => {
 
 it('queries all items with startsWith on primary key', async () => {
 	for (let i = 180; i < 220; i++) {
-		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
+		const testItem = new TestItem({ testString: String(i), testNumber: randomNumber() });
+
+		await testItem.create();
 	}
 
 	await wait(1000);
@@ -35,7 +39,9 @@ it('queries all items with startsWith on primary key', async () => {
 
 it('queries all items with between on primary key', async () => {
 	for (let i = 180; i < 220; i++) {
-		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
+		const testItem = new TestItem({ testString: String(i), testNumber: randomNumber() });
+
+		await testItem.create();
 	}
 
 	await wait(1000);
@@ -50,7 +56,9 @@ it('queries all items with between on primary key', async () => {
 
 it('queries all items with hashKey on index key', async () => {
 	for (let i = 0; i < 20; i++) {
-		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
+		const testItem = new TestItem({ testString: String(i), testNumber: randomNumber() });
+
+		await testItem.create();
 	}
 
 	await wait(1000);
@@ -63,7 +71,9 @@ it('queries all items with hashKey on index key', async () => {
 
 it('queries all items with startsWith on index key', async () => {
 	for (let i = 180; i < 220; i++) {
-		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
+		const testItem = new TestItem({ testString: String(i), testNumber: randomNumber() });
+
+		await testItem.create();
 	}
 
 	await wait(1000);
@@ -76,7 +86,9 @@ it('queries all items with startsWith on index key', async () => {
 
 it('queries all items with between on index key', async () => {
 	for (let i = 180; i < 220; i++) {
-		await new TestItem({ testString: String(i), testNumber: randomNumber() }).create();
+		const testItem = new TestItem({ testString: String(i), testNumber: randomNumber() });
+
+		await testItem.create();
 	}
 
 	await wait(1000);

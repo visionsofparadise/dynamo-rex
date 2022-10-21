@@ -1,4 +1,4 @@
-import { ILogger, UnionToIntersection } from '../utils';
+import { Constructor, ILogger, UnionToIntersection } from '../utils';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { ISIdxCfg, Item, IdxAFns } from '../Item/Item';
 import { getters } from '../getters/getters';
@@ -198,7 +198,12 @@ export class Table<
 		> {
 			static createSet = ParentTable.config.client.createSet;
 
-			constructor(props: IA, Item: IdxAFns<TIdxCfgM[ISIdxN | TPIdxN]> & ISIdxCfg<ISIdxN>) {
+			constructor(
+				props: IA,
+				Item: IdxAFns<TIdxCfgM[ISIdxN | TPIdxN]> &
+					ISIdxCfg<ISIdxN> &
+					Constructor<Item<IA, ISIdxN, TPIdxN, TIdxA, TIdxATL, TIdxCfgM>>
+			) {
 				super(props, Item, ParentTable);
 			}
 		};

@@ -159,7 +159,9 @@ it('gets the current updated props of an item', async () => {
 });
 
 it('creates a new item', async () => {
-	const testItem = await new TestItem({ testString: nanoid(), testNumber: randomNumber() }).create();
+	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
+
+	await testItem.create();
 
 	const getItem = await TestTable.get<ITestItem & IKey>({ Key: testItem.key });
 
@@ -167,7 +169,9 @@ it('creates a new item', async () => {
 });
 
 it('sets and overwrites an item', async () => {
-	const testItem = await new TestItem({ testString: nanoid(), testNumber: randomNumber() }).create();
+	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
+
+	await testItem.create();
 
 	const testString = nanoid();
 
@@ -180,7 +184,9 @@ it('sets and overwrites an item', async () => {
 });
 
 it('updates an attribute on an item', async () => {
-	const testItem = await new TestItem({ testString: nanoid(), testNumber: randomNumber() }).create();
+	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
+
+	await testItem.create();
 
 	const testString = nanoid();
 
@@ -192,7 +198,9 @@ it('updates an attribute on an item', async () => {
 });
 
 it('deletes an item', async () => {
-	const testItem = await new TestItem({ testString: nanoid(), testNumber: randomNumber() }).create();
+	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
+
+	await testItem.create();
 
 	await testItem.delete();
 
