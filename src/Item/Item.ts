@@ -9,7 +9,7 @@ export interface ISIdxCfg<ISIdxN extends string> {
 	secondaryIndexes: Array<ISIdxN>;
 }
 
-export class Item<
+export abstract class Item<
 	IA extends {} = {},
 	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> | never = never,
 	TPIdxN extends TIdxN<TIdxCfgM> = string,
@@ -26,6 +26,8 @@ export class Item<
 	initial: IA;
 	current: IA;
 
+	static test: () => any
+	
 	constructor(
 		props: IA,
 		Item: IdxAFns<TIdxCfgM[ISIdxN | TPIdxN]> &
