@@ -26,8 +26,8 @@ export abstract class Item<
 	initial: IA;
 	current: IA;
 
-	static test: () => any
-	
+	static test: () => any;
+
 	constructor(
 		props: IA,
 		Item: IdxAFns<TIdxCfgM[ISIdxN | TPIdxN]> &
@@ -85,7 +85,7 @@ export abstract class Item<
 	async onCreate() {}
 	async onDelete() {}
 
-	set = async (props: Partial<IA>) => {
+	async set(props: Partial<IA>) {
 		await this.onSet();
 
 		this.current = { ...this.current, ...props };
@@ -93,9 +93,9 @@ export abstract class Item<
 		if (this.Table.config.logger) this.Table.config.logger.info(this.current);
 
 		return;
-	};
+	}
 
-	write = async () => {
+	async write() {
 		await this.onWrite();
 
 		await this.Table.put<IA, never, ISIdxN>({
@@ -103,9 +103,9 @@ export abstract class Item<
 		});
 
 		return;
-	};
+	}
 
-	create = async () => {
+	async create() {
 		await this.onWrite();
 		await this.onCreate();
 
@@ -115,9 +115,9 @@ export abstract class Item<
 		});
 
 		return;
-	};
+	}
 
-	update = async (props: Partial<IA>) => {
+	async update(props: Partial<IA>) {
 		await this.set(props);
 
 		let untrimmedUpdateExpression = 'SET ';
@@ -140,9 +140,9 @@ export abstract class Item<
 		});
 
 		return;
-	};
+	}
 
-	delete = async () => {
+	async delete() {
 		await this.onDelete();
 
 		await this.Table.delete<IA, never, ISIdxN>({
@@ -150,5 +150,5 @@ export abstract class Item<
 		});
 
 		return;
-	};
+	}
 }
