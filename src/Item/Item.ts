@@ -1,5 +1,6 @@
 import { Constructor, zipObject } from '../utils';
 import { Table, IdxATL, IdxKey, IdxCfgM, NotPIdxN, IdxKeys, TIdxN, PIdxCfg } from '../Table/Table';
+import assert from 'assert';
 
 export type IdxAFns<TIdxCfg extends PIdxCfg> = {
 	[x in keyof IdxKey<TIdxCfg>]: (params: any) => IdxKey<TIdxCfg>[x];
@@ -7,6 +8,10 @@ export type IdxAFns<TIdxCfg extends PIdxCfg> = {
 
 export interface ISIdxCfg<ISIdxN extends string> {
 	secondaryIndexes: Array<ISIdxN>;
+}
+
+export interface ItemMethodConfig {
+	skipHooks?: boolean;
 }
 
 export abstract class Item<
@@ -79,75 +84,117 @@ export abstract class Item<
 		return this.initial;
 	}
 
-	onNew() {}
-	async onSet() {}
-	async onWrite() {}
-	async onCreate() {}
-	async onDelete() {}
+	get isModified() {
+		try {
+			assert.deepStrictEqual(this.init, this.current);
 
-	async set(props: Partial<IA>) {
-		await this.onSet();
+			return false;
+		} catch (error) {
+			return true;
+		}
+	}
+
+	isPropModified(...keys: Array<keyof IA>) {
+		return keys.reduce((previous, current) => (this.init[current] !== this.current[current] ? true : previous), false);
+	}
+
+	onNew() {}
+	async onPreSet() {}
+	async onPostSet() {}
+	async onPreWrite() {}
+	async onPostWrite() {}
+	async onPreCreate() {}
+	async onPostCreate() {}
+	async onPreUpdate() {}
+	async onPostUpdate() {}
+	async onPreDelete() {}
+	async onPostDelete() {}
+
+	async set(props: Partial<IA>, config: ItemMethodConfig = {}) {
+		if (!config.skipHooks) await this.onPreSet();
 
 		this.current = { ...this.current, ...props };
 
 		if (this.Table.config.logger) this.Table.config.logger.info(this.current);
 
-		return;
-	}
-
-	async write() {
-		await this.onWrite();
-
-		await this.Table.put<IA, never, ISIdxN>({
-			Item: this.propsWithKeys
-		});
+		if (!config.skipHooks) await this.onPostSet();
 
 		return;
 	}
 
-	async create() {
-		await this.onWrite();
-		await this.onCreate();
+	async write(config: ItemMethodConfig = {}) {
+		if (this.isModified) {
+			if (!config.skipHooks) await this.onPreWrite();
+
+			await this.Table.put<IA, never, ISIdxN>({
+				Item: this.propsWithKeys
+			});
+
+			if (!config.skipHooks) await this.onPostWrite();
+		}
+
+		return;
+	}
+
+	async create(config: ItemMethodConfig & { skipCreateHooks?: boolean; skipWriteHooks?: boolean } = {}) {
+		if (!config.skipHooks && config.skipCreateHooks) await this.onPreCreate();
+		if (!config.skipHooks && config.skipWriteHooks) await this.onPreWrite();
 
 		await this.Table.create<IA, never, ISIdxN>({
 			Key: this.key,
 			Item: this.propsWithKeys
 		});
 
+		if (!config.skipHooks && config.skipCreateHooks) await this.onPostCreate();
+		if (!config.skipHooks && config.skipWriteHooks) await this.onPostWrite();
+
 		return;
 	}
 
-	async update(props: Partial<IA>) {
+	async update(
+		props: Partial<IA>,
+		config: ItemMethodConfig & { skipUpdateHooks?: boolean; skipWriteHooks?: boolean; skipDiff?: boolean } = {}
+	) {
 		await this.set(props);
 
-		let untrimmedUpdateExpression = 'SET ';
-		let ExpressionAttributeValues = {};
+		if (this.isModified && !config.skipDiff) {
+			if (!config.skipHooks && config.skipUpdateHooks) await this.onPreUpdate();
+			if (!config.skipHooks && config.skipWriteHooks) await this.onPreWrite();
 
-		for (const key of Object.keys(props) as Array<keyof IA>) {
-			untrimmedUpdateExpression += `${String(key)} = :${String(key)}, `;
-			ExpressionAttributeValues = {
-				...ExpressionAttributeValues,
-				[`:${String(key)}`]: props[key]
-			};
+			let untrimmedUpdateExpression = 'SET ';
+			let ExpressionAttributeValues = {};
+
+			for (const key of Object.keys(props) as Array<keyof IA>) {
+				untrimmedUpdateExpression += `${String(key)} = :${String(key)}, `;
+				ExpressionAttributeValues = {
+					...ExpressionAttributeValues,
+					[`:${String(key)}`]: props[key]
+				};
+			}
+
+			const UpdateExpression = untrimmedUpdateExpression.slice(0, untrimmedUpdateExpression.length - 2);
+
+			await this.Table.update<IA, never, ISIdxN>({
+				Key: this.key,
+				UpdateExpression,
+				ExpressionAttributeValues
+			});
+
+			if (!config.skipHooks && config.skipUpdateHooks) await this.onPostUpdate();
+			if (!config.skipHooks && config.skipWriteHooks) await this.onPostWrite();
 		}
-
-		const UpdateExpression = untrimmedUpdateExpression.slice(0, untrimmedUpdateExpression.length - 2);
-
-		await this.Table.update<IA, never, ISIdxN>({
-			Key: this.key,
-			UpdateExpression,
-			ExpressionAttributeValues
-		});
 
 		return;
 	}
 
-	async delete() {
-		await this.onDelete();
+	async delete(config: ItemMethodConfig = {}) {
+		if (!config.skipHooks) await this.onPreDelete();
 
 		await this.Table.delete<IA, never, ISIdxN>({
 			Key: this.key
 		});
+
+		if (!config.skipHooks) await this.onPostDelete();
 
 		return;
 	}

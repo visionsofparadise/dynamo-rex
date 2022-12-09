@@ -38,8 +38,8 @@ class BaseItem<IExtend extends IBaseItem, ISIdxN extends typeof TestTable.Second
 		);
 	}
 
-	async onWrite() {
-		super.onWrite();
+	async onPreWrite() {
+		super.onPreWrite();
 
 		await this.set({
 			...this.props,
