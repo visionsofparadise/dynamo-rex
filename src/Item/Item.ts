@@ -137,16 +137,16 @@ export abstract class Item<
 	}
 
 	async create(config: ItemMethodConfig & { skipCreateHooks?: boolean; skipWriteHooks?: boolean } = {}) {
-		if (!config.skipHooks && config.skipCreateHooks) await this.onPreCreate();
-		if (!config.skipHooks && config.skipWriteHooks) await this.onPreWrite();
+		if (!config.skipHooks && !config.skipCreateHooks) await this.onPreCreate();
+		if (!config.skipHooks && !config.skipWriteHooks) await this.onPreWrite();
 
 		await this.Table.create<IA, never, ISIdxN>({
 			Key: this.key,
 			Item: this.propsWithKeys
 		});
 
-		if (!config.skipHooks && config.skipCreateHooks) await this.onPostCreate();
-		if (!config.skipHooks && config.skipWriteHooks) await this.onPostWrite();
+		if (!config.skipHooks && !config.skipCreateHooks) await this.onPostCreate();
+		if (!config.skipHooks && !config.skipWriteHooks) await this.onPostWrite();
 
 		return;
 	}
@@ -158,8 +158,8 @@ export abstract class Item<
 		await this.set(props);
 
 		if (this.isModified && !config.skipDiff) {
-			if (!config.skipHooks && config.skipUpdateHooks) await this.onPreUpdate();
-			if (!config.skipHooks && config.skipWriteHooks) await this.onPreWrite();
+			if (!config.skipHooks && !config.skipUpdateHooks) await this.onPreUpdate();
+			if (!config.skipHooks && !config.skipWriteHooks) await this.onPreWrite();
 
 			let untrimmedUpdateExpression = 'SET ';
 			let ExpressionAttributeValues = {};
@@ -180,8 +180,8 @@ export abstract class Item<
 				ExpressionAttributeValues
 			});
 
-			if (!config.skipHooks && config.skipUpdateHooks) await this.onPostUpdate();
-			if (!config.skipHooks && config.skipWriteHooks) await this.onPostWrite();
+			if (!config.skipHooks && !config.skipUpdateHooks) await this.onPostUpdate();
+			if (!config.skipHooks && !config.skipWriteHooks) await this.onPostWrite();
 		}
 
 		return;
