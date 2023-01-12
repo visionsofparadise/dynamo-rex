@@ -10,7 +10,6 @@ import { scanFn } from './scan';
 import { deleteFn } from './delete';
 import { queryFn } from './query';
 import { resetFn } from './reset';
-import { AttributeType, TableProps } from 'aws-cdk-lib/aws-dynamodb';
 
 export type IdxAT = string | number | undefined;
 
@@ -115,31 +114,6 @@ export class Table<
 
 		const { primaryIndex, indexes, ...methodConfig } = config;
 
-		const { hashKey, rangeKey } = indexes[primaryIndex];
-
-		this.ConstructProps = {
-			partitionKey: {
-				name: hashKey.attribute,
-				type:
-					hashKey.type === 'string'
-						? AttributeType.STRING
-						: hashKey.type === 'number'
-						? AttributeType.NUMBER
-						: AttributeType.STRING
-			},
-			sortKey: rangeKey
-				? {
-						name: rangeKey.attribute,
-						type:
-							rangeKey.type === 'string'
-								? AttributeType.STRING
-								: rangeKey.type === 'number'
-								? AttributeType.NUMBER
-								: AttributeType.STRING
-				  }
-				: undefined
-		};
-
 		this.put = putFn(methodConfig);
 		this.get = getFn(methodConfig);
 		this.create = createFn(methodConfig);
@@ -157,7 +131,6 @@ export class Table<
 	}
 
 	DocumentClient: DocumentClient;
-	ConstructProps: Pick<TableProps, 'partitionKey' | 'sortKey'>;
 
 	Index!: TIdxN<TIdxCfgM>;
 	IndexKeyM!: IdxCfgMToKeyM<TIdxCfgM>;

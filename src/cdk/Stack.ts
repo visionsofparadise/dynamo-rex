@@ -1,7 +1,6 @@
 import { CfnOutput, RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
 import { Table, BillingMode, AttributeType, ProjectionType } from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
-import { TestTable } from '../TestTable.dev';
 export class DynamoXStack extends Stack {
 	public readonly tableName: CfnOutput;
 
@@ -11,8 +10,9 @@ export class DynamoXStack extends Stack {
 		const database = new Table(this, 'database', {
 			tableName: `${props.deploymentName}-database`,
 			billingMode: BillingMode.PAY_PER_REQUEST,
-			...TestTable.ConstructProps,
-			removalPolicy: RemovalPolicy.DESTROY
+			removalPolicy: RemovalPolicy.DESTROY,
+			partitionKey: { name: 'pk', type: AttributeType.STRING },
+			sortKey: { name: 'sk', type: AttributeType.STRING }
 		});
 
 		database.addGlobalSecondaryIndex({
