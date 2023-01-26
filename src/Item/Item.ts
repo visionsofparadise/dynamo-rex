@@ -77,7 +77,7 @@ export abstract class Item<
 	}
 
 	get propsWithKeys() {
-		return { ...this.indexKeys, ...this.current };
+		return { ...this.current, ...this.indexKeys };
 	}
 
 	get init() {
