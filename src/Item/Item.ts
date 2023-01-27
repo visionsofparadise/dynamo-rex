@@ -3,6 +3,7 @@ import { Table, IdxATL, IdxKey, IdxCfgM, NotPIdxN, IdxKeys, TIdxN, PIdxCfg } fro
 import assert from 'assert';
 import { convertObjectToUpdateExpression } from './convertObjectToUpdateExpression';
 import { O } from 'ts-toolbelt';
+import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 
 export type IdxAFns<TIdxCfg extends PIdxCfg> = {
 	[x in keyof IdxKey<TIdxCfg>]: (params: any) => IdxKey<TIdxCfg>[x];
@@ -237,6 +238,19 @@ export abstract class Item<
 		await this.postUpdate();
 
 		return;
+	}
+
+	async updateRequest(data: O.Partial<IA, 'deep'>) {
+		const updateExpression = convertObjectToUpdateExpression(data);
+
+		const updateRequest: DocumentClient.UpdateItemInput = {
+			TableName: this.Table.config.name,
+			Key: this.key,
+			ReturnValues: 'ALL_NEW',
+			...updateExpression
+		};
+
+		return updateRequest;
 	}
 
 	async delete() {
