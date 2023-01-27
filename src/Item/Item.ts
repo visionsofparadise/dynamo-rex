@@ -115,6 +115,17 @@ export abstract class Item<
 		);
 	}
 
+	isAttributeObjectModified = (...keys: Array<keyof IA>) =>
+		keys.reduce((previous, current) => {
+			try {
+				assert.deepStrictEqual(this.init[current], this.currentData[current]);
+
+				return previous;
+			} catch (error) {
+				return true;
+			}
+		}, false);
+
 	onNew() {}
 
 	async onPreSet() {}
