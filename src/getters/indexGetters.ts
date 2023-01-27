@@ -83,7 +83,7 @@ export const indexGettersFn =
 	): {
 		keyOf: ReturnType<typeof keyOfFn<IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxCfgM>>;
 		one: ReturnType<typeof oneFn<IA, IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
-		query: (props: KP<'hashKey', IIdxAFns, TIdxCfgM[IdxN]>) => {
+		query: (data: KP<'hashKey', IIdxAFns, TIdxCfgM[IdxN]>) => {
 			hashKeyOnly: ReturnType<typeof hashKeyOnlyFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
 			startsWith: ReturnType<typeof startsWithFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
 			between: ReturnType<typeof betweenFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
@@ -105,10 +105,10 @@ export const indexGettersFn =
 			IndexName
 		};
 
-		const query = (props: KP<'hashKey', IIdxAFns, TIdxCfgM[IdxN]>) => {
+		const query = (data: KP<'hashKey', IIdxAFns, TIdxCfgM[IdxN]>) => {
 			const queryConfig = {
 				...config,
-				hashKeyValue: Item[hashKey](props)
+				hashKeyValue: Item[hashKey](data)
 			};
 
 			return {

@@ -19,14 +19,14 @@ export class TestItem extends TestTable.Item<ITestItem, 'gsi0' | 'gsi1' | 'gsi2'
 	static pk() {
 		return 'test';
 	}
-	static sk(props: Pick<ITestItem, 'testString'>) {
-		return `test-${props.testString}`;
+	static sk(data: Pick<ITestItem, 'testString'>) {
+		return `test-${data.testString}`;
 	}
 	static gsi0Pk() {
 		return 'test';
 	}
-	static gsi0Sk(props: Pick<ITestItem, 'testString'>) {
-		return `test-${props.testString}`;
+	static gsi0Sk(data: Pick<ITestItem, 'testString'>) {
+		return `test-${data.testString}`;
 	}
 	static gsi1Pk() {
 		return randomNumber();
@@ -34,28 +34,28 @@ export class TestItem extends TestTable.Item<ITestItem, 'gsi0' | 'gsi1' | 'gsi2'
 	static gsi1Sk() {
 		return undefined;
 	}
-	static gsi2Pk(props: Pick<ITestItem, 'testString'>) {
-		return props.testString;
+	static gsi2Pk(data: Pick<ITestItem, 'testString'>) {
+		return data.testString;
 	}
-	static gsi2Sk(props: Pick<ITestItem, 'testNumber'>) {
-		return props.testNumber;
+	static gsi2Sk(data: Pick<ITestItem, 'testNumber'>) {
+		return data.testNumber;
 	}
-	static gsi3Pk(props: Pick<ITestItem, 'testNumber'>) {
-		return props.testNumber;
+	static gsi3Pk(data: Pick<ITestItem, 'testNumber'>) {
+		return data.testNumber;
 	}
 	static gsi3Sk() {
 		return undefined;
 	}
-	static gsi4Pk(props: Pick<ITestItem, 'testString'>) {
-		return props.testString;
+	static gsi4Pk(data: Pick<ITestItem, 'testString'>) {
+		return data.testString;
 	}
-	static gsi5Pk(props: Pick<ITestItem, 'testNumber'>) {
-		return props.testNumber;
+	static gsi5Pk(data: Pick<ITestItem, 'testNumber'>) {
+		return data.testNumber;
 	}
 
 	static get = TestTable.getters(TestItem);
 
-	constructor(props: ITestItem) {
-		super(props, TestItem);
+	constructor(data: ITestItem) {
+		super(data, TestItem);
 	}
 }

@@ -172,12 +172,12 @@ export class Table<
 			static createSet = ParentTable.config.client.createSet;
 
 			constructor(
-				props: IA,
+				data: IA,
 				Item: IdxAFns<TIdxCfgM[ISIdxN | TPIdxN]> &
 					ISIdxCfg<ISIdxN> &
 					Constructor<Item<IA, ISIdxN, TPIdxN, TIdxA, TIdxATL, TIdxCfgM>>
 			) {
-				super(props, Item, ParentTable);
+				super(data, Item, ParentTable);
 			}
 		};
 	}

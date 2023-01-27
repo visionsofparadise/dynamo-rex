@@ -12,9 +12,9 @@ it('gets one item on primary key', async () => {
 
 	await testItem.create();
 
-	const result = await TestItem.get(testItem.props);
+	const result = await TestItem.get(testItem.data);
 
-	expect(result.props.testString).toBe(testItem.props.testString);
+	expect(result.data.testString).toBe(testItem.data.testString);
 });
 
 it('gets one item on index key', async () => {
@@ -22,7 +22,7 @@ it('gets one item on index key', async () => {
 
 	await testItem.create();
 
-	const result = await TestItem.get.gsi0.one(testItem.props);
+	const result = await TestItem.get.gsi0.one(testItem.data);
 
-	expect(result.props.testString).toBe(testItem.props.testString);
+	expect(result.data.testString).toBe(testItem.data.testString);
 });

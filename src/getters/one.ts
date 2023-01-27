@@ -35,14 +35,14 @@ export const oneFn =
 		config: GetterCfg<IdxN, TPIdxN, TIdxCfgM>
 	) =>
 	async (
-		props: HKRKP<IIdxAFns, TIdxCfgM[IdxN]>
+		data: HKRKP<IIdxAFns, TIdxCfgM[IdxN]>
 	): Promise<
 		GetterOneOutput<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>
 	> => {
 		const { hashKey, rangeKey, IndexName } = config;
 
 		const keyOf = keyOfFn<IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxCfgM>(Item, config);
-		const Key = keyOf(props);
+		const Key = keyOf(data);
 
 		const output = !IndexName
 			? await Table.get<IA, ISIdxN>({ Key }).then(data => data.Item)

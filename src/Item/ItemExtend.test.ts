@@ -17,6 +17,13 @@ interface IBaseItem {
 interface ITestItem extends IBaseItem {
 	testString: string;
 	testNumber: number;
+	deep: {
+		deep: {
+			deep: {
+				testString: string;
+			};
+		};
+	};
 }
 
 class BaseItem<IExtend extends IBaseItem, ISIdxN extends typeof TestTable.SecondaryIndex> extends TestTable.Item<
@@ -24,12 +31,12 @@ class BaseItem<IExtend extends IBaseItem, ISIdxN extends typeof TestTable.Second
 	ISIdxN
 > {
 	constructor(
-		props: Omit<IExtend, 'createdAt' | 'updatedAt' | 'itemName'>,
+		data: Omit<IExtend, 'createdAt' | 'updatedAt' | 'itemName'>,
 		SelfItem: ConstructorParameters<typeof TestTable.Item<IExtend, ISIdxN>>[1] & { itemName: IBaseItem['itemName'] }
 	) {
 		super(
 			{
-				...props,
+				...data,
 				itemName: SelfItem.itemName,
 				createdAt: new Date().getTime(),
 				updatedAt: new Date().getTime()
@@ -42,7 +49,7 @@ class BaseItem<IExtend extends IBaseItem, ISIdxN extends typeof TestTable.Second
 		super.onPreWrite();
 
 		await this.set({
-			...this.props,
+			...this.data,
 			updatedAt: new Date().getTime()
 		});
 	}
@@ -62,114 +69,119 @@ class TestItem extends BaseItem<ITestItem, 'gsi0' | 'gsi1' | 'gsi2' | 'gsi3' | '
 	static pk() {
 		return 'test';
 	}
-	static sk(props: Pick<ITestItem, 'testString'>) {
-		return `test-${props.testString}`;
+	static sk(data: Pick<ITestItem, 'testString'>) {
+		return `test-${data.testString}`;
 	}
 	static gsi0Pk() {
 		return 'test';
 	}
-	static gsi0Sk(props: Pick<ITestItem, 'testString'>) {
-		return `test-${props.testString}`;
+	static gsi0Sk(data: Pick<ITestItem, 'testString'>) {
+		return `test-${data.testString}`;
 	}
-	static gsi1Pk(props: Pick<ITestItem, 'testNumber'>) {
-		return props.testNumber;
+	static gsi1Pk(data: Pick<ITestItem, 'testNumber'>) {
+		return data.testNumber;
 	}
-	static gsi1Sk(props: Pick<ITestItem, 'testNumber'>) {
-		return props.testNumber;
+	static gsi1Sk(data: Pick<ITestItem, 'testNumber'>) {
+		return data.testNumber;
 	}
-	static gsi2Pk(props: Pick<ITestItem, 'testString'>) {
-		return props.testString;
+	static gsi2Pk(data: Pick<ITestItem, 'testString'>) {
+		return data.testString;
 	}
-	static gsi2Sk(props: Pick<ITestItem, 'testNumber'>) {
-		return props.testNumber;
+	static gsi2Sk(data: Pick<ITestItem, 'testNumber'>) {
+		return data.testNumber;
 	}
-	static gsi3Pk(props: Pick<ITestItem, 'testNumber'>) {
-		return props.testNumber;
+	static gsi3Pk(data: Pick<ITestItem, 'testNumber'>) {
+		return data.testNumber;
 	}
-	static gsi3Sk(props: Pick<ITestItem, 'testString'>) {
-		return props.testString;
+	static gsi3Sk(data: Pick<ITestItem, 'testString'>) {
+		return data.testString;
 	}
-	static gsi4Pk(props: Pick<ITestItem, 'testString'>) {
-		return props.testString;
+	static gsi4Pk(data: Pick<ITestItem, 'testString'>) {
+		return data.testString;
 	}
-	static gsi5Pk(props: Pick<ITestItem, 'testNumber'>) {
-		return props.testNumber;
+	static gsi5Pk(data: Pick<ITestItem, 'testNumber'>) {
+		return data.testNumber;
 	}
 
-	constructor(props: RA<ITestItem, 'testString' | 'testNumber'>) {
-		super(props, TestItem);
+	constructor(data: RA<ITestItem, 'testString' | 'testNumber' | 'deep'>) {
+		super(data, TestItem);
 	}
 }
 
-const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
+const newTestData = () => ({
+	testString: nanoid(),
+	testNumber: randomNumber(),
+	deep: { deep: { deep: { testString: nanoid() } } }
+});
+const newTestItem = new TestItem(newTestData());
 
 export const indexCheck: A.Equals<
-	Parameters<typeof testItem['indexKey']>[0],
+	Parameters<typeof newTestItem['indexKey']>[0],
 	'primary' | 'gsi0' | 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4' | 'gsi5'
 > = 1;
 
 beforeEach(TestTable.reset);
 
-it('gets the current props of an item', () => {
-	const props = { testString: nanoid(), testNumber: randomNumber() };
+it('gets the current data of an item', () => {
+	const data = newTestData();
 
-	const testItem = new TestItem(props);
+	const testItem = new TestItem(data);
 
-	expect(testItem.props.testString).toBe(props.testString);
+	expect(testItem.data.testString).toBe(data.testString);
 });
 
-it('gets the current props and keys of an item', () => {
-	const props = { testString: nanoid(), testNumber: randomNumber() };
+it('gets the current data and keys of an item', () => {
+	const data = newTestData();
 
-	const testItem = new TestItem(props);
+	const testItem = new TestItem(data);
 
-	expect(testItem.propsWithKeys.testString).toBeDefined();
-	expect(testItem.propsWithKeys.pk).toBeDefined();
-	expect(testItem.propsWithKeys.gsi0Sk).toBeDefined();
+	expect(testItem.dataWithKeys.testString).toBeDefined();
+	expect(testItem.dataWithKeys.pk).toBeDefined();
+	expect(testItem.dataWithKeys.gsi0Sk).toBeDefined();
 });
 
 it('gets primary key of item', () => {
-	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
+	const testItem = new TestItem(newTestData());
 
 	const key = testItem.key;
 
 	expect(key.pk).toBe('test');
-	expect(key.sk).toBe(`test-${testItem.props.testString}`);
+	expect(key.sk).toBe(`test-${testItem.data.testString}`);
 });
 
 it('gets index key of item', () => {
-	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
+	const testItem = new TestItem(newTestData());
 
 	const key = testItem.indexKey('gsi0');
 
 	expect(key.gsi0Pk).toBe('test');
-	expect(key.gsi0Sk).toBe(`test-${testItem.props.testString}`);
+	expect(key.gsi0Sk).toBe(`test-${testItem.data.testString}`);
 });
 
-it('gets the current updated props of an item', async () => {
-	const props = { testString: nanoid(), testNumber: randomNumber() };
+it('gets the current updated data of an item', async () => {
+	const data = newTestData();
 
-	const testItem = new TestItem(props);
+	const testItem = new TestItem(data);
 
 	const newProps = { testString: nanoid() };
 
 	await testItem.set(newProps);
 
-	expect(testItem.props.testString).toStrictEqual(newProps.testString);
+	expect(testItem.data.testString).toStrictEqual(newProps.testString);
 });
 
 it('creates a new item', async () => {
-	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
+	const testItem = new TestItem(newTestData());
 
 	await testItem.create();
 
 	const getItem = await TestTable.get<ITestItem & IKey>({ Key: testItem.key });
 
-	expect(getItem.Item!.testString).toBe(testItem.props.testString);
+	expect(getItem.Item!.testString).toBe(testItem.data.testString);
 });
 
 it('sets and overwrites an item', async () => {
-	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
+	const testItem = new TestItem(newTestData());
 
 	await testItem.create();
 
@@ -184,7 +196,7 @@ it('sets and overwrites an item', async () => {
 });
 
 it('updates an attribute on an item', async () => {
-	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
+	const testItem = new TestItem(newTestData());
 
 	await testItem.create();
 
@@ -197,8 +209,22 @@ it('updates an attribute on an item', async () => {
 	expect(getItem.Item!.testString).toBe(testString);
 });
 
+it('updates a deep attribute on an item', async () => {
+	const testItem = new TestItem(newTestData());
+
+	await testItem.create();
+
+	const testString = nanoid();
+
+	await testItem.update({ deep: { deep: { deep: { testString } } } });
+
+	const getItem = await TestTable.get<ITestItem & IKey>({ Key: testItem.key });
+
+	expect(getItem.Item!.deep.deep.deep.testString).toBe(testString);
+});
+
 it('deletes an item', async () => {
-	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
+	const testItem = new TestItem(newTestData());
 
 	await testItem.create();
 
