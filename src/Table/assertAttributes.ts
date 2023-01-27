@@ -36,10 +36,11 @@ export const assertUpdateAttributes: <
 	returnValue?: RV
 ) => asserts data is UpdateItemOutput<A, RV, ISIdxN, TPIdxN, TIdxCfgM> = (data, returnValue) => {
 	if (
-		returnValue === 'ALL_OLD' ||
-		returnValue === 'ALL_NEW' ||
-		returnValue === 'UPDATED_OLD' ||
-		(returnValue === 'UPDATED_NEW' && !data.Attributes)
+		(returnValue === 'ALL_OLD' ||
+			returnValue === 'ALL_NEW' ||
+			returnValue === 'UPDATED_OLD' ||
+			returnValue === 'UPDATED_NEW') &&
+		!data.Attributes
 	) {
 		throw new Error('Return values not found');
 	}

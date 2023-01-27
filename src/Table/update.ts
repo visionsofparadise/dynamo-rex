@@ -33,7 +33,7 @@ export const updateFn =
 	): Promise<UpdateItemOutput<A, RV, TSIdxN, TPIdxN, TIdxCfgM>> => {
 		const data = await config.client.update({ TableName: config.name, ...query }).promise();
 
-		assertUpdateAttributes<A, RV, TSIdxN, TPIdxN, TIdxCfgM>(data);
+		assertUpdateAttributes<A, RV, TSIdxN, TPIdxN, TIdxCfgM>(data, query.ReturnValues);
 
 		if (config.logger) config.logger.info(data);
 

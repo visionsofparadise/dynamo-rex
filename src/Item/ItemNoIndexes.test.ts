@@ -96,13 +96,15 @@ it('sets and overwrites an item', async () => {
 it('updates an attribute on an item', async () => {
 	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
 
+	const initialKey = testItem.key;
+
 	await testItem.create();
 
 	const testString = nanoid();
 
 	await testItem.update({ testString });
 
-	const getItem = await TestTable.get<ITestItem & IKey>({ Key: testItem.key });
+	const getItem = await TestTable.get<ITestItem & IKey>({ Key: initialKey });
 
 	expect(getItem.Item!.testString).toBe(testString);
 });

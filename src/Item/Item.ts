@@ -2,6 +2,7 @@ import { Constructor, zipObject } from '../utils';
 import { Table, IdxATL, IdxKey, IdxCfgM, NotPIdxN, IdxKeys, TIdxN, PIdxCfg } from '../Table/Table';
 import assert from 'assert';
 import { convertObjectToUpdateExpression } from './convertObjectToUpdateExpression';
+import { O } from 'ts-toolbelt';
 
 export type IdxAFns<TIdxCfg extends PIdxCfg> = {
 	[x in keyof IdxKey<TIdxCfg>]: (params: any) => IdxKey<TIdxCfg>[x];
@@ -17,7 +18,6 @@ export interface IItemConfig {
 	skipWriteHooks?: boolean;
 	skipUpdateHooks?: boolean;
 	skipDeleteHooks?: boolean;
-	skipDiff?: boolean;
 }
 
 export abstract class Item<
@@ -97,8 +97,6 @@ export abstract class Item<
 	}
 
 	isModified(initialData?: IA) {
-		if (this.configProps.skipDiff) return true;
-
 		try {
 			assert.deepStrictEqual(initialData || this.init, this.currentData);
 
@@ -199,15 +197,13 @@ export abstract class Item<
 	}
 
 	async write() {
-		if (this.isModified()) {
-			await this.preWrite();
+		await this.preWrite();
 
-			await this.Table.put<IA, never, ISIdxN>({
-				Item: this.dataWithKeys
-			});
+		await this.Table.put<IA, never, ISIdxN>({
+			Item: this.dataWithKeys
+		});
 
-			await this.postWrite();
-		}
+		await this.postWrite();
 
 		return;
 	}
@@ -225,23 +221,20 @@ export abstract class Item<
 		return;
 	}
 
-	async update(data: Partial<IA>) {
-		const beforeSetData = { ...this.currentData };
+	async update(data: O.Partial<IA, 'deep'>) {
+		await this.preUpdate();
 
-		await this.set(data);
+		const updateExpression = convertObjectToUpdateExpression(data);
 
-		if (this.isModified(beforeSetData)) {
-			await this.preUpdate();
+		const response = await this.Table.update<IA, 'ALL_NEW', ISIdxN>({
+			Key: this.key,
+			ReturnValues: 'ALL_NEW',
+			...updateExpression
+		});
 
-			const updateExpression = convertObjectToUpdateExpression(data);
+		await this.set(response.Attributes);
 
-			await this.Table.update<IA, never, ISIdxN>({
-				Key: this.key,
-				...updateExpression
-			});
-
-			await this.postUpdate();
-		}
+		await this.postUpdate();
 
 		return;
 	}
