@@ -56,7 +56,7 @@ export abstract class Item<
 
 		config && this.config(config);
 
-		this.onNew();
+		if (!config?.skipHooks) this.onNew();
 	}
 
 	config = (config: Partial<IItemConfig>) => (this.configProps = { ...this.configProps, ...config });
@@ -116,9 +116,6 @@ export abstract class Item<
 	}
 
 	onNew() {}
-	new() {
-		if (!this.configProps.skipHooks) this.onNew();
-	}
 
 	async onPreSet() {}
 	async preSet() {
