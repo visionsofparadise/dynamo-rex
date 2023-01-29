@@ -37,3 +37,36 @@ it('updates an item attribute', async () => {
 
 	expect(result.Item).toStrictEqual(Item2);
 });
+
+it('updates an item attribute from object', async () => {
+	const Key = {
+		pk: nanoid(),
+		sk: nanoid()
+	};
+
+	const Item = {
+		...Key,
+		test: 'test'
+	};
+
+	await TestTable.put({
+		Item
+	});
+
+	const updateObject = {
+		test: 'test2'
+	};
+
+	await TestTable.updateFromObject(
+		{
+			Key
+		},
+		updateObject
+	);
+
+	const result = await TestTable.get({
+		Key
+	});
+
+	expect(result.Item).toStrictEqual({ ...Item, ...updateObject });
+});

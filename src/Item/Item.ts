@@ -1,9 +1,7 @@
 import { Constructor, zipObject } from '../utils';
 import { Table, IdxATL, IdxKey, IdxCfgM, NotPIdxN, IdxKeys, TIdxN, PIdxCfg } from '../Table/Table';
 import assert from 'assert';
-import { convertObjectToUpdateExpression } from './convertObjectToUpdateExpression';
 import { O } from 'ts-toolbelt';
-import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 
 export type IdxAFns<TIdxCfg extends PIdxCfg> = {
 	[x in keyof IdxKey<TIdxCfg>]: (params: any) => IdxKey<TIdxCfg>[x];
@@ -225,32 +223,19 @@ export abstract class Item<
 	async update(data: O.Partial<IA, 'deep'>) {
 		await this.preUpdate();
 
-		const updateExpression = convertObjectToUpdateExpression(data);
-
-		const response = await this.Table.update<IA, 'ALL_NEW', ISIdxN>({
-			Key: this.key,
-			ReturnValues: 'ALL_NEW',
-			...updateExpression
-		});
+		const response = await this.Table.updateFromObject<IA, 'ALL_NEW', ISIdxN>(
+			{
+				Key: this.key,
+				ReturnValues: 'ALL_NEW'
+			},
+			data
+		);
 
 		await this.set(response.Attributes);
 
 		await this.postUpdate();
 
 		return;
-	}
-
-	async updateRequest(data: O.Partial<IA, 'deep'>) {
-		const updateExpression = convertObjectToUpdateExpression(data);
-
-		const updateRequest: DocumentClient.UpdateItemInput = {
-			TableName: this.Table.config.name,
-			Key: this.key,
-			ReturnValues: 'ALL_NEW',
-			...updateExpression
-		};
-
-		return updateRequest;
 	}
 
 	async delete() {

@@ -114,10 +114,13 @@ export class Table<
 
 		const { primaryIndex, indexes, ...methodConfig } = config;
 
+		const updateFns = updateFn(methodConfig);
+
 		this.put = putFn(methodConfig);
 		this.get = getFn(methodConfig);
 		this.create = createFn(methodConfig);
-		this.update = updateFn(methodConfig);
+		this.update = updateFns.update;
+		this.updateFromObject = updateFns.updateFromObject;
 		this.query = queryFn(methodConfig);
 		this.scan = scanFn(methodConfig);
 		this.delete = deleteFn(methodConfig);
@@ -146,7 +149,8 @@ export class Table<
 	put: ReturnType<typeof putFn<TPIdxN, TIdxCfgM>>;
 	get: ReturnType<typeof getFn<TPIdxN, TIdxCfgM>>;
 	create: ReturnType<typeof createFn<TPIdxN, TIdxCfgM>>;
-	update: ReturnType<typeof updateFn<TPIdxN, TIdxCfgM>>;
+	update: ReturnType<typeof updateFn<TPIdxN, TIdxCfgM>>['update'];
+	updateFromObject: ReturnType<typeof updateFn<TPIdxN, TIdxCfgM>>['updateFromObject'];
 	query: ReturnType<typeof queryFn<TPIdxN, TIdxCfgM>>;
 	scan: ReturnType<typeof scanFn<TPIdxN, TIdxCfgM>>;
 	delete: ReturnType<typeof deleteFn<TPIdxN, TIdxCfgM>>;

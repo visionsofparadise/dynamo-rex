@@ -1,4 +1,6 @@
 import { DocumentClient } from 'aws-sdk/clients/dynamodb';
+import { convertObjectToUpdateExpression } from '../Item/convertObjectToUpdateExpression';
+import { O } from 'ts-toolbelt';
 import { Assign, NoTN } from '../utils';
 import { assertUpdateAttributes } from './assertAttributes';
 import { PutReturnValues } from './put';
@@ -26,9 +28,12 @@ export type UpdateItemOutput<
 	}
 >;
 
-export const updateFn =
-	<TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfgM<TPIdxN>>(config: MCfg) =>
-	async <A extends {}, RV extends UpdateReturnValues = never, TSIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> = never>(
+export const updateFn = <TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfgM<TPIdxN>>(config: MCfg) => {
+	const update = async <
+		A extends {},
+		RV extends UpdateReturnValues = never,
+		TSIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> = never
+	>(
 		query: UpdateItemInput<IdxKey<TIdxCfgM[TPIdxN]>, RV>
 	): Promise<UpdateItemOutput<A, RV, TSIdxN, TPIdxN, TIdxCfgM>> => {
 		const data = await config.client.update({ TableName: config.name, ...query }).promise();
@@ -39,3 +44,31 @@ export const updateFn =
 
 		return data;
 	};
+
+	const updateFromObject = async <
+		A extends {},
+		RV extends UpdateReturnValues = never,
+		TSIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> = never
+	>(
+		query: Omit<
+			UpdateItemInput<IdxKey<TIdxCfgM[TPIdxN]>, RV>,
+			'UpdateExpression' | 'ExpressionAttributeNames' | 'ExpressionAttributeValues'
+		>,
+		object: O.Partial<A, 'deep'>
+	): Promise<UpdateItemOutput<A, RV, TSIdxN, TPIdxN, TIdxCfgM>> => {
+		const updateExpression = convertObjectToUpdateExpression(object);
+
+		const data = await config.client.update({ TableName: config.name, ...query, ...updateExpression }).promise();
+
+		assertUpdateAttributes<A, RV, TSIdxN, TPIdxN, TIdxCfgM>(data, query.ReturnValues);
+
+		if (config.logger) config.logger.info(data);
+
+		return data;
+	};
+
+	return {
+		update,
+		updateFromObject
+	};
+};
