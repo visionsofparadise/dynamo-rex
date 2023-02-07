@@ -118,7 +118,7 @@ export class Table<
 
 		this.put = putFn(methodConfig);
 		this.get = getFn(methodConfig);
-		this.create = createFn(methodConfig);
+		this.create = createFn(methodConfig, config.indexes[config.primaryIndex]);
 		this.update = updateFns.update;
 		this.updateFromObject = updateFns.updateFromObject;
 		this.query = queryFn(methodConfig);
@@ -148,7 +148,7 @@ export class Table<
 
 	put: ReturnType<typeof putFn<TPIdxN, TIdxCfgM>>;
 	get: ReturnType<typeof getFn<TPIdxN, TIdxCfgM>>;
-	create: ReturnType<typeof createFn<TPIdxN, TIdxCfgM>>;
+	create: ReturnType<typeof createFn<TPIdxN, TIdxCfgM, TIdxCfgM[TPIdxN]>>;
 	update: ReturnType<typeof updateFn<TPIdxN, TIdxCfgM>>['update'];
 	updateFromObject: ReturnType<typeof updateFn<TPIdxN, TIdxCfgM>>['updateFromObject'];
 	query: ReturnType<typeof queryFn<TPIdxN, TIdxCfgM>>;
