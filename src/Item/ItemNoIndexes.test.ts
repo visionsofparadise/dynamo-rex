@@ -19,32 +19,32 @@ class TestItem extends TestTable.Item<ITestItem> {
 	static pk() {
 		return 'test';
 	}
-	static sk(data: Pick<ITestItem, 'testString'>) {
-		return `test-${data.testString}`;
+	static sk(item: Pick<ITestItem, 'testString'>) {
+		return `test-${item.testString}`;
 	}
 
-	constructor(data: RA<ITestItem, 'testString' | 'testNumber'>) {
-		super(data, TestItem);
+	constructor(item: RA<ITestItem, 'testString' | 'testNumber'>) {
+		super(item, TestItem);
 	}
 }
 
 beforeEach(TestTable.reset);
 
-it('gets the current data of an item', () => {
-	const data = { testString: nanoid(), testNumber: randomNumber() };
+it('gets the current item', () => {
+	const item = { testString: nanoid(), testNumber: randomNumber() };
 
-	const testItem = new TestItem(data);
+	const testItem = new TestItem(item);
 
-	expect(testItem.data.testString).toBe(data.testString);
+	expect(testItem.item.testString).toBe(item.testString);
 });
 
-it('gets the current data and keys of an item', () => {
-	const data = { testString: nanoid(), testNumber: randomNumber() };
+it('gets the current item and keys of an item', () => {
+	const item = { testString: nanoid(), testNumber: randomNumber() };
 
-	const testItem = new TestItem(data);
+	const testItem = new TestItem(item);
 
-	expect(testItem.dataWithKeys.testString).toBeDefined();
-	expect(testItem.dataWithKeys.pk).toBeDefined();
+	expect(testItem.itemWithKeys.testString).toBeDefined();
+	expect(testItem.itemWithKeys.pk).toBeDefined();
 });
 
 it('gets primary key of item', () => {
@@ -53,19 +53,19 @@ it('gets primary key of item', () => {
 	const key = testItem.key;
 
 	expect(key.pk).toBe('test');
-	expect(key.sk).toBe(`test-${testItem.data.testString}`);
+	expect(key.sk).toBe(`test-${testItem.item.testString}`);
 });
 
-it('gets the current updated data of an item', async () => {
-	const data = { testString: nanoid(), testNumber: randomNumber() };
+it('gets the current updated item', async () => {
+	const item = { testString: nanoid(), testNumber: randomNumber() };
 
-	const testItem = new TestItem(data);
+	const testItem = new TestItem(item);
 
 	const newProps = { testString: nanoid() };
 
 	await testItem.set(newProps);
 
-	expect(testItem.data.testString).toStrictEqual(newProps.testString);
+	expect(testItem.item.testString).toStrictEqual(newProps.testString);
 });
 
 it('creates a new item', async () => {
@@ -75,7 +75,7 @@ it('creates a new item', async () => {
 
 	const getItem = await TestTable.get<ITestItem & IKey>({ Key: testItem.key });
 
-	expect(getItem.Item!.testString).toBe(testItem.data.testString);
+	expect(getItem.Item!.testString).toBe(testItem.item.testString);
 });
 
 it('sets and overwrites an item', async () => {

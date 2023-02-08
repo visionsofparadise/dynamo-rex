@@ -6,20 +6,6 @@ jest.useRealTimers();
 
 beforeEach(TestTable.reset);
 
-const result0 = TestItem.get.query().hashKeyOnly;
-
-export const primaryQueryItemsCheck: A.Extends<
-	Awaited<ReturnType<typeof result0>>['Items'][number],
-	InstanceType<typeof TestItem>
-> = 1;
-
-const result1 = TestItem.get.gsi0.query().hashKeyOnly;
-
-export const gsi0QueryItemsCheck: A.Extends<
-	Awaited<ReturnType<typeof result1>>['Items'][number],
-	InstanceType<typeof TestItem>
-> = 1;
-
 const result2 = TestItem.get.gsi1.query().hashKeyOnly;
 
 export const gsi1QueryItemsCheck: A.Equals<

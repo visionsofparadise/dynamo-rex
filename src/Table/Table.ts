@@ -1,6 +1,6 @@
 import { Constructor, ILogger, UnionToIntersection } from '../utils';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { ISIdxCfg, Item, IdxAFns } from '../Item/Item';
+import { Item, IdxAFns, ISIdxCfg } from '../Item/Item';
 import { getters } from '../getters/getters';
 import { putFn } from './put';
 import { getFn } from './get';
@@ -10,12 +10,13 @@ import { scanFn } from './scan';
 import { deleteFn } from './delete';
 import { queryFn } from './query';
 import { resetFn } from './reset';
+import { writers } from '../writers/writers';
 
 export type IdxAT = string | number | undefined;
 
 export type IdxATL = 'string' | 'string?' | 'number' | 'number?';
 
-export type IdxATLToType<TIdxATL extends IdxATL> = TIdxATL extends 'string'
+export type IdxATLToType<TIdxATL extends IdxATL = 'string'> = TIdxATL extends 'string'
 	? string
 	: TIdxATL extends 'string?'
 	? string | undefined
@@ -101,6 +102,15 @@ interface TCfg<
 	indexes: TIdxCfgM;
 }
 
+export interface ICfg<
+	TPIdxN extends TIdxN<TIdxCfgM>,
+	TIdxCfgM extends IdxCfgM<TPIdxN>,
+	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> = never
+> {
+	secondaryIndexes: Array<ISIdxN>;
+	indexAttributeFunctions: IdxAFns<TIdxCfgM[ISIdxN | TPIdxN]>;
+}
+
 export class Table<
 	TPIdxN extends TIdxN<TIdxCfgM> = string,
 	TIdxA extends string = string,
@@ -123,7 +133,7 @@ export class Table<
 		this.updateFromObject = updateFns.updateFromObject;
 		this.query = queryFn(methodConfig);
 		this.scan = scanFn(methodConfig);
-		this.delete = deleteFn(methodConfig);
+		this.delete = deleteFn(methodConfig, config.indexes[config.primaryIndex]);
 		this.reset = resetFn(methodConfig, config.indexes[config.primaryIndex]);
 
 		this.createSet = config.client.createSet;
@@ -136,6 +146,7 @@ export class Table<
 	DocumentClient: DocumentClient;
 
 	Index!: TIdxN<TIdxCfgM>;
+	IndexConfig!: TIdxCfgM;
 	IndexKeyM!: IdxCfgMToKeyM<TIdxCfgM>;
 
 	PrimaryIndex!: TPIdxN;
@@ -146,6 +157,8 @@ export class Table<
 		[x in NotPIdxN<TPIdxN, TIdxCfgM>]: IdxKey<TIdxCfgM[x]>;
 	};
 
+	ItemConfig!: ICfg<TPIdxN, TIdxCfgM, NotPIdxN<TPIdxN, TIdxCfgM>>;
+
 	put: ReturnType<typeof putFn<TPIdxN, TIdxCfgM>>;
 	get: ReturnType<typeof getFn<TPIdxN, TIdxCfgM>>;
 	create: ReturnType<typeof createFn<TPIdxN, TIdxCfgM, TIdxCfgM[TPIdxN]>>;
@@ -153,7 +166,7 @@ export class Table<
 	updateFromObject: ReturnType<typeof updateFn<TPIdxN, TIdxCfgM>>['updateFromObject'];
 	query: ReturnType<typeof queryFn<TPIdxN, TIdxCfgM>>;
 	scan: ReturnType<typeof scanFn<TPIdxN, TIdxCfgM>>;
-	delete: ReturnType<typeof deleteFn<TPIdxN, TIdxCfgM>>;
+	delete: ReturnType<typeof deleteFn<TPIdxN, TIdxCfgM, TIdxCfgM[TPIdxN]>>;
 	reset: ReturnType<typeof resetFn<TIdxCfgM[TPIdxN]>>;
 
 	createSet: DocumentClient['createSet'];
@@ -192,5 +205,13 @@ export class Table<
 
 	makeGetters = () => {
 		return getters<TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP, TIdxCfgM>(this);
+	};
+
+	get writers() {
+		return this.makeWriters();
+	}
+
+	makeWriters = () => {
+		return writers<TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP, TIdxCfgM>(this);
 	};
 }

@@ -1,9 +1,9 @@
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { Assign, NoTN } from '../utils';
-import { getFn, GetItemInput } from './get';
+import { GetItemInput } from './get';
 import { assertPutAttributes } from './assertAttributes';
 import { PutReturnValues } from './put';
-import { IdxCfgM, IdxKey, IdxKeys, MCfg, NotPIdxN, TIdxN } from './Table';
+import { IdxCfgM, IdxKey, IdxKeys, MCfg, NotPIdxN, PIdxCfg, TIdxN } from './Table';
 
 export type DeleteItemInput<
 	Key extends DocumentClient.GetItemInput['Key'],
@@ -30,13 +30,22 @@ export type DeleteItemOutput<
 >;
 
 export const deleteFn =
-	<TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfgM<TPIdxN>>(config: MCfg) =>
+	<TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfgM<TPIdxN>, TPIdxCfg extends PIdxCfg>(
+		config: MCfg,
+		primaryIndexConfig: TPIdxCfg
+	) =>
 	async <A extends {}, RV extends PutReturnValues = never, ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> = never>(
 		query: DeleteItemInput<IdxKey<TIdxCfgM[TPIdxN]>, RV>
 	): Promise<DeleteItemOutput<A, RV, ISIdxN, TPIdxN, TIdxCfgM>> => {
-		await getFn<TPIdxN, TIdxCfgM>(config)<A, ISIdxN>(query);
-
-		const data = await config.client.delete({ TableName: config.name, ...query }).promise();
+		const data = await config.client
+			.delete({
+				TableName: config.name,
+				...query,
+				ConditionExpression: `attribute_exists(${String(primaryIndexConfig.hashKey.attribute)})${
+					query.ConditionExpression ? ` ${query.ConditionExpression}` : ''
+				}`
+			})
+			.promise();
 
 		assertPutAttributes<A, RV, ISIdxN, TPIdxN, TIdxCfgM>(data, query.ReturnValues);
 

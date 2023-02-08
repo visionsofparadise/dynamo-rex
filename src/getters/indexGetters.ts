@@ -84,9 +84,9 @@ export const indexGettersFn =
 		keyOf: ReturnType<typeof keyOfFn<IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxCfgM>>;
 		one: ReturnType<typeof oneFn<IA, IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
 		query: (data: KP<'hashKey', IIdxAFns, TIdxCfgM[IdxN]>) => {
-			hashKeyOnly: ReturnType<typeof hashKeyOnlyFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
-			startsWith: ReturnType<typeof startsWithFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
-			between: ReturnType<typeof betweenFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
+			hashKeyOnly: ReturnType<typeof hashKeyOnlyFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
+			startsWith: ReturnType<typeof startsWithFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
+			between: ReturnType<typeof betweenFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>>;
 		};
 	} => {
 		const Index = Table.config.indexes[index];
@@ -112,17 +112,9 @@ export const indexGettersFn =
 			};
 
 			return {
-				hashKeyOnly: hashKeyOnlyFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>(
-					Table,
-					Item,
-					queryConfig
-				),
-				startsWith: startsWithFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>(
-					Table,
-					Item,
-					queryConfig
-				),
-				between: betweenFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>(Table, Item, queryConfig)
+				hashKeyOnly: hashKeyOnlyFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, queryConfig),
+				startsWith: startsWithFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, queryConfig),
+				between: betweenFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM>(Table, queryConfig)
 			};
 		};
 

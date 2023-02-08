@@ -5,7 +5,6 @@ import { HKRKP } from './getters';
 import { keyOfFn } from './keyOf';
 import { GetterCfg, GetterQueryOutput, QueryIdxN } from './indexGetters';
 import { Constructor } from '../utils';
-import { assertOneOutputItemType } from './assertQueryOutputItemType';
 
 export type GetterOneOutput<
 	IA extends {},
@@ -34,17 +33,13 @@ export const oneFn =
 		Item: IIdxAFns & GItem,
 		config: GetterCfg<IdxN, TPIdxN, TIdxCfgM>
 	) =>
-	async (
-		data: HKRKP<IIdxAFns, TIdxCfgM[IdxN]>
-	): Promise<
-		GetterOneOutput<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>
-	> => {
+	async (data: HKRKP<IIdxAFns, TIdxCfgM[IdxN]>) => {
 		const { hashKey, rangeKey, IndexName } = config;
 
 		const keyOf = keyOfFn<IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxCfgM>(Item, config);
 		const Key = keyOf(data);
 
-		const output = !IndexName
+		return !IndexName
 			? await Table.get<IA, ISIdxN>({ Key }).then(data => data.Item)
 			: await Table.query<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
 					IndexName,
@@ -63,11 +58,4 @@ export const oneFn =
 
 					return data.Items[0];
 			  });
-
-		const item = Table.config.indexes[config.index].project ? output : new Item(output);
-		const isItem = Table.config.indexes[config.index].project ? false : true;
-
-		assertOneOutputItemType<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>(item, isItem, config, Table);
-
-		return item;
 	};

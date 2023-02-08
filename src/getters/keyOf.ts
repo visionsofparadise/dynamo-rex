@@ -18,7 +18,7 @@ export const keyOfFn =
 	(data: HKRKP<IIdxAFns, TIdxCfgM[IdxN]>): IdxKey<TIdxCfgM[IdxN]> => {
 		const { hashKey, rangeKey } = config;
 
-		const attributes = rangeKey ? [hashKey, rangeKey] : [hashKey];
+		const attributes = rangeKey ? [hashKey, rangeKey!] : [hashKey];
 		const values = attributes.map(attribute => Item[attribute](data));
 
 		return zipObject(attributes, values);

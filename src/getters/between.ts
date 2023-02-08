@@ -1,8 +1,5 @@
-import { Item } from '../Item/Item';
-import { Constructor } from '../utils';
 import { Table, IdxCfgM, IdxATL, IdxP, NotPIdxN, TIdxN } from '../Table/Table';
-import { assertQueryOutputItemType } from './assertQueryOutputItemType';
-import { QueryGetterCfg, GetterQueryInput, QueryIdxN, GetterQueryOutput } from './indexGetters';
+import { QueryGetterCfg, GetterQueryInput, QueryIdxN } from './indexGetters';
 
 export const betweenFn =
 	<
@@ -12,11 +9,9 @@ export const betweenFn =
 		TPIdxN extends TIdxN<TIdxCfgM>,
 		TIdxPA extends string,
 		TIdxP extends IdxP<TIdxPA>,
-		TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>,
-		GItem extends Constructor<Item<IA, ISIdxN, TPIdxN, string, IdxATL, TIdxCfgM>>
+		TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>
 	>(
 		Table: Table<TPIdxN, string, IdxATL, TIdxPA, TIdxP, TIdxCfgM>,
-		Item: GItem,
 		config: QueryGetterCfg<IdxN, TPIdxN, TIdxCfgM>
 	) =>
 	async (
@@ -24,14 +19,12 @@ export const betweenFn =
 			Min: string | number;
 			Max: string | number;
 		}
-	): Promise<
-		GetterQueryOutput<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>
-	> => {
+	) => {
 		const { hashKey, hashKeyValue, rangeKey, IndexName } = config;
 
 		const { Min, Max, ...restOfQuery } = listQuery;
 
-		let output = await Table.query<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
+		return Table.query<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
 			IndexName,
 			KeyConditionExpression: `${hashKey} = :hashKey AND ${rangeKey} BETWEEN :min AND :max`,
 			ExpressionAttributeValues: {
@@ -41,18 +34,4 @@ export const betweenFn =
 			},
 			...restOfQuery
 		});
-
-		let isItems = false;
-
-		if (!Table.config.indexes[config.index].project) {
-			output = Object.assign(output, {
-				Items: output.Items.map(item => new Item(item))
-			});
-
-			isItems = true;
-		}
-
-		assertQueryOutputItemType<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>(output, isItems, config, Table);
-
-		return output;
 	};

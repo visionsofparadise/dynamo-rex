@@ -38,7 +38,7 @@ beforeEach(TestTable.reset);
 it('gets primary key of item', () => {
 	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
 
-	const key = TestItem.get.keyOf(testItem.data);
+	const key = TestItem.get.keyOf(testItem.item);
 
 	expect(key).toStrictEqual(testItem.key);
 });
@@ -46,7 +46,7 @@ it('gets primary key of item', () => {
 it('gets index key of item', () => {
 	const testItem = new TestItem({ testString: nanoid(), testNumber: randomNumber() });
 
-	const key = TestItem.get.gsi0.keyOf(testItem.data);
+	const key = TestItem.get.gsi0.keyOf(testItem.item);
 
 	expect(key).toStrictEqual(testItem.indexKey('gsi0'));
 });

@@ -31,12 +31,12 @@ class BaseItem<IExtend extends IBaseItem, ISIdxN extends typeof TestTable.Second
 	ISIdxN
 > {
 	constructor(
-		data: Omit<IExtend, 'createdAt' | 'updatedAt' | 'itemName'>,
+		item: Omit<IExtend, 'createdAt' | 'updatedAt' | 'itemName'>,
 		SelfItem: ConstructorParameters<typeof TestTable.Item<IExtend, ISIdxN>>[1] & { itemName: IBaseItem['itemName'] }
 	) {
 		super(
 			{
-				...data,
+				...item,
 				itemName: SelfItem.itemName,
 				createdAt: new Date().getTime(),
 				updatedAt: new Date().getTime()
@@ -49,7 +49,7 @@ class BaseItem<IExtend extends IBaseItem, ISIdxN extends typeof TestTable.Second
 		super.onPreWrite();
 
 		await this.set({
-			...this.data,
+			...this.item,
 			updatedAt: new Date().getTime()
 		});
 	}
@@ -69,42 +69,42 @@ class TestItem extends BaseItem<ITestItem, 'gsi0' | 'gsi1' | 'gsi2' | 'gsi3' | '
 	static pk() {
 		return 'test';
 	}
-	static sk(data: Pick<ITestItem, 'testString'>) {
-		return `test-${data.testString}`;
+	static sk(item: Pick<ITestItem, 'testString'>) {
+		return `test-${item.testString}`;
 	}
 	static gsi0Pk() {
 		return 'test';
 	}
-	static gsi0Sk(data: Pick<ITestItem, 'testString'>) {
-		return `test-${data.testString}`;
+	static gsi0Sk(item: Pick<ITestItem, 'testString'>) {
+		return `test-${item.testString}`;
 	}
-	static gsi1Pk(data: Pick<ITestItem, 'testNumber'>) {
-		return data.testNumber;
+	static gsi1Pk(item: Pick<ITestItem, 'testNumber'>) {
+		return item.testNumber;
 	}
-	static gsi1Sk(data: Pick<ITestItem, 'testNumber'>) {
-		return data.testNumber;
+	static gsi1Sk(item: Pick<ITestItem, 'testNumber'>) {
+		return item.testNumber;
 	}
-	static gsi2Pk(data: Pick<ITestItem, 'testString'>) {
-		return data.testString;
+	static gsi2Pk(item: Pick<ITestItem, 'testString'>) {
+		return item.testString;
 	}
-	static gsi2Sk(data: Pick<ITestItem, 'testNumber'>) {
-		return data.testNumber;
+	static gsi2Sk(item: Pick<ITestItem, 'testNumber'>) {
+		return item.testNumber;
 	}
-	static gsi3Pk(data: Pick<ITestItem, 'testNumber'>) {
-		return data.testNumber;
+	static gsi3Pk(item: Pick<ITestItem, 'testNumber'>) {
+		return item.testNumber;
 	}
-	static gsi3Sk(data: Pick<ITestItem, 'testString'>) {
-		return data.testString;
+	static gsi3Sk(item: Pick<ITestItem, 'testString'>) {
+		return item.testString;
 	}
-	static gsi4Pk(data: Pick<ITestItem, 'testString'>) {
-		return data.testString;
+	static gsi4Pk(item: Pick<ITestItem, 'testString'>) {
+		return item.testString;
 	}
-	static gsi5Pk(data: Pick<ITestItem, 'testNumber'>) {
-		return data.testNumber;
+	static gsi5Pk(item: Pick<ITestItem, 'testNumber'>) {
+		return item.testNumber;
 	}
 
-	constructor(data: RA<ITestItem, 'testString' | 'testNumber' | 'deep'>) {
-		super(data, TestItem);
+	constructor(item: RA<ITestItem, 'testString' | 'testNumber' | 'deep'>) {
+		super(item, TestItem);
 	}
 }
 
@@ -123,22 +123,22 @@ export const indexCheck: A.Equals<
 
 beforeEach(TestTable.reset);
 
-it('gets the current data of an item', () => {
-	const data = newTestData();
+it('gets the current item of an item', () => {
+	const item = newTestData();
 
-	const testItem = new TestItem(data);
+	const testItem = new TestItem(item);
 
-	expect(testItem.data.testString).toBe(data.testString);
+	expect(testItem.item.testString).toBe(item.testString);
 });
 
-it('gets the current data and keys of an item', () => {
-	const data = newTestData();
+it('gets the current item and keys of an item', () => {
+	const item = newTestData();
 
-	const testItem = new TestItem(data);
+	const testItem = new TestItem(item);
 
-	expect(testItem.dataWithKeys.testString).toBeDefined();
-	expect(testItem.dataWithKeys.pk).toBeDefined();
-	expect(testItem.dataWithKeys.gsi0Sk).toBeDefined();
+	expect(testItem.itemWithKeys.testString).toBeDefined();
+	expect(testItem.itemWithKeys.pk).toBeDefined();
+	expect(testItem.itemWithKeys.gsi0Sk).toBeDefined();
 });
 
 it('gets primary key of item', () => {
@@ -147,7 +147,7 @@ it('gets primary key of item', () => {
 	const key = testItem.key;
 
 	expect(key.pk).toBe('test');
-	expect(key.sk).toBe(`test-${testItem.data.testString}`);
+	expect(key.sk).toBe(`test-${testItem.item.testString}`);
 });
 
 it('gets index key of item', () => {
@@ -156,19 +156,19 @@ it('gets index key of item', () => {
 	const key = testItem.indexKey('gsi0');
 
 	expect(key.gsi0Pk).toBe('test');
-	expect(key.gsi0Sk).toBe(`test-${testItem.data.testString}`);
+	expect(key.gsi0Sk).toBe(`test-${testItem.item.testString}`);
 });
 
-it('gets the current updated data of an item', async () => {
-	const data = newTestData();
+it('gets the current updated item of an item', async () => {
+	const item = newTestData();
 
-	const testItem = new TestItem(data);
+	const testItem = new TestItem(item);
 
 	const newProps = { testString: nanoid() };
 
 	await testItem.set(newProps);
 
-	expect(testItem.data.testString).toStrictEqual(newProps.testString);
+	expect(testItem.item.testString).toStrictEqual(newProps.testString);
 });
 
 it('creates a new item', async () => {
@@ -178,7 +178,7 @@ it('creates a new item', async () => {
 
 	const getItem = await TestTable.get<ITestItem & IKey>({ Key: testItem.key });
 
-	expect(getItem.Item!.testString).toBe(testItem.data.testString);
+	expect(getItem.Item!.testString).toBe(testItem.item.testString);
 });
 
 it('sets and overwrites an item', async () => {

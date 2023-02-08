@@ -15,7 +15,6 @@ it('creates new item', async () => {
 	};
 
 	await TestTable.create({
-		Key,
 		Item
 	});
 
@@ -42,7 +41,6 @@ it('throws if trying to create item that already exists', async () => {
 	});
 
 	await TestTable.create({
-		Key,
 		Item
 	}).catch(error => expect(error).toBeDefined());
 });

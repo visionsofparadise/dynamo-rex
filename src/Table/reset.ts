@@ -14,26 +14,28 @@ export const resetFn =
 
 		const batches = chunk(scanData.Items, 25);
 
-		for (const batch of batches) {
-			await config.client
-				.batchWrite({
-					RequestItems: {
-						[config.name]: batch.map(item => ({
-							DeleteRequest: {
-								Key: rangeKey
-									? {
-											[hashKey]: item[hashKey],
-											[rangeKey]: item[rangeKey]
-									  }
-									: {
-											[hashKey]: item[hashKey]
-									  }
-							}
-						}))
-					}
-				})
-				.promise();
-		}
+		await Promise.all(
+			batches.map(batch =>
+				config.client
+					.batchWrite({
+						RequestItems: {
+							[config.name]: batch.map(item => ({
+								DeleteRequest: {
+									Key: rangeKey
+										? {
+												[hashKey]: item[hashKey],
+												[rangeKey]: item[rangeKey]
+										  }
+										: {
+												[hashKey]: item[hashKey]
+										  }
+								}
+							}))
+						}
+					})
+					.promise()
+			)
+		);
 
 		return;
 	};

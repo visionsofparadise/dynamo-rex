@@ -40,15 +40,15 @@ export abstract class Item<
 	configProps: IItemConfig = {};
 
 	constructor(
-		data: IA,
+		item: IA,
 		Item: IdxAFns<TIdxCfgM[ISIdxN | TPIdxN]> &
 			ISIdxCfg<ISIdxN> &
 			Constructor<Item<IA, ISIdxN, TPIdxN, TIdxA, TIdxATL, TIdxCfgM>>,
 		Table: Table<TPIdxN, TIdxA, TIdxATL, string, never, TIdxCfgM>,
 		config?: Partial<IItemConfig>
 	) {
-		this.initialData = data;
-		this.currentData = data;
+		this.initialData = item;
+		this.currentData = item;
 
 		this.Item = Item;
 		this.Table = Table;
@@ -83,11 +83,11 @@ export abstract class Item<
 		return { ...keys, ...this.key };
 	}
 
-	get data() {
+	get item() {
 		return this.currentData;
 	}
 
-	get dataWithKeys() {
+	get itemWithKeys() {
 		return { ...this.currentData, ...this.indexKeys };
 	}
 
@@ -183,10 +183,10 @@ export abstract class Item<
 		if (!this.configProps.skipHooks && !this.configProps.skipDeleteHooks) this.onPostDelete();
 	}
 
-	async set(data: Partial<IA>) {
+	async set(itemAttributes: Partial<IA>) {
 		await this.preSet();
 
-		this.currentData = { ...this.currentData, ...data };
+		this.currentData = { ...this.currentData, ...itemAttributes };
 
 		if (this.Table.config.logger) this.Table.config.logger.info(this.currentData);
 
@@ -199,7 +199,7 @@ export abstract class Item<
 		await this.preWrite();
 
 		await this.Table.put<IA, never, ISIdxN>({
-			Item: this.dataWithKeys
+			Item: this.itemWithKeys
 		});
 
 		await this.postWrite();
@@ -211,8 +211,7 @@ export abstract class Item<
 		await this.preCreate();
 
 		await this.Table.create<IA, never, ISIdxN>({
-			Key: this.key,
-			Item: this.dataWithKeys
+			Item: this.itemWithKeys
 		});
 
 		await this.postCreate();
@@ -220,7 +219,7 @@ export abstract class Item<
 		return;
 	}
 
-	async update(data: O.Partial<IA, 'deep'>) {
+	async update(itemAttributes: O.Partial<IA, 'deep'>) {
 		await this.preUpdate();
 
 		const response = await this.Table.updateFromObject<IA, 'ALL_NEW', ISIdxN>(
@@ -228,7 +227,7 @@ export abstract class Item<
 				Key: this.key,
 				ReturnValues: 'ALL_NEW'
 			},
-			data
+			itemAttributes
 		);
 
 		await this.set(response.Attributes);
