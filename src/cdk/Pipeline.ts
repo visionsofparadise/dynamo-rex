@@ -50,6 +50,7 @@ export class DynamoXPipelineStack extends Stack {
 				'dynamodb:PutItem',
 				'dynamodb:UpdateItem',
 				'dynamodb:DeleteItem',
+				'dynamodb:BatchGetItem',
 				'dynamodb:BatchWriteItem'
 			]
 		});
