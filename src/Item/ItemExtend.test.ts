@@ -205,7 +205,28 @@ it('updates an attribute on an item', async () => {
 
 	const testString = nanoid();
 
-	await testItem.update({ testString });
+	await testItem.update({
+		UpdateExpression: 'SET testString = :testString',
+		ExpressionAttributeValues: {
+			':testString': testString
+		}
+	});
+
+	const getItem = await TestTable.get<ITestItem & IKey>({ Key: initialKey });
+
+	expect(getItem.Item!.testString).toBe(testString);
+});
+
+it('updates an attribute on an item from object', async () => {
+	const testItem = new TestItem(newTestData());
+
+	const initialKey = testItem.key;
+
+	await testItem.create();
+
+	const testString = nanoid();
+
+	await testItem.updateFromObject({ testString });
 
 	const getItem = await TestTable.get<ITestItem & IKey>({ Key: initialKey });
 
@@ -219,7 +240,7 @@ it('updates a deep attribute on an item', async () => {
 
 	const testString = nanoid();
 
-	await testItem.update({ deep: { deep: { deep: { testString } } } });
+	await testItem.updateFromObject({ deep: { deep: { deep: { testString } } } });
 
 	const getItem = await TestTable.get<ITestItem & IKey>({ Key: testItem.key });
 

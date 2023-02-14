@@ -1,6 +1,7 @@
 import { Constructor, zipObject } from '../utils';
 import { Table, IdxATL, IdxKey, IdxCfgM, NotPIdxN, IdxKeys, TIdxN, PIdxCfg } from '../Table/Table';
 import { O } from 'ts-toolbelt';
+import { UpdateItemInput } from '../Table/update';
 
 export type IdxAFns<TIdxCfg extends PIdxCfg> = {
 	[x in keyof IdxKey<TIdxCfg>]: (params: any) => IdxKey<TIdxCfg>[x];
@@ -196,7 +197,23 @@ export abstract class Item<
 		return;
 	}
 
-	async update(itemAttributes: O.Partial<IA, 'deep'>) {
+	async update(query: Omit<UpdateItemInput<IdxKey<TIdxCfgM[TPIdxN]>, 'ALL_NEW'>, 'Key' | 'ReturnValues'>) {
+		await this.preUpdate();
+
+		const response = await this.Table.update<IA, 'ALL_NEW', ISIdxN>({
+			Key: this.key,
+			ReturnValues: 'ALL_NEW',
+			...query
+		});
+
+		await this.set(response.Attributes);
+
+		await this.postUpdate();
+
+		return;
+	}
+
+	async updateFromObject(itemAttributes: O.Partial<IA, 'deep'>) {
 		await this.preUpdate();
 
 		const response = await this.Table.updateFromObject<IA, 'ALL_NEW', ISIdxN>(
