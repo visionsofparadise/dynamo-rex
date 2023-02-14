@@ -11,6 +11,8 @@ import { deleteFn } from './delete';
 import { queryFn } from './query';
 import { resetFn } from './reset';
 import { writers } from '../writers/writers';
+import { batchGetFn } from './batchGet';
+import { batchWriteFn } from './batchWrite';
 
 export type IdxAT = string | number | undefined;
 
@@ -136,9 +138,10 @@ export class Table<
 		this.delete = deleteFn(methodConfig, config.indexes[config.primaryIndex]);
 		this.reset = resetFn(methodConfig, config.indexes[config.primaryIndex]);
 
+		this.batchGet = batchGetFn(methodConfig);
+		this.batchWrite = batchWriteFn(methodConfig);
+
 		this.createSet = config.client.createSet;
-		this.batchWrite = config.client.batchWrite;
-		this.batchGet = config.client.batchGet;
 		this.transactWrite = config.client.transactWrite;
 		this.transactGet = config.client.transactGet;
 	}
@@ -169,9 +172,10 @@ export class Table<
 	delete: ReturnType<typeof deleteFn<TPIdxN, TIdxCfgM, TIdxCfgM[TPIdxN]>>;
 	reset: ReturnType<typeof resetFn<TIdxCfgM[TPIdxN]>>;
 
+	batchGet: ReturnType<typeof batchGetFn<TPIdxN, TIdxCfgM>>;
+	batchWrite: ReturnType<typeof batchWriteFn<TPIdxN, TIdxCfgM>>;
+
 	createSet: DocumentClient['createSet'];
-	batchWrite: DocumentClient['batchWrite'];
-	batchGet: DocumentClient['batchGet'];
 	transactWrite: DocumentClient['transactWrite'];
 	transactGet: DocumentClient['transactGet'];
 

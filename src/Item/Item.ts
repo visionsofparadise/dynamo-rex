@@ -1,6 +1,5 @@
 import { Constructor, zipObject } from '../utils';
 import { Table, IdxATL, IdxKey, IdxCfgM, NotPIdxN, IdxKeys, TIdxN, PIdxCfg } from '../Table/Table';
-import assert from 'assert';
 import { O } from 'ts-toolbelt';
 
 export type IdxAFns<TIdxCfg extends PIdxCfg> = {
@@ -34,8 +33,8 @@ export abstract class Item<
 
 	Attributes!: IA;
 
-	initialData: IA;
-	currentData: IA;
+	initialData: IA & IdxKeys<TPIdxN | ISIdxN, TIdxCfgM>;
+	currentData: IA & IdxKeys<TPIdxN | ISIdxN, TIdxCfgM>;
 
 	configProps: IItemConfig = {};
 
@@ -47,81 +46,57 @@ export abstract class Item<
 		Table: Table<TPIdxN, TIdxA, TIdxATL, string, never, TIdxCfgM>,
 		config?: Partial<IItemConfig>
 	) {
-		this.initialData = item;
-		this.currentData = item;
-
 		this.Item = Item;
 		this.Table = Table;
 
 		config && this.config(config);
+
+		this.initialData = { ...item, ...this.generateIndexKeys(item) };
+		this.currentData = { ...item, ...this.generateIndexKeys(item) };
 
 		if (!config?.skipHooks) this.onNew();
 	}
 
 	config = (config: Partial<IItemConfig>) => (this.configProps = { ...this.configProps, ...config });
 
-	get key(): IdxKey<TIdxCfgM[TPIdxN]> {
-		return this.indexKey(this.Table.config.primaryIndex);
+	generateKey(item: IA): IdxKey<TIdxCfgM[TPIdxN]> {
+		return this.indexKey(this.Table.config.primaryIndex, item);
 	}
 
-	indexKey<IdxN extends ISIdxN | TPIdxN>(index: IdxN): IdxKey<TIdxCfgM[IdxN]> {
+	get key() {
+		return this.generateKey(this.currentData);
+	}
+
+	indexKey<IdxN extends ISIdxN | TPIdxN>(index: IdxN, item?: IA): IdxKey<TIdxCfgM[IdxN]> {
 		const { hashKey, rangeKey } = this.Table.config.indexes[index];
 
 		const attributes = rangeKey ? [hashKey.attribute, rangeKey.attribute] : [hashKey.attribute];
 
-		const values = attributes.map(attribute => this.Item[attribute](this.currentData));
+		const values = attributes.map(attribute => this.Item[attribute](item || this.currentData));
 
 		return zipObject(attributes, values);
 	}
 
-	get indexKeys() {
-		const keys = this.Item.secondaryIndexes.reduce((prev, cur) => ({ ...prev, ...this.indexKey(cur) }), {}) as IdxKeys<
-			ISIdxN,
-			TIdxCfgM
-		>;
+	generateIndexKeys(item: IA) {
+		const keys = this.Item.secondaryIndexes.reduce(
+			(prev, cur) => ({ ...prev, ...this.indexKey(cur, item) }),
+			{}
+		) as IdxKeys<ISIdxN, TIdxCfgM>;
 
-		return { ...keys, ...this.key };
+		return { ...keys, ...this.generateKey(item) };
+	}
+
+	get indexKeys() {
+		return this.generateIndexKeys(this.currentData);
 	}
 
 	get item() {
 		return this.currentData;
 	}
 
-	get itemWithKeys() {
-		return { ...this.currentData, ...this.indexKeys };
-	}
-
 	get init() {
 		return this.initialData;
 	}
-
-	isModified(initialData?: IA) {
-		try {
-			assert.deepStrictEqual(initialData || this.init, this.currentData);
-
-			return false;
-		} catch (error) {
-			return true;
-		}
-	}
-
-	isAttributeModified(...keys: Array<keyof IA>) {
-		return keys.reduce(
-			(previous, current) => (this.init[current] !== this.currentData[current] ? true : previous),
-			false
-		);
-	}
-
-	isAttributeObjectModified = (...keys: Array<keyof IA>) =>
-		keys.reduce((previous, current) => {
-			try {
-				assert.deepStrictEqual(this.init[current], this.currentData[current]);
-
-				return previous;
-			} catch (error) {
-				return true;
-			}
-		}, false);
 
 	onNew() {}
 
@@ -186,7 +161,9 @@ export abstract class Item<
 	async set(itemAttributes: Partial<IA>) {
 		await this.preSet();
 
-		this.currentData = { ...this.currentData, ...itemAttributes };
+		const updatedData = { ...this.currentData, ...itemAttributes };
+
+		this.currentData = { ...updatedData, ...this.generateIndexKeys(updatedData) };
 
 		if (this.Table.config.logger) this.Table.config.logger.info(this.currentData);
 
@@ -199,7 +176,7 @@ export abstract class Item<
 		await this.preWrite();
 
 		await this.Table.put<IA, never, ISIdxN>({
-			Item: this.itemWithKeys
+			Item: this.item
 		});
 
 		await this.postWrite();
@@ -211,7 +188,7 @@ export abstract class Item<
 		await this.preCreate();
 
 		await this.Table.create<IA, never, ISIdxN>({
-			Item: this.itemWithKeys
+			Item: this.item
 		});
 
 		await this.postCreate();

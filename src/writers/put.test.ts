@@ -11,7 +11,7 @@ it('puts new item', async () => {
 	});
 
 	await TestItem.write.put({
-		Item: Item.itemWithKeys
+		Item: Item.item
 	});
 
 	expect(true).toBe(true);
@@ -24,7 +24,7 @@ it('puts over existing item', async () => {
 	});
 
 	await TestTable.put({
-		Item: Item.itemWithKeys
+		Item: Item.item
 	});
 
 	await Item.set({
@@ -32,7 +32,7 @@ it('puts over existing item', async () => {
 	});
 
 	const result = await TestItem.write.put({
-		Item: Item.itemWithKeys
+		Item: Item.item
 	});
 
 	const putItemReturnValuesCheck: A.Equals<typeof result['Attributes'], never> = 1;
@@ -47,10 +47,10 @@ it('puts over existing item and returns old values', async () => {
 		testNumber: 100
 	});
 
-	const originalItem = Item.itemWithKeys;
+	const originalItem = Item.item;
 
 	await TestTable.put({
-		Item: Item.itemWithKeys
+		Item: Item.item
 	});
 
 	await Item.set({
@@ -58,7 +58,7 @@ it('puts over existing item and returns old values', async () => {
 	});
 
 	const result = await TestItem.write.put({
-		Item: Item.itemWithKeys,
+		Item: Item.item,
 		ReturnValues: 'ALL_OLD'
 	});
 

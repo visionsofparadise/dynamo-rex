@@ -10,7 +10,7 @@ it('deletes an existing item', async () => {
 	});
 
 	await TestTable.put({
-		Item: Item.itemWithKeys
+		Item: Item.item
 	});
 
 	await TestTable.get({
@@ -19,7 +19,7 @@ it('deletes an existing item', async () => {
 
 	const result = await TestItem.write.delete(Item.item, { ReturnValues: 'ALL_OLD' });
 
-	expect(result.Attributes).toStrictEqual(Item.itemWithKeys);
+	expect(result.Attributes).toStrictEqual(Item.item);
 
 	await TestTable.get({
 		Key: Item.key

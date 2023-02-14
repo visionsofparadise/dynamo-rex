@@ -27,8 +27,7 @@ export type QueryOutput<
 	{
 		Items: Array<
 			(ProjectAttributes<A, IdxN, TPIdxN, TIdxCfgM> extends never ? A : ProjectAttributes<A, IdxN, TPIdxN, TIdxCfgM>) &
-				IdxKeys<TPIdxN, TIdxCfgM> &
-				IdxKeys<ISIdxN, TIdxCfgM>
+				IdxKeys<TPIdxN | ISIdxN, TIdxCfgM>
 		>;
 	}
 >;

@@ -2,11 +2,6 @@ import { nanoid } from 'nanoid';
 import { randomNumber, RA } from '../utils';
 import { TestTable } from '../TestTable.dev';
 
-interface IKey {
-	pk: string;
-	sk: string;
-}
-
 interface ITestItem {
 	testString: string;
 	testNumber: number;
@@ -43,8 +38,8 @@ it('gets the current item and keys of an item', () => {
 
 	const testItem = new TestItem(item);
 
-	expect(testItem.itemWithKeys.testString).toBeDefined();
-	expect(testItem.itemWithKeys.pk).toBeDefined();
+	expect(testItem.item.testString).toBeDefined();
+	expect(testItem.item.pk).toBeDefined();
 });
 
 it('gets primary key of item', () => {
@@ -73,7 +68,7 @@ it('creates a new item', async () => {
 
 	await testItem.create();
 
-	const getItem = await TestTable.get<ITestItem & IKey>({ Key: testItem.key });
+	const getItem = await TestTable.get<ITestItem>({ Key: testItem.key });
 
 	expect(getItem.Item!.testString).toBe(testItem.item.testString);
 });
@@ -88,7 +83,7 @@ it('sets and overwrites an item', async () => {
 	await testItem.set({ testString });
 	await testItem.write();
 
-	const getItem = await TestTable.get<ITestItem & IKey>({ Key: testItem.key });
+	const getItem = await TestTable.get<ITestItem>({ Key: testItem.key });
 
 	expect(getItem.Item!.testString).toBe(testString);
 });
@@ -104,7 +99,7 @@ it('updates an attribute on an item', async () => {
 
 	await testItem.update({ testString });
 
-	const getItem = await TestTable.get<ITestItem & IKey>({ Key: initialKey });
+	const getItem = await TestTable.get<ITestItem>({ Key: initialKey });
 
 	expect(getItem.Item!.testString).toBe(testString);
 });
@@ -116,5 +111,5 @@ it('deletes an item', async () => {
 
 	await testItem.delete();
 
-	await TestTable.get<ITestItem & IKey>({ Key: testItem.key }).catch(error => expect(error).toBeDefined());
+	await TestTable.get<ITestItem>({ Key: testItem.key }).catch(error => expect(error).toBeDefined());
 });

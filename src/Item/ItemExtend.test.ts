@@ -136,9 +136,9 @@ it('gets the current item and keys of an item', () => {
 
 	const testItem = new TestItem(item);
 
-	expect(testItem.itemWithKeys.testString).toBeDefined();
-	expect(testItem.itemWithKeys.pk).toBeDefined();
-	expect(testItem.itemWithKeys.gsi0Sk).toBeDefined();
+	expect(testItem.item.testString).toBeDefined();
+	expect(testItem.item.pk).toBeDefined();
+	expect(testItem.item.gsi0Sk).toBeDefined();
 });
 
 it('gets primary key of item', () => {

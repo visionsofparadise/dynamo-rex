@@ -22,8 +22,10 @@ export type UpdateItemOutput<
 > = Assign<
 	DocumentClient.UpdateItemOutput,
 	{
-		Attributes: RV extends 'ALL_OLD' | 'UPDATED_OLD' | 'ALL_NEW' | 'UPDATED_NEW'
+		Attributes: RV extends 'ALL_OLD' | 'ALL_NEW'
 			? A & IdxKeys<TPIdxN | ISIdxN, TIdxCfgM>
+			: RV extends 'UPDATED_OLD' | 'UPDATED_NEW'
+			? Partial<A>
 			: undefined;
 	}
 >;

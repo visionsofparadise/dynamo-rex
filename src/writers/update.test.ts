@@ -10,7 +10,7 @@ it('updates an item attribute', async () => {
 	});
 
 	await TestTable.put({
-		Item: Item.itemWithKeys
+		Item: Item.item
 	});
 
 	await TestItem.write.update(Item.item, {
@@ -28,7 +28,7 @@ it('updates an item attribute', async () => {
 		Key: Item.key
 	});
 
-	expect(result.Item).toStrictEqual(Item.itemWithKeys);
+	expect(result.Item).toStrictEqual(Item.item);
 });
 
 it('updates an item attribute from object', async () => {
@@ -38,7 +38,7 @@ it('updates an item attribute from object', async () => {
 	});
 
 	await TestTable.put({
-		Item: Item.itemWithKeys
+		Item: Item.item
 	});
 
 	const updateObject = {
@@ -51,5 +51,5 @@ it('updates an item attribute from object', async () => {
 		Key: Item.key
 	});
 
-	expect(result.Item).toStrictEqual({ ...Item.itemWithKeys, ...updateObject });
+	expect(result.Item).toStrictEqual({ ...Item.item, ...updateObject });
 });

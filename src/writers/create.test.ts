@@ -10,14 +10,14 @@ it('creates new item', async () => {
 	});
 
 	await TestItem.write.create({
-		Item: Item.itemWithKeys
+		Item: Item.item
 	});
 
 	const result = await TestTable.get({
 		Key: Item.key
 	});
 
-	expect(result.Item).toStrictEqual(Item.itemWithKeys);
+	expect(result.Item).toStrictEqual(Item.item);
 });
 
 it('throws if trying to create item that already exists', async () => {
@@ -27,12 +27,12 @@ it('throws if trying to create item that already exists', async () => {
 	});
 
 	await TestTable.put({
-		Item: Item.itemWithKeys
+		Item: Item.item
 	});
 
 	await TestItem.write
 		.create({
-			Item: Item.itemWithKeys
+			Item: Item.item
 		})
 		.catch(error => expect(error).toBeDefined());
 });
