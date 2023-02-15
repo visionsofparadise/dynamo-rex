@@ -59,13 +59,32 @@ export const updateFn = <TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfg
 		}: Omit<
 			UpdateItemInput<IdxKey<TIdxCfgM[TPIdxN]>, RV>,
 			'UpdateExpression' | 'ExpressionAttributeNames' | 'ExpressionAttributeValues'
-		>,
+		> &
+			Partial<
+				Pick<
+					UpdateItemInput<IdxKey<TIdxCfgM[TPIdxN]>, RV>,
+					'UpdateExpression' | 'ExpressionAttributeNames' | 'ExpressionAttributeValues'
+				>
+			>,
 		object: O.Partial<A, 'deep'>
 	): Promise<UpdateItemOutput<A, RV, TSIdxN, TPIdxN, TIdxCfgM>> => {
 		const updateExpression = convertObjectToUpdateExpression(object);
 
 		const data = await config.client
-			.update({ TableName: config.name, ReturnValues, ...query, ...updateExpression })
+			.update({
+				TableName: config.name,
+				ReturnValues,
+				...query,
+				UpdateExpression: query.UpdateExpression
+					? `${updateExpression.UpdateExpression}, ${query.UpdateExpression}`
+					: updateExpression.UpdateExpression,
+				ExpressionAttributeNames: query.ExpressionAttributeNames
+					? { ...updateExpression.ExpressionAttributeNames, ...query.ExpressionAttributeNames }
+					: updateExpression.ExpressionAttributeNames,
+				ExpressionAttributeValues: query.ExpressionAttributeValues
+					? { ...updateExpression.ExpressionAttributeValues, ...query.ExpressionAttributeValues }
+					: updateExpression.ExpressionAttributeValues
+			})
 			.promise();
 
 		assertUpdateAttributes<A, RV, TSIdxN, TPIdxN, TIdxCfgM>(data, ReturnValues as RV);

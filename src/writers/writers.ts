@@ -80,7 +80,7 @@ export const writers =
 				key: HKRKP<IIdxAFns, TIdxCfgM[TPIdxN]>,
 				query: Omit<UpdateItemInput<IdxKey<TIdxCfgM[TPIdxN]>, RV>, 'Key'>
 			) =>
-				Table.update({
+				Table.update<IA, RV, ISIdxN>({
 					Key: keyOf(key),
 					...query
 				}),
@@ -90,7 +90,7 @@ export const writers =
 				object: O.Partial<IA, 'deep'>,
 				query?: Omit<UpdateItemInput<IdxKey<TIdxCfgM[TPIdxN]>, RV>, 'Key'>
 			) =>
-				Table.updateFromObject(
+				Table.updateFromObject<IA, RV, ISIdxN>(
 					query
 						? {
 								Key: keyOf(key),

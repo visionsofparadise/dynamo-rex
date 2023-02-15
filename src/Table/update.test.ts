@@ -70,3 +70,41 @@ it('updates an item attribute from object', async () => {
 
 	expect(result.Item).toStrictEqual({ ...Item, ...updateObject });
 });
+
+it('updates an item attribute from object with additional query', async () => {
+	const Key = {
+		pk: nanoid(),
+		sk: nanoid()
+	};
+
+	const Item = {
+		...Key,
+		test: 'test',
+		test2: 'test'
+	};
+
+	await TestTable.put({
+		Item
+	});
+
+	const updateObject = {
+		test: 'test2'
+	};
+
+	await TestTable.updateFromObject(
+		{
+			Key,
+			UpdateExpression: 'test2 = :test2',
+			ExpressionAttributeValues: {
+				':test2': 'test2'
+			}
+		},
+		updateObject
+	);
+
+	const result = await TestTable.get({
+		Key
+	});
+
+	expect(result.Item).toStrictEqual({ ...Item, ...updateObject, test2: 'test2' });
+});
