@@ -76,7 +76,7 @@ export const writers =
 				return Table.delete<IA, RV, ISIdxN>(query ? { Key: keyOf(key), ...query } : { Key: keyOf(key) });
 			},
 
-			update: <RV extends UpdateReturnValues = never>(
+			update: <RV extends UpdateReturnValues = 'ALL_NEW'>(
 				key: HKRKP<IIdxAFns, TIdxCfgM[TPIdxN]>,
 				query: Omit<UpdateItemInput<IdxKey<TIdxCfgM[TPIdxN]>, RV>, 'Key'>
 			) =>
@@ -85,7 +85,7 @@ export const writers =
 					...query
 				}),
 
-			updateFromObject: <RV extends UpdateReturnValues = never>(
+			updateFromObject: <RV extends UpdateReturnValues = 'ALL_NEW'>(
 				key: HKRKP<IIdxAFns, TIdxCfgM[TPIdxN]>,
 				object: O.Partial<IA, 'deep'>,
 				query?: Omit<UpdateItemInput<IdxKey<TIdxCfgM[TPIdxN]>, RV>, 'Key'>
