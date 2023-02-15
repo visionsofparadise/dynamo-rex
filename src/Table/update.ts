@@ -35,12 +35,13 @@ export const updateFn = <TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfg
 		A extends {},
 		RV extends UpdateReturnValues = 'ALL_NEW',
 		TSIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> = never
-	>(
-		query: UpdateItemInput<IdxKey<TIdxCfgM[TPIdxN]>, RV>
-	): Promise<UpdateItemOutput<A, RV, TSIdxN, TPIdxN, TIdxCfgM>> => {
-		const data = await config.client.update({ TableName: config.name, ReturnValues: 'ALL_NEW', ...query }).promise();
+	>({
+		ReturnValues = 'ALL_NEW',
+		...query
+	}: UpdateItemInput<IdxKey<TIdxCfgM[TPIdxN]>, RV>): Promise<UpdateItemOutput<A, RV, TSIdxN, TPIdxN, TIdxCfgM>> => {
+		const data = await config.client.update({ TableName: config.name, ReturnValues, ...query }).promise();
 
-		assertUpdateAttributes<A, RV, TSIdxN, TPIdxN, TIdxCfgM>(data, query.ReturnValues);
+		assertUpdateAttributes<A, RV, TSIdxN, TPIdxN, TIdxCfgM>(data, ReturnValues as RV);
 
 		if (config.logger) config.logger.info(data);
 
@@ -52,7 +53,10 @@ export const updateFn = <TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfg
 		RV extends UpdateReturnValues = 'ALL_NEW',
 		TSIdxN extends NotPIdxN<TPIdxN, TIdxCfgM> = never
 	>(
-		query: Omit<
+		{
+			ReturnValues = 'ALL_NEW',
+			...query
+		}: Omit<
 			UpdateItemInput<IdxKey<TIdxCfgM[TPIdxN]>, RV>,
 			'UpdateExpression' | 'ExpressionAttributeNames' | 'ExpressionAttributeValues'
 		>,
@@ -61,10 +65,10 @@ export const updateFn = <TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfg
 		const updateExpression = convertObjectToUpdateExpression(object);
 
 		const data = await config.client
-			.update({ TableName: config.name, ReturnValues: 'ALL_NEW', ...query, ...updateExpression })
+			.update({ TableName: config.name, ReturnValues, ...query, ...updateExpression })
 			.promise();
 
-		assertUpdateAttributes<A, RV, TSIdxN, TPIdxN, TIdxCfgM>(data, query.ReturnValues);
+		assertUpdateAttributes<A, RV, TSIdxN, TPIdxN, TIdxCfgM>(data, ReturnValues as RV);
 
 		if (config.logger) config.logger.info(data);
 
