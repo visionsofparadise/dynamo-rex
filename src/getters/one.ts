@@ -1,9 +1,23 @@
 import { assertItems } from '../Table/assertItem';
-import { IdxAFns } from '../Item/Item';
+import { IdxAFns, Item } from '../Item/Item';
 import { Table, IdxATL, IdxCfgM, IdxP, NotPIdxN, TIdxN } from '../Table/Table';
 import { HKRKP } from './getters';
 import { keyOfFn } from './keyOf';
-import { GetterCfg, QueryIdxN } from './indexGetters';
+import { GetterCfg, GetterQueryOutput, QueryIdxN } from './indexGetters';
+import { Constructor } from '../utils';
+import { assertOneOutputItemType } from './assertQueryOutputItemType';
+
+export type GetterOneOutput<
+	IA extends {},
+	IdxN extends TPIdxN | ISIdxN,
+	ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
+	TPIdxN extends TIdxN<TIdxCfgM>,
+	TIdxPA extends string,
+	TIdxP extends IdxP<TIdxPA>,
+	TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>,
+	GItem extends Constructor<Item<IA, ISIdxN, TPIdxN, string, IdxATL, TIdxCfgM>>
+> = GetterQueryOutput<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>['Items'][number];
+
 export const oneFn =
 	<
 		IA extends {},
@@ -13,21 +27,26 @@ export const oneFn =
 		TPIdxN extends TIdxN<TIdxCfgM>,
 		TIdxPA extends string,
 		TIdxP extends IdxP<TIdxPA>,
-		TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>
+		TIdxCfgM extends IdxCfgM<TPIdxN, string, IdxATL, TIdxPA, TIdxP>,
+		GItem extends Constructor<Item<IA, ISIdxN, TPIdxN, string, IdxATL, TIdxCfgM>>
 	>(
 		Table: Table<TPIdxN, string, IdxATL, TIdxPA, TIdxP, TIdxCfgM>,
-		Item: IIdxAFns,
+		Item: IIdxAFns & GItem,
 		config: GetterCfg<IdxN, TPIdxN, TIdxCfgM>
 	) =>
-	async (data: HKRKP<IIdxAFns, TIdxCfgM[IdxN]>) => {
+	async (
+		data: HKRKP<IIdxAFns, TIdxCfgM[IdxN]>
+	): Promise<
+		GetterOneOutput<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>
+	> => {
 		const { hashKey, rangeKey, IndexName } = config;
 
 		const keyOf = keyOfFn<IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxCfgM>(Item, config);
 		const Key = keyOf(data);
 
-		return !IndexName
-			? Table.get<IA, ISIdxN>({ Key }).then(data => data.Item)
-			: Table.query<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
+		const output = !IndexName
+			? await Table.get<IA, ISIdxN>({ Key }).then(data => data.Item)
+			: await Table.query<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
 					IndexName,
 					Limit: 1,
 					KeyConditionExpression: `${hashKey} = :hashKey${rangeKey ? ` AND ${rangeKey} = :rangeKey` : ``}`,
@@ -44,4 +63,11 @@ export const oneFn =
 
 					return data.Items[0];
 			  });
+
+		const item = Table.config.indexes[config.index].project ? output : new Item(output);
+		const isItem = Table.config.indexes[config.index].project ? false : true;
+
+		assertOneOutputItemType<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>(item, isItem, config, Table);
+
+		return item;
 	};
