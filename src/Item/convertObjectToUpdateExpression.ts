@@ -18,7 +18,7 @@ const convertObjectToUpdateExpressionParts = <Object extends object>(
 
 			const attributeName = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890')(10);
 
-			if (typeof value === 'object') {
+			if (value !== null && typeof value === 'object' && !value.length) {
 				return [
 					{
 						UpdateExpression: '',
