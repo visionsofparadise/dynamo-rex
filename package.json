@@ -1,6 +1,6 @@
 {
 	"name": "dynamox",
-	"version": "0.0.24",
+	"version": "0.0.25",
 	"main": "./dist/index.js",
 	"scripts": {
 		"compile": "tsc",
