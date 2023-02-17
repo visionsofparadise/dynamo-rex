@@ -104,6 +104,40 @@ it('updates an item attribute from object using null', async () => {
 	expect(result.Item).toStrictEqual({ ...Item, ...updateObject });
 });
 
+it('updates an item attribute from object with empty array', async () => {
+	const Key = {
+		pk: nanoid(),
+		sk: nanoid()
+	};
+
+	const Item = {
+		...Key,
+		test: 'test'
+	};
+
+	await TestTable.put({
+		Item
+	});
+
+	const updateObject = {
+		test: null,
+		testArray: []
+	};
+
+	await TestTable.updateFromObject(
+		{
+			Key
+		},
+		updateObject as any
+	);
+
+	const result = await TestTable.get({
+		Key
+	});
+
+	expect(result.Item).toStrictEqual({ ...Item, ...updateObject });
+});
+
 it('updates an item attribute from object with additional query', async () => {
 	const Key = {
 		pk: nanoid(),
