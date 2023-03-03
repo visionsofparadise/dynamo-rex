@@ -48,7 +48,7 @@ class BaseItem<IExtend extends IBaseItem, ISIdxN extends typeof TestTable.Second
 	async onPreWrite() {
 		super.onPreWrite();
 
-		await this.set({
+		this.set({
 			...this.item,
 			updatedAt: new Date().getTime()
 		});
@@ -166,7 +166,7 @@ it('gets the current updated item of an item', async () => {
 
 	const newProps = { testString: nanoid() };
 
-	await testItem.set(newProps);
+	testItem.set(newProps);
 
 	expect(testItem.item.testString).toStrictEqual(newProps.testString);
 });
@@ -188,7 +188,8 @@ it('sets and overwrites an item', async () => {
 
 	const testString = nanoid();
 
-	await testItem.set({ testString });
+	testItem.set({ testString });
+
 	await testItem.write();
 
 	const getItem = await TestTable.get<ITestItem & IKey>({ Key: testItem.key });

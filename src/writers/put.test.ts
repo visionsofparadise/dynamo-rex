@@ -27,7 +27,7 @@ it('puts over existing item', async () => {
 		Item: Item.item
 	});
 
-	await Item.set({
+	Item.set({
 		testString: 'test2'
 	});
 
@@ -53,7 +53,7 @@ it('puts over existing item and returns old values', async () => {
 		Item: Item.item
 	});
 
-	await Item.set({
+	Item.set({
 		testString: 'test2'
 	});
 

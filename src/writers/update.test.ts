@@ -20,7 +20,7 @@ it('updates an item attribute', async () => {
 		}
 	});
 
-	await Item.set({
+	Item.set({
 		testString: 'test2'
 	});
 

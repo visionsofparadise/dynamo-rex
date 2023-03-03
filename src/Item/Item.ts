@@ -101,13 +101,13 @@ export abstract class Item<
 
 	onNew() {}
 
-	async onPreSet() {}
-	async preSet() {
+	onPreSet() {}
+	preSet() {
 		if (!this.configProps.skipHooks) this.onPreSet();
 	}
 
-	async onPostSet() {}
-	async postSet() {
+	onPostSet() {}
+	postSet() {
 		if (!this.configProps.skipHooks) this.onPostSet();
 	}
 
@@ -159,8 +159,8 @@ export abstract class Item<
 		if (!this.configProps.skipHooks && !this.configProps.skipDeleteHooks) this.onPostDelete();
 	}
 
-	async set(itemAttributes: Partial<IA>) {
-		await this.preSet();
+	set(itemAttributes: Partial<IA>) {
+		this.preSet();
 
 		const updatedData = { ...this.currentData, ...itemAttributes };
 
@@ -168,7 +168,7 @@ export abstract class Item<
 
 		if (this.Table.config.logger) this.Table.config.logger.info(this.currentData);
 
-		await this.postSet();
+		this.postSet();
 
 		return;
 	}
@@ -206,7 +206,7 @@ export abstract class Item<
 			...query
 		});
 
-		await this.set(response.Attributes);
+		this.set(response.Attributes);
 
 		await this.postUpdate();
 
@@ -224,7 +224,7 @@ export abstract class Item<
 			itemAttributes
 		);
 
-		await this.set(response.Attributes);
+		this.set(response.Attributes);
 
 		await this.postUpdate();
 

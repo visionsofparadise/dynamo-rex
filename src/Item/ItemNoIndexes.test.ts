@@ -58,7 +58,7 @@ it('gets the current updated item', async () => {
 
 	const newProps = { testString: nanoid() };
 
-	await testItem.set(newProps);
+	testItem.set(newProps);
 
 	expect(testItem.item.testString).toStrictEqual(newProps.testString);
 });
@@ -80,7 +80,8 @@ it('sets and overwrites an item', async () => {
 
 	const testString = nanoid();
 
-	await testItem.set({ testString });
+	testItem.set({ testString });
+
 	await testItem.write();
 
 	const getItem = await TestTable.get<ITestItem>({ Key: testItem.key });
