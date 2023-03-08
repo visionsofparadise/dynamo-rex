@@ -12,31 +12,25 @@ export const batchWritePageFn = <TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extend
 		requests: BatchWriteInput<IdxKey<TIdxCfgM[TPIdxN]>>,
 		depth: number = 0
 	): Promise<Array<DocumentClient.BatchWriteItemOutput>> => {
-		try {
-			const data = await config.client
-				.batchWrite({
-					RequestItems: {
-						[config.name]: requests
-					}
-				})
-				.promise();
+		const data = await config.client
+			.batchWrite({
+				RequestItems: {
+					[config.name]: requests
+				}
+			})
+			.promise();
 
-			if (data.UnprocessedItems && Object.keys(data.UnprocessedItems).length > 0 && depth < 5) {
-				await wait(depth * depth * 1000);
+		if (data.UnprocessedItems && Object.keys(data.UnprocessedItems).length > 0 && depth < 5) {
+			await wait(depth * depth * 1000);
 
-				const nextData = await batchWritePage(
-					data.UnprocessedItems[config.name] as BatchWriteInput<IdxKey<TIdxCfgM[TPIdxN]>>,
-					depth + 1
-				);
+			const nextData = await batchWritePage(
+				data.UnprocessedItems[config.name] as BatchWriteInput<IdxKey<TIdxCfgM[TPIdxN]>>,
+				depth + 1
+			);
 
-				return [data, ...nextData];
-			} else {
-				return [data];
-			}
-		} catch (error) {
-			if (config.logger) config.logger.info(error);
-
-			return [];
+			return [data, ...nextData];
+		} else {
+			return [data];
 		}
 	};
 

@@ -13,35 +13,29 @@ export const batchGetPageFn = <TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends 
 		query: Omit<DocumentClient.KeysAndAttributes, 'Keys'> = {},
 		depth: number = 0
 	): Promise<Array<DocumentClient.BatchGetItemOutput>> => {
-		try {
-			const data = await config.client
-				.batchGet({
-					RequestItems: {
-						[config.name]: {
-							Keys: keys,
-							...query
-						}
+		const data = await config.client
+			.batchGet({
+				RequestItems: {
+					[config.name]: {
+						Keys: keys,
+						...query
 					}
-				})
-				.promise();
+				}
+			})
+			.promise();
 
-			if (data.UnprocessedKeys && Object.keys(data.UnprocessedKeys).length > 0 && depth < 5) {
-				await wait(depth * depth * 1000);
+		if (data.UnprocessedKeys && Object.keys(data.UnprocessedKeys).length > 0 && depth < 5) {
+			await wait(depth * depth * 1000);
 
-				const nextData = await batchGetPage(
-					data.UnprocessedKeys[config.name].Keys as Array<IdxKey<TIdxCfgM[TPIdxN]>>,
-					query,
-					depth + 1
-				);
+			const nextData = await batchGetPage(
+				data.UnprocessedKeys[config.name].Keys as Array<IdxKey<TIdxCfgM[TPIdxN]>>,
+				query,
+				depth + 1
+			);
 
-				return [data, ...nextData];
-			} else {
-				return [data];
-			}
-		} catch (error) {
-			if (config.logger) config.logger.info(error);
-
-			return [];
+			return [data, ...nextData];
+		} else {
+			return [data];
 		}
 	};
 
