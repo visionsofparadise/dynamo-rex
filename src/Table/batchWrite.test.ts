@@ -39,5 +39,5 @@ it('writes a batch of items', async () => {
 		}
 	]);
 
-	expect(result.UnprocessedItems).toStrictEqual({});
+	expect(result[0].UnprocessedItems).toStrictEqual({});
 });

@@ -37,3 +37,8 @@ export const chunk = <T>(array: Array<T>, chunkSize: number) => {
 
 	return chunks;
 };
+
+export const wait = async (ms: number) =>
+	new Promise(resolve => {
+		setTimeout(resolve, ms);
+	});

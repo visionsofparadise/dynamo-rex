@@ -30,9 +30,7 @@ it('gets a batch of items', async () => {
 		Item: Item2
 	});
 
-	const result = await TestTable.batchGet({
-		Keys: [Key1, Key2]
-	});
+	const result = await TestTable.batchGet([Key1, Key2]);
 
-	expect(result.Responses![TestTable.config.name].length).toBe(2);
+	expect(result[0].Responses![TestTable.config.name].length).toBe(2);
 });
