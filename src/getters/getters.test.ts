@@ -6,21 +6,21 @@ jest.useRealTimers();
 
 beforeEach(TestTable.reset);
 
-const result0 = TestItem.get.query().hashKeyOnly;
+const result0 = TestItem.get.query;
 
 export const primaryQueryItemsCheck: A.Extends<
 	Awaited<ReturnType<typeof result0>>['Items'][number],
 	InstanceType<typeof TestItem>
 > = 1;
 
-const result1 = TestItem.get.gsi0.query().hashKeyOnly;
+const result1 = TestItem.get.gsi0.query;
 
 export const gsi0QueryItemsCheck: A.Extends<
 	Awaited<ReturnType<typeof result1>>['Items'][number],
 	InstanceType<typeof TestItem>
 > = 1;
 
-const result2 = TestItem.get.gsi1.query().hashKeyOnly;
+const result2 = TestItem.get.gsi1.query;
 
 export const gsi1QueryItemsCheck: A.Equals<
 	keyof Awaited<ReturnType<typeof result2>>['Items'][number],
@@ -38,10 +38,10 @@ export const gsi1QueryItemsCheck: A.Equals<
 	| 'gsi3Sk'
 > = 1;
 
-const result3 = TestItem.get.gsi2.query({ testString: '1' }).hashKeyOnly;
+const result3 = TestItem.get.gsi2.query({ testString: '1' });
 
 export const gsi2QueryItemsCheck: A.Equals<
-	keyof Awaited<ReturnType<typeof result3>>['Items'][number],
+	keyof Awaited<typeof result3>['Items'][number],
 	| 'pk'
 	| 'sk'
 	| 'gsi0Pk'
@@ -63,9 +63,6 @@ it('adds getters correctly', () => {
 	expect(TestItem.get.all).toBeDefined();
 	expect(TestItem.get.one).toBeDefined();
 	expect(TestItem.get.query).toBeDefined();
-	expect(TestItem.get.query().hashKeyOnly).toBeDefined();
-	expect(TestItem.get.query().startsWith).toBeDefined();
-	expect(TestItem.get.query().between).toBeDefined();
 	expect(TestItem.get.gsi0).toBeDefined();
 	expect(TestItem.get.gsi1).toBeDefined();
 	expect(TestItem.get.gsi2).toBeDefined();

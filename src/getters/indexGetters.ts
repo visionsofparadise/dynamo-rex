@@ -3,13 +3,12 @@ import { Table, IdxCfgM, IdxATL, IdxACfg, IdxATLToType, IdxP, TIdxN, NotPIdxN } 
 import { KP } from './getters';
 import { keyOfFn } from './keyOf';
 import { oneFn } from './one';
-import { hashKeyOnlyFn } from './hashKeyOnly';
-import { startsWithFn } from './startsWith';
-import { betweenFn } from './between';
 import { assertRangeKeyIsOptional } from './assertRangeKeyIsOptional';
 import { assertIndexNameIsNotPrimaryIndex } from './assertIndexNameIsNotPrimaryIndex';
 import { Constructor, OA } from '../utils';
 import { QueryInput, QueryOutput } from '../Table/query';
+import { assertQueryOutputItemType } from './assertQueryOutputItemType';
+import { createRangeKeyQuery } from './createRangeQuery';
 
 export interface GetterCfg<IdxN extends TIdxN<TIdxCfgM>, TPIdxN extends TIdxN<TIdxCfgM>, TIdxCfgM extends IdxCfgM> {
 	index: IdxN;
@@ -33,7 +32,14 @@ export type GetterQueryInput<
 	IdxN extends NotPIdxN<TPIdxN, TIdxCfgM>,
 	TPIdxN extends TIdxN<TIdxCfgM>,
 	TIdxCfgM extends IdxCfgM<TPIdxN>
-> = Omit<OA<QueryInput<IdxN, TPIdxN, TIdxCfgM>, 'KeyConditionExpression' | 'ExpressionAttributeValues'>, 'IndexName'>;
+> = Omit<
+	OA<QueryInput<IdxN, TPIdxN, TIdxCfgM>, 'KeyConditionExpression' | 'ExpressionAttributeValues'>,
+	'IndexName'
+> & {
+	BeginsWith?: string | number;
+	Min?: string | number;
+	Max?: string | number;
+};
 
 export type GetterQueryItemsOutput<
 	IA extends {},
@@ -73,21 +79,23 @@ export const indexGettersFn =
 		TIdxATL extends IdxATL,
 		TIdxPA extends string,
 		TIdxP extends IdxP<TIdxPA>,
-		TIdxCfgM extends IdxCfgM<TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP>
+		TIdxCfgM extends IdxCfgM<TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP>,
+		GItem extends Constructor<Item<IA, ISIdxN, TPIdxN, string, IdxATL, TIdxCfgM>>
 	>(
 		Table: Table<TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP, TIdxCfgM>,
-		Item: IIdxAFns & Constructor<Item<IA, ISIdxN, TPIdxN, string, IdxATL, TIdxCfgM>>
+		Item: IIdxAFns & GItem
 	) =>
 	<IdxN extends TPIdxN | ISIdxN>(
 		index: IdxN
 	): {
 		keyOf: ReturnType<typeof keyOfFn<IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxCfgM>>;
 		one: ReturnType<typeof oneFn<IA, IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
-		query: (data: KP<'hashKey', IIdxAFns, TIdxCfgM[IdxN]>) => {
-			hashKeyOnly: ReturnType<typeof hashKeyOnlyFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
-			startsWith: ReturnType<typeof startsWithFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
-			between: ReturnType<typeof betweenFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>>;
-		};
+		query: (
+			hashKeyParams?: KP<'hashKey', IIdxAFns, TIdxCfgM[IdxN]>,
+			rangeKeyParams?: GetterQueryInput<QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, TPIdxN, TIdxCfgM>
+		) => Promise<
+			GetterQueryOutput<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>
+		>;
 	} => {
 		const Index = Table.config.indexes[index];
 
@@ -105,30 +113,49 @@ export const indexGettersFn =
 			IndexName
 		};
 
-		const query = (data: KP<'hashKey', IIdxAFns, TIdxCfgM[IdxN]>) => {
-			const queryConfig = {
-				...config,
-				hashKeyValue: Item[hashKey](data)
-			};
+		const query = async (
+			hashKeyParams?: KP<'hashKey', IIdxAFns, TIdxCfgM[IdxN]>,
+			rangeKeyParams?: GetterQueryInput<QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, TPIdxN, TIdxCfgM>
+		) => {
+			const hashKeyValue = Item[hashKey](hashKeyParams);
 
-			return {
-				hashKeyOnly: hashKeyOnlyFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>(
-					Table,
-					Item,
-					queryConfig
-				),
-				startsWith: startsWithFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>(
-					Table,
-					Item,
-					queryConfig
-				),
-				between: betweenFn<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>(Table, Item, queryConfig)
-			};
+			const { BeginsWith, Min, Max, ...restOfQuery } = rangeKeyParams || {};
+
+			const rangeKeyQuery = createRangeKeyQuery(rangeKey, rangeKeyParams || {});
+
+			let output = await Table.query<IA, QueryIdxN<IdxN, TPIdxN, TIdxCfgM>, ISIdxN>({
+				IndexName,
+				...restOfQuery,
+				KeyConditionExpression: `${hashKey} = :hashKey ${rangeKeyQuery.KeyConditionExpression}`,
+				ExpressionAttributeValues: {
+					[`:hashKey`]: hashKeyValue,
+					...rangeKeyQuery.ExpressionAttributeValues
+				}
+			});
+
+			let isItems = false;
+
+			if (!Table.config.indexes[config.index].project) {
+				output = Object.assign(output, {
+					Items: output.Items.map(item => new Item(item))
+				});
+
+				isItems = true;
+			}
+
+			assertQueryOutputItemType<IA, IdxN, ISIdxN, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>(
+				output,
+				isItems,
+				{ hashKey, hashKeyValue, index, rangeKey, IndexName },
+				Table
+			);
+
+			return output;
 		};
 
 		return {
 			keyOf: keyOfFn<IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxCfgM>(Item, config),
-			one: oneFn<IA, IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, typeof Item>(Table, Item, config),
+			one: oneFn<IA, IdxN, ISIdxN, IIdxAFns, TPIdxN, TIdxPA, TIdxP, TIdxCfgM, GItem>(Table, Item, config),
 			query
 		};
 	};

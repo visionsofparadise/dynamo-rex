@@ -36,10 +36,18 @@ export const getters =
 	<IA extends {}, ISIdxN extends NotPIdxN<TPIdxN, TIdxCfgM>, IIdxAFns extends IdxAFns<TIdxCfgM[TPIdxN | ISIdxN]>>(
 		Item: IIdxAFns & ISIdxCfg<ISIdxN> & Constructor<Item<IA, ISIdxN, TPIdxN, string, IdxATL, TIdxCfgM>>
 	) => {
-		const indexGetters = indexGettersFn<IA, ISIdxN, IIdxAFns, TPIdxN, TIdxA, TIdxATL, TIdxPA, TIdxP, TIdxCfgM>(
-			Table,
-			Item
-		);
+		const indexGetters = indexGettersFn<
+			IA,
+			ISIdxN,
+			IIdxAFns,
+			TPIdxN,
+			TIdxA,
+			TIdxATL,
+			TIdxPA,
+			TIdxP,
+			TIdxCfgM,
+			typeof Item
+		>(Table, Item);
 
 		const primaryOneGetter = indexGetters(Table.config.primaryIndex).one;
 
