@@ -9,7 +9,7 @@ export const primaryKeyParamsCheck: A.Equals<
 	Pick<ITestItem, 'testString'>
 > = 1;
 
-export const gsi1KeyParamsCheck: A.Equals<Parameters<(typeof TestItem)['get']['gsi1']['keyOf']>[0], void> = 1;
+export const gsi1KeyParamsCheck: A.Equals<Parameters<(typeof TestItem)['get']['gsi1']['keyOf']>[0], void> = 0;
 
 export const gsi2KeyParamsCheck: A.Equals<
 	Parameters<(typeof TestItem)['get']['gsi2']['keyOf']>[0],
