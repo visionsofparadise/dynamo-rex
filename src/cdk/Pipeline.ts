@@ -17,7 +17,7 @@ export class DynamoXPipelineStack extends Stack {
 		const pipeline = new CodePipeline(this, 'pipeline', {
 			synth: new ShellStep('synth', {
 				input: source,
-				installCommands: ['npm ci'],
+				installCommands: ['npm i'],
 				commands: ['npx cdk synth']
 			})
 		});
