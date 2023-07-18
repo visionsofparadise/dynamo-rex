@@ -91,6 +91,10 @@ export class KeySpace<
 		[x in this['Index']]: U.Merge<this['IndexValueParamsMap'][x][keyof this['IndexValueParamsMap'][x]]>;
 	};
 
+	IndexHashKeyValueParamsMap!: {
+		[x in this['Index']]: this['IndexValueParamsMap'][x][ParentTable['config']['indexes'][x]['hash']['key']];
+	};
+
 	get indexes() {
 		return Object.keys(this.indexValueHandlers) as Array<this['Index']>;
 	}

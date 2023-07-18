@@ -35,9 +35,9 @@ it('query returns list of items', async () => {
 	}
 
 	await setTimeout(1000);
+	TestItem1KeySpace.IndexHashKeyValueParamsMap;
 
 	const result = await dxQuickQueryItems(TestItem1KeySpace, {
-		index: 'gsi0',
 		hashKeyParams: { testNumber }
 	});
 

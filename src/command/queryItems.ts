@@ -24,7 +24,7 @@ export enum QueryItemsSort {
 
 export interface DxQueryItemsInput<
 	K extends AnyKeySpace = AnyKeySpace,
-	Index extends K['SecondaryIndex'] | never = never
+	Index extends K['SecondaryIndex'] | never | undefined = never | undefined
 > extends DxReturnConsumedCapacityParam,
 		DxFilterExpressionParams,
 		DxProjectionExpressionParams,
@@ -37,7 +37,7 @@ export interface DxQueryItemsInput<
 
 export type DxQueryItemsOutput<
 	K extends AnyKeySpace = AnyKeySpace,
-	Index extends K['SecondaryIndex'] | never = never
+	Index extends K['SecondaryIndex'] | never | undefined = never | undefined
 > = {
 	items: Array<K['Attributes']>;
 	cursorKey?: Table.GetIndexCursorKey<K['Table'], Index>;
@@ -52,7 +52,7 @@ export interface DxQueryCommandOutput<
 
 export const dxQueryItems = async <
 	K extends AnyKeySpace = AnyKeySpace,
-	Index extends K['SecondaryIndex'] | never = never
+	Index extends K['SecondaryIndex'] | never | undefined = never | undefined
 >(
 	KeySpace: K,
 	input: DxQueryItemsInput<K, Index>

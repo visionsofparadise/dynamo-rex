@@ -59,7 +59,7 @@ export const handleProjectionExpressionParams = (input?: DxProjectionExpressionP
 	ExpressionAttributeNames: input?.expressionAttributeNames
 });
 
-export interface DxListParams<Index extends string> {
+export interface DxListParams<Index extends string | never | undefined> {
 	index?: Index;
 	pageLimit?: number;
 	totalLimit?: number;
@@ -67,7 +67,7 @@ export interface DxListParams<Index extends string> {
 	select?: Select;
 }
 
-export const handleListParams = <Index extends string>(input?: DxListParams<Index>) => ({
+export const handleListParams = <Index extends string | never>(input?: DxListParams<Index>) => ({
 	IndexName: input?.index,
 	Limit: input?.pageLimit,
 	Select: input?.select

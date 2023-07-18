@@ -5,22 +5,20 @@ import { DxQuickQueryOperators, createQueryQuickSort } from '../util/createSortK
 
 export type DxQuickQueryItemsInput<
 	K extends AnyKeySpace = AnyKeySpace,
-	Index extends K['SecondaryIndex'] | never = never
+	Index extends K['SecondaryIndex'] | never | undefined = never | undefined
 > = Omit<DxQueryItemsInput<K, Index>, 'keyConditionExpression'> &
 	DxQuickQueryOperators & {
-		hashKeyParams: K['IndexValueParamsMap'][Index extends never
-			? PrimaryIndex
-			: Index][K['Table']['config']['indexes'][Index extends never ? PrimaryIndex : Index]['hash']['key']];
+		hashKeyParams: K['IndexHashKeyValueParamsMap'][Index extends never | undefined ? PrimaryIndex : Index];
 	};
 
 export type DxQuickQueryItemsOutput<
 	K extends AnyKeySpace = AnyKeySpace,
-	Index extends K['SecondaryIndex'] | never = never
+	Index extends K['SecondaryIndex'] | never | undefined = never | undefined
 > = DxQueryItemsOutput<K, Index>;
 
 export const dxQuickQueryItems = async <
 	K extends AnyKeySpace = AnyKeySpace,
-	Index extends K['SecondaryIndex'] | never = never
+	Index extends K['SecondaryIndex'] | never | undefined = never | undefined
 >(
 	KeySpace: K,
 	input: DxQuickQueryItemsInput<K, Index>
