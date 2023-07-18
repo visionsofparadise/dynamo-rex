@@ -1,11 +1,7 @@
-import {
-	DxReturnConsumedCapacity,
-	DxReturnItemCollectionMetrics,
-	DxReturnValuesOnConditionCheckFailure
-} from './InputParams';
+import { DxReturnParams } from './InputParams';
 
-export interface Defaults {
-	returnConsumedCapacity?: DxReturnConsumedCapacity;
-	returnItemCollectionMetrics?: DxReturnItemCollectionMetrics;
-	returnValuesOnConditionCheckFailure?: DxReturnValuesOnConditionCheckFailure;
-}
+export interface Defaults
+	extends Pick<
+		DxReturnParams,
+		'returnConsumedCapacity' | 'returnItemCollectionMetrics' | 'returnValuesOnConditionCheckFailure'
+	> {}

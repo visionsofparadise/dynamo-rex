@@ -88,9 +88,9 @@ export interface TableConfig<
 }
 
 export class Table<
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>,
-	AttributeKey extends string = string,
-	AttributeValue extends IndexAttributeValue = IndexAttributeValue,
+	Attributes extends Record<string, NativeAttributeValue> = any,
+	AttributeKey extends string = any,
+	AttributeValue extends IndexAttributeValue = any,
 	ProjectionKeys extends string = any,
 	Projection extends IndexProjection<ProjectionKeys> = any,
 	Config extends TableConfig<AttributeKey, AttributeValue, ProjectionKeys, Projection> = any
@@ -134,7 +134,11 @@ export class Table<
 		return class TableKeySpace<
 			KeySpaceAttributes extends Attributes = Attributes,
 			SecondaryIndex extends (typeof ParentTable)['SecondaryIndex'] | never = never
-		> extends KeySpace<typeof ParentTable, KeySpaceAttributes, SecondaryIndex> {
+		> extends KeySpace<
+			Table<Attributes, AttributeKey, AttributeValue, ProjectionKeys, Projection, Config>,
+			KeySpaceAttributes,
+			SecondaryIndex
+		> {
 			constructor() {
 				super(ParentTable, {} as any, ParentTable.middleware);
 			}
@@ -178,14 +182,7 @@ export class Table<
 		>;
 	}
 
-	addMiddleware = (
-		newMiddleware: Array<
-			MiddlewareHandler<
-				MiddlewareHandlerHook,
-				Attributes & this['IndexKeyMap'][PrimaryIndex] & Partial<U.Merge<this['IndexKeyMap'][this['SecondaryIndex']]>>
-			>
-		>
-	) => {
+	addMiddleware = (newMiddleware: Array<MiddlewareHandler<MiddlewareHandlerHook>>) => {
 		const middleware = appendMiddleware(this.middleware, newMiddleware);
 
 		return new Table<Attributes, AttributeKey, AttributeValue, ProjectionKeys, Projection, Config>(
