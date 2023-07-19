@@ -1,28 +1,28 @@
 import { PrimaryIndex, primaryIndex } from '../Table';
 import { AnyKeySpace, KeySpace } from '../KeySpace';
-import { DxQueryItemsInput, DxQueryItemsOutput, dxQueryItems } from './queryItems';
+import { DxQueryInput, DxQueryOutput, dxQuery } from './query';
 import { DxQuickQueryOperators, createQueryQuickSort } from '../util/createSortKeyQuery';
 
-export type DxQuickQueryItemsInput<
+export type DxQueryQuickInput<
 	K extends AnyKeySpace = AnyKeySpace,
 	Index extends K['SecondaryIndex'] | never | undefined = never | undefined
-> = Omit<DxQueryItemsInput<K, Index>, 'keyConditionExpression'> &
+> = Omit<DxQueryInput<K, Index>, 'keyConditionExpression'> &
 	DxQuickQueryOperators & {
 		hashKeyParams: K['IndexHashKeyValueParamsMap'][Index extends never | undefined ? PrimaryIndex : Index];
 	};
 
-export type DxQuickQueryItemsOutput<
+export type DxQueryQuickOutput<
 	K extends AnyKeySpace = AnyKeySpace,
 	Index extends K['SecondaryIndex'] | never | undefined = never | undefined
-> = DxQueryItemsOutput<K, Index>;
+> = DxQueryOutput<K, Index>;
 
-export const dxQuickQueryItems = async <
+export const dxQueryQuick = async <
 	K extends AnyKeySpace = AnyKeySpace,
 	Index extends K['SecondaryIndex'] | never | undefined = never | undefined
 >(
 	KeySpace: K,
-	input: DxQuickQueryItemsInput<K, Index>
-): Promise<DxQuickQueryItemsOutput<K, Index>> => {
+	input: DxQueryQuickInput<K, Index>
+): Promise<DxQueryQuickOutput<K, Index>> => {
 	const index = input.index || primaryIndex;
 
 	const hashKey = KeySpace.Table.config.indexes[index].hash.key;
@@ -31,7 +31,7 @@ export const dxQuickQueryItems = async <
 	const sortKey = KeySpace.Table.config.indexes[index].sort.key;
 	const sortParams = createQueryQuickSort(sortKey, input);
 
-	const output = await dxQueryItems(KeySpace, {
+	const output = await dxQuery(KeySpace, {
 		...input,
 		keyConditionExpression: `${hashKey} = :hashValue ${sortParams.KeyConditionExpression || ''}`,
 		expressionAttributeValues: {

@@ -1,5 +1,5 @@
 import { TestTable1 } from '../TableTest.dev';
-import { dxDeleteItem } from './deleteItem';
+import { dxDelete } from './delete';
 import { randomNumber, randomString } from '../util/utils';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { TestItem1KeySpace } from '../KeySpaceTest.dev';
@@ -29,7 +29,7 @@ it('deletes an existing item', async () => {
 
 	const itemWithoutKeys = { testString, testNumber };
 
-	const result = await dxDeleteItem(TestItem1KeySpace, itemWithoutKeys);
+	const result = await dxDelete(TestItem1KeySpace, itemWithoutKeys);
 
 	const resultTypeCheck: A.Equals<typeof result, undefined> = 1;
 
@@ -47,7 +47,7 @@ it('throws on deleting not existing item', async () => {
 		testNumber
 	};
 
-	await dxDeleteItem(TestItem1KeySpace, item).catch(error => expect(error).toBeDefined());
+	await dxDelete(TestItem1KeySpace, item).catch(error => expect(error).toBeDefined());
 });
 
 it('returns old values', async () => {
@@ -70,7 +70,7 @@ it('returns old values', async () => {
 
 	const itemWithoutKeys = { testString, testNumber };
 
-	const result = await dxDeleteItem(TestItem1KeySpace, itemWithoutKeys, {
+	const result = await dxDelete(TestItem1KeySpace, itemWithoutKeys, {
 		returnValues: ReturnValue.ALL_OLD
 	});
 

@@ -10,15 +10,15 @@ import {
 	TransactWriteCommandOutput,
 	UpdateCommandInput
 } from '@aws-sdk/lib-dynamodb';
-import { DxPutCommandInput, DxPutCommandOutput } from '../command/putItem';
+import { DxPutCommandInput, DxPutCommandOutput } from '../command/put';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 import { DxBatchGetCommandOutput } from '../command/batchGet';
-import { DxGetCommandOutput } from '../command/getItem';
+import { DxGetCommandOutput } from '../command/get';
 import { DxTransactGetCommandOutput } from '../command/transactGet';
 import { DxScanCommandOutput } from '../command/scan';
-import { DxQueryCommandOutput } from '../command/queryItems';
-import { DxDeleteCommandOutput } from '../command/deleteItem';
-import { DxUpdateCommandOutput } from '../command/updateItem';
+import { DxQueryCommandOutput } from '../command/query';
+import { DxDeleteCommandOutput } from '../command/delete';
+import { DxUpdateCommandOutput } from '../command/update';
 import { DxBatchWriteCommandInput } from '../command/batchWrite';
 import { DxTransactWriteCommandInput } from '../command/transactWrite';
 
@@ -132,26 +132,26 @@ export type MiddlewareHandlerMap<
 	[x in keyof MiddlewareParamsMap]: MiddlewareHandlerType<x, Attributes>;
 };
 
-export type MiddlewareHandlerHook = keyof MiddlewareHandlerMap;
+export type DxMiddlewareHook = keyof MiddlewareHandlerMap;
 
-export type MiddlewareHandler<
-	N extends MiddlewareHandlerHook = MiddlewareHandlerHook,
+export type DxMiddleware<
+	N extends DxMiddlewareHook = DxMiddlewareHook,
 	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
 > = MiddlewareHandlerMap<Attributes>[N];
 
-const assertMiddleware: <N extends MiddlewareHandlerHook>(
+const assertMiddleware: <N extends DxMiddlewareHook>(
 	hook: N,
-	middleware: MiddlewareHandler
-) => asserts middleware is MiddlewareHandler<N> = (hook, middleware) => {
+	middleware: DxMiddleware
+) => asserts middleware is DxMiddleware<N> = (hook, middleware) => {
 	if (middleware.hook !== hook) throw new Error();
 };
 
-export const executeMiddleware = async <N extends MiddlewareHandlerHook, P extends MiddlewareParams<N>>(
+export const executeMiddleware = async <N extends DxMiddlewareHook, P extends MiddlewareParams<N>>(
 	hook: N,
 	params: P,
-	middleware: Array<MiddlewareHandler>
+	middleware: Array<DxMiddleware>
 ) => {
-	const recurse = async (currentParams: P, remainingMiddleware: Array<MiddlewareHandler>): Promise<P> => {
+	const recurse = async (currentParams: P, remainingMiddleware: Array<DxMiddleware>): Promise<P> => {
 		if (remainingMiddleware.length === 0) return currentParams;
 
 		const middleware = remainingMiddleware[0];
@@ -171,10 +171,10 @@ export const executeMiddleware = async <N extends MiddlewareHandlerHook, P exten
 	return recurse(params, middleware);
 };
 
-export const executeMiddlewares = async <N extends MiddlewareHandlerHook, P extends MiddlewareParams<N>>(
+export const executeMiddlewares = async <N extends DxMiddlewareHook, P extends MiddlewareParams<N>>(
 	hooks: Array<N>,
 	params: P,
-	middleware: Array<MiddlewareHandler>
+	middleware: Array<DxMiddleware>
 ) => {
 	const recurse = async (currentParams: P, remainingHooks: Array<N>): Promise<P> => {
 		if (remainingHooks.length === 0) return currentParams;
@@ -191,8 +191,8 @@ export const executeMiddlewares = async <N extends MiddlewareHandlerHook, P exte
 };
 
 export const appendMiddleware = (
-	middlewares1: Array<MiddlewareHandler<MiddlewareHandlerHook, any>>,
-	middlewares2: Array<MiddlewareHandler<MiddlewareHandlerHook, any>>
+	middlewares1: Array<DxMiddleware<DxMiddlewareHook, any>>,
+	middlewares2: Array<DxMiddleware<DxMiddlewareHook, any>>
 ) => [...middlewares1, ...middlewares2];
 
 export const handleOutputMetricsMiddleware = async (
@@ -200,7 +200,7 @@ export const handleOutputMetricsMiddleware = async (
 		ConsumedCapacity?: ConsumedCapacity | Array<ConsumedCapacity>;
 		ItemCollectionMetrics?: ItemCollectionMetrics | Array<ItemCollectionMetrics>;
 	},
-	middleware: Array<MiddlewareHandler>
+	middleware: Array<DxMiddleware>
 ) => {
 	if (output.ConsumedCapacity)
 		if (Array.isArray(output.ConsumedCapacity)) {

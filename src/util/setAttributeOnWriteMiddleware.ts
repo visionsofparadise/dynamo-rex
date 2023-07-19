@@ -1,12 +1,12 @@
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
-import { MiddlewareHandler, MiddlewareHandlerHook } from './middleware';
+import { DxMiddleware, DxMiddlewareHook } from './middleware';
 
 export const dxSetAttributeOnWriteMiddleware = <
 	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
 >(
 	key: string & keyof Attributes,
 	setter: () => number
-): Array<MiddlewareHandler<MiddlewareHandlerHook, Attributes>> => [
+): Array<DxMiddleware<DxMiddlewareHook, Attributes>> => [
 	{
 		hook: 'BatchWriteCommandInput',
 		handler: ({ data: batchWriteCommandInput }) => {
@@ -87,7 +87,7 @@ export const dxSetAttributeOnWriteMiddleware = <
 				)
 			};
 		}
-	} as MiddlewareHandler<'TransactWriteCommandInput', Attributes>,
+	} as DxMiddleware<'TransactWriteCommandInput', Attributes>,
 	{
 		hook: 'UpdateCommandInput',
 		handler: ({ data: updateCommandInput }) => {

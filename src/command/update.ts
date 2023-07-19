@@ -14,12 +14,12 @@ import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middl
 import { UpdateCommand, UpdateCommandInput, UpdateCommandOutput } from '@aws-sdk/lib-dynamodb';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 
-export interface DxUpdateItemInput<RV extends ReturnValue | undefined = undefined>
+export interface DxUpdateInput<RV extends ReturnValue | undefined = undefined>
 	extends DxReturnParams<RV>,
 		DxUpdateExpressionParams,
 		DxConditionExpressionParams {}
 
-export type DxUpdateItemOutput<
+export type DxUpdateOutput<
 	K extends AnyKeySpace = AnyKeySpace,
 	RV extends ReturnValue | undefined = undefined
 > = GetReturnValuesOutput<K, RV>;
@@ -30,11 +30,11 @@ export interface DxUpdateCommandOutput<
 	Attributes?: Attributes | Partial<Attributes>;
 }
 
-export const dxUpdateItem = async <K extends AnyKeySpace = AnyKeySpace, RV extends ReturnValue | undefined = undefined>(
+export const dxUpdate = async <K extends AnyKeySpace = AnyKeySpace, RV extends ReturnValue | undefined = undefined>(
 	KeySpace: K,
 	keyParams: Parameters<K['keyOf']>[0],
-	input: DxUpdateItemInput<RV>
-): Promise<DxUpdateItemOutput<K, RV>> => {
+	input: DxUpdateInput<RV>
+): Promise<DxUpdateOutput<K, RV>> => {
 	const baseCommandInput: UpdateCommandInput = {
 		...handleTableNameParam(KeySpace.Table),
 		Key: KeySpace.keyOf(keyParams),

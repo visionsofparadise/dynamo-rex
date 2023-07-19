@@ -1,5 +1,5 @@
 import { TestTable1 } from '../TableTest.dev';
-import { dxUpdateItem } from './updateItem';
+import { dxUpdate } from './update';
 import { randomNumber, randomString } from '../util/utils';
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { TestItem1KeySpace } from '../KeySpaceTest.dev';
@@ -31,7 +31,7 @@ it('updates an existing item', async () => {
 
 	const updatedTestNumber = randomNumber();
 
-	const result = await dxUpdateItem(TestItem1KeySpace, itemWithoutKeys, {
+	const result = await dxUpdate(TestItem1KeySpace, itemWithoutKeys, {
 		updateExpression: 'SET testNumber = :updatedTestNumber',
 		expressionAttributeValues: {
 			':updatedTestNumber': updatedTestNumber
@@ -74,7 +74,7 @@ it('returns all new values', async () => {
 
 	const updatedTestNumber = randomNumber();
 
-	const result = await dxUpdateItem(TestItem1KeySpace, itemWithoutKeys, {
+	const result = await dxUpdate(TestItem1KeySpace, itemWithoutKeys, {
 		returnValues: ReturnValue.ALL_NEW,
 		updateExpression: 'SET testNumber = :updatedTestNumber',
 		expressionAttributeValues: {
@@ -116,7 +116,7 @@ it('returns all old values', async () => {
 
 	const updatedTestNumber = randomNumber();
 
-	const result = await dxUpdateItem(TestItem1KeySpace, itemWithoutKeys, {
+	const result = await dxUpdate(TestItem1KeySpace, itemWithoutKeys, {
 		returnValues: ReturnValue.ALL_OLD,
 		updateExpression: 'SET testNumber = :updatedTestNumber',
 		expressionAttributeValues: {
@@ -153,7 +153,7 @@ it('returns updated new values', async () => {
 
 	const updatedTestNumber = randomNumber();
 
-	const result = await dxUpdateItem(TestItem1KeySpace, itemWithoutKeys, {
+	const result = await dxUpdate(TestItem1KeySpace, itemWithoutKeys, {
 		returnValues: ReturnValue.UPDATED_NEW,
 		updateExpression: 'SET testNumber = :updatedTestNumber',
 		expressionAttributeValues: {
@@ -194,7 +194,7 @@ it('returns updated old values', async () => {
 
 	const updatedTestNumber = randomNumber();
 
-	const result = await dxUpdateItem(TestItem1KeySpace, itemWithoutKeys, {
+	const result = await dxUpdate(TestItem1KeySpace, itemWithoutKeys, {
 		returnValues: ReturnValue.UPDATED_OLD,
 		updateExpression: 'SET testNumber = :updatedTestNumber',
 		expressionAttributeValues: {

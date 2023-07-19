@@ -17,12 +17,12 @@ import { AnyKeySpace } from '../KeySpace';
 import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middleware';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 
-export enum QueryItemsSort {
+export enum DxQueryItemsSort {
 	ASCENDING = 'ascending',
 	DESCENDING = 'descending'
 }
 
-export interface DxQueryItemsInput<
+export interface DxQueryInput<
 	K extends AnyKeySpace = AnyKeySpace,
 	Index extends K['SecondaryIndex'] | never | undefined = never | undefined
 > extends DxReturnConsumedCapacityParam,
@@ -31,11 +31,11 @@ export interface DxQueryItemsInput<
 		DxListParams<Index>,
 		DxConsistentReadParam {
 	keyConditionExpression: QueryCommandInput['KeyConditionExpression'];
-	sort?: QueryItemsSort;
+	sort?: DxQueryItemsSort;
 	cursorKey?: Table.GetIndexCursorKey<K['Table'], Index>;
 }
 
-export type DxQueryItemsOutput<
+export type DxQueryOutput<
 	K extends AnyKeySpace = AnyKeySpace,
 	Index extends K['SecondaryIndex'] | never | undefined = never | undefined
 > = {
@@ -50,22 +50,26 @@ export interface DxQueryCommandOutput<
 	Items?: Array<Attributes>;
 }
 
-export const dxQueryItems = async <
+export const dxQuery = async <
 	K extends AnyKeySpace = AnyKeySpace,
 	Index extends K['SecondaryIndex'] | never | undefined = never | undefined
 >(
 	KeySpace: K,
-	input: DxQueryItemsInput<K, Index>
-): Promise<DxQueryItemsOutput<K, Index>> => {
+	input: DxQueryInput<K, Index>
+): Promise<DxQueryOutput<K, Index>> => {
 	const recurse = async (
 		totalCount: number,
 		pageCursorKey?: Table.GetIndexCursorKey<K['Table'], Index>
-	): Promise<DxQueryItemsOutput<K, Index>> => {
+	): Promise<DxQueryOutput<K, Index>> => {
 		const baseCommandInput: QueryCommandInput = {
 			...handleTableNameParam(KeySpace.Table),
 			KeyConditionExpression: input.keyConditionExpression,
 			ScanIndexForward:
-				input.sort === QueryItemsSort.ASCENDING ? true : input.sort === QueryItemsSort.DESCENDING ? false : undefined,
+				input.sort === DxQueryItemsSort.ASCENDING
+					? true
+					: input.sort === DxQueryItemsSort.DESCENDING
+					? false
+					: undefined,
 			ExclusiveStartKey: pageCursorKey as Record<string, any> | undefined,
 			...handleListParams(input),
 			...handleProjectionExpressionParams(input),

@@ -12,12 +12,12 @@ import {
 import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middleware';
 import { GetCommand, GetCommandInput, GetCommandOutput } from '@aws-sdk/lib-dynamodb';
 
-export interface DxGetItemInput
+export interface DxGetInput
 	extends DxReturnConsumedCapacityParam,
 		DxProjectionExpressionParams,
 		DxConsistentReadParam {}
 
-export type DxGetItemOutput<K extends AnyKeySpace = AnyKeySpace> = K['Attributes'];
+export type DxGetOutput<K extends AnyKeySpace = AnyKeySpace> = K['Attributes'];
 
 export interface DxGetCommandOutput<
 	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
@@ -25,11 +25,11 @@ export interface DxGetCommandOutput<
 	Item?: Attributes;
 }
 
-export const dxGetItem = async <K extends AnyKeySpace>(
+export const dxGet = async <K extends AnyKeySpace>(
 	KeySpace: K,
 	keyParams: Parameters<K['keyOf']>[0],
-	input?: DxGetItemInput
-): Promise<DxGetItemOutput<K>> => {
+	input?: DxGetInput
+): Promise<DxGetOutput<K>> => {
 	const baseCommandInput: GetCommandInput = {
 		...handleTableNameParam(KeySpace.Table),
 		Key: KeySpace.keyOf(keyParams),

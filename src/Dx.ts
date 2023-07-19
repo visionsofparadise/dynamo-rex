@@ -3,7 +3,7 @@ import { ILogger } from './util/utils';
 import { Defaults } from './util/defaults';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 import { Table } from './Table';
-import { MiddlewareHandler, appendMiddleware } from './util/middleware';
+import { DxMiddleware, appendMiddleware } from './util/middleware';
 
 export interface DxConfig {
 	client: DynamoDBDocumentClient;
@@ -16,7 +16,7 @@ export class DxBase<Attributes extends Record<string, NativeAttributeValue> = Re
 	defaults: Defaults;
 	logger?: ILogger;
 
-	constructor(public config: DxConfig, public middleware: Array<MiddlewareHandler> = []) {
+	constructor(public config: DxConfig, public middleware: Array<DxMiddleware> = []) {
 		this.client = config.client;
 		this.defaults = config.defaults || {};
 		this.logger = config.logger;
@@ -34,7 +34,7 @@ export class DxBase<Attributes extends Record<string, NativeAttributeValue> = Re
 
 	Attributes!: Attributes;
 
-	addMiddleware = (newMiddleware: Array<MiddlewareHandler>) => {
+	addMiddleware = (newMiddleware: Array<DxMiddleware>) => {
 		const middleware = appendMiddleware(this.middleware, newMiddleware);
 
 		return new DxBase<Attributes>(this.config, middleware);

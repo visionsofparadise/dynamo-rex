@@ -1,24 +1,24 @@
 import { AnyKeySpace, KeySpace } from '../KeySpace';
-import { DxQueryItemsInput, dxQueryItems } from './queryItems';
+import { DxQueryInput, dxQuery } from './query';
 import { run } from '../util/utils';
 import { primaryIndex } from '../Table';
 
-export type DxQueryGetItemInput<
+export type DxQueryGetInput<
 	K extends AnyKeySpace = AnyKeySpace,
 	Index extends K['SecondaryIndex'] | never = never
-> = Omit<DxQueryItemsInput<K, Index>, 'keyConditionExpression' | 'index'>;
+> = Omit<DxQueryInput<K, Index>, 'keyConditionExpression' | 'index'>;
 
-export type DxQueryGetItemOutput<K extends AnyKeySpace = AnyKeySpace> = K['Attributes'];
+export type DxQueryGetOutput<K extends AnyKeySpace = AnyKeySpace> = K['Attributes'];
 
-export const dxQueryGetItem = async <
+export const dxQueryGet = async <
 	K extends AnyKeySpace = AnyKeySpace,
 	Index extends K['SecondaryIndex'] | never = never
 >(
 	KeySpace: K,
 	index: K['Index'],
 	keyParams: KeySpace.GetKeyParams<K, Index>,
-	input?: DxQueryGetItemInput<K, Index>
-): Promise<DxQueryGetItemOutput<K>> => {
+	input?: DxQueryGetInput<K, Index>
+): Promise<DxQueryGetOutput<K>> => {
 	const setIndex = index !== primaryIndex ? index : undefined;
 
 	const key = (KeySpace as KeySpace).indexKeyOf(index, keyParams);
@@ -28,7 +28,7 @@ export const dxQueryGetItem = async <
 
 	const output = await run(async () => {
 		if (sortKey) {
-			return dxQueryItems(KeySpace, {
+			return dxQuery(KeySpace, {
 				...input,
 				index: setIndex,
 				pageLimit: 1,
@@ -41,7 +41,7 @@ export const dxQueryGetItem = async <
 			});
 		}
 
-		return dxQueryItems(KeySpace, {
+		return dxQuery(KeySpace, {
 			...input,
 			index: setIndex,
 			pageLimit: 1,

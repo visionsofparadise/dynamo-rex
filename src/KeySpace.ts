@@ -1,7 +1,7 @@
 import { PrimaryIndex, Table, primaryIndex } from './Table';
 import { ILogger, zipObject } from './util/utils';
 import { Defaults } from './util/defaults';
-import { MiddlewareHandlerHook, MiddlewareHandler, appendMiddleware } from './util/middleware';
+import { DxMiddlewareHook, DxMiddleware, appendMiddleware } from './util/middleware';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DxConfig } from './Dx';
 import { U } from 'ts-toolbelt';
@@ -48,7 +48,7 @@ export class KeySpace<
 	constructor(
 		public Table: ParentTable,
 		public config: KeySpaceConfig<ParentTable, Attributes, SecondaryIndex, IndexValueHandlers>,
-		public middleware: Array<MiddlewareHandler> = []
+		public middleware: Array<DxMiddleware> = []
 	) {
 		this.client = config.client || Table.client;
 		this.defaults = { ...Table.defaults, ...config.defaults };
@@ -158,7 +158,7 @@ export class KeySpace<
 
 	addMiddleware = (
 		newMiddleware: Array<
-			MiddlewareHandler<MiddlewareHandlerHook, Attributes & U.Merge<Table.GetIndexKey<ParentTable, this['Index']>>>
+			DxMiddleware<DxMiddlewareHook, Attributes & U.Merge<Table.GetIndexKey<ParentTable, this['Index']>>>
 		>
 	) => {
 		const middleware = appendMiddleware(this.middleware, newMiddleware);

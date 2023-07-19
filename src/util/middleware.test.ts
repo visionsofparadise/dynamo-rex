@@ -1,9 +1,9 @@
 import { Dx } from '../TableTest.dev';
 import dayjs from 'dayjs';
 import { randomNumber, randomString } from './utils';
-import { dxCreateItem } from '../command/createItem';
-import { dxGetItem } from '../command/getItem';
-import { dxQuickUpdateItem } from '../command/quickUpdateItem';
+import { dxCreate } from '../command/create';
+import { dxGet } from '../command/get';
+import { dxUpdateQuick } from '../command/updateQuick';
 import { dxSetAttributeOnWriteMiddleware } from './setAttributeOnWriteMiddleware';
 
 interface IBaseItem {
@@ -52,17 +52,17 @@ it('implements updatedAt attribute with middleware', async () => {
 		updateableString: randomString()
 	};
 
-	await dxCreateItem(TestKeySpace, testItem);
+	await dxCreate(TestKeySpace, testItem);
 
-	const getItem = await dxGetItem(TestKeySpace, testItem);
+	const getItem = await dxGet(TestKeySpace, testItem);
 
 	expect(getItem.updatedAt).toBeDefined();
 
-	await dxQuickUpdateItem(TestKeySpace, testItem, {
+	await dxUpdateQuick(TestKeySpace, testItem, {
 		updateableString: randomString()
 	});
 
-	const getItem2 = await dxGetItem(TestKeySpace, testItem);
+	const getItem2 = await dxGet(TestKeySpace, testItem);
 
 	expect(getItem2.updatedAt! > getItem.updatedAt!).toBe(true);
 });

@@ -1,6 +1,6 @@
 import { ILogger } from './util/utils';
 import { Defaults } from './util/defaults';
-import { MiddlewareHandlerHook, MiddlewareHandler, appendMiddleware } from './util/middleware';
+import { DxMiddlewareHook, DxMiddleware, appendMiddleware } from './util/middleware';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 import { DxBase, DxConfig } from './Dx';
@@ -99,7 +99,7 @@ export class Table<
 	defaults: Defaults;
 	logger?: ILogger;
 
-	constructor(public Dx: DxBase, public config: Config, public middleware: Array<MiddlewareHandler> = []) {
+	constructor(public Dx: DxBase, public config: Config, public middleware: Array<DxMiddleware> = []) {
 		this.client = config.client || Dx.client;
 		this.defaults = { ...Dx.defaults, ...config.defaults };
 		this.logger = config.logger || Dx.logger;
@@ -182,7 +182,7 @@ export class Table<
 		>;
 	}
 
-	addMiddleware = (newMiddleware: Array<MiddlewareHandler<MiddlewareHandlerHook>>) => {
+	addMiddleware = (newMiddleware: Array<DxMiddleware<DxMiddlewareHook>>) => {
 		const middleware = appendMiddleware(this.middleware, newMiddleware);
 
 		return new Table<Attributes, AttributeKey, AttributeValue, ProjectionKeys, Projection, Config>(

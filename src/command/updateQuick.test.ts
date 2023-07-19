@@ -1,5 +1,5 @@
 import { TestTable1 } from '../TableTest.dev';
-import { dxQuickUpdateItem } from './quickUpdateItem';
+import { dxUpdateQuick } from './updateQuick';
 import { randomNumber, randomString } from '../util/utils';
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { TestItem2KeySpace } from '../KeySpaceTest.dev';
@@ -38,7 +38,7 @@ it('updates an existing item', async () => {
 
 	const updatedTestString = randomString();
 
-	const result = await dxQuickUpdateItem(TestItem2KeySpace, itemWithoutKeys, {
+	const result = await dxUpdateQuick(TestItem2KeySpace, itemWithoutKeys, {
 		testNumber: dxOp.Add(1),
 		deep: {
 			deep: {

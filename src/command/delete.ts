@@ -14,11 +14,11 @@ import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 
 type DxDeleteItemReturnValues = Extract<ReturnValue, 'ALL_OLD' | 'NONE'> | undefined;
 
-export interface DxDeleteItemInput<RV extends DxDeleteItemReturnValues = undefined>
+export interface DxDeleteInput<RV extends DxDeleteItemReturnValues = undefined>
 	extends DxReturnParams<RV>,
 		DxConditionExpressionParams {}
 
-export type DxDeleteItemOutput<
+export type DxDeleteOutput<
 	K extends AnyKeySpace = AnyKeySpace,
 	RV extends DxDeleteItemReturnValues = undefined
 > = GetReturnValuesOutput<K, RV>;
@@ -29,14 +29,11 @@ export interface DxDeleteCommandOutput<
 	Attributes?: Attributes;
 }
 
-export const dxDeleteItem = async <
-	K extends AnyKeySpace = AnyKeySpace,
-	RV extends DxDeleteItemReturnValues = undefined
->(
+export const dxDelete = async <K extends AnyKeySpace = AnyKeySpace, RV extends DxDeleteItemReturnValues = undefined>(
 	KeySpace: K,
 	keyParams: Parameters<K['keyOf']>[0],
-	input?: DxDeleteItemInput<RV>
-): Promise<DxDeleteItemOutput<K, RV>> => {
+	input?: DxDeleteInput<RV>
+): Promise<DxDeleteOutput<K, RV>> => {
 	const baseCommandInput: DeleteCommandInput = {
 		...handleTableNameParam(KeySpace.Table),
 		Key: KeySpace.keyOf(keyParams),

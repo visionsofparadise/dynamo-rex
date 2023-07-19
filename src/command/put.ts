@@ -12,9 +12,9 @@ import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middl
 import { PutCommand, PutCommandInput, PutCommandOutput } from '@aws-sdk/lib-dynamodb';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 
-export type DxPutItemReturnValues = Extract<ReturnValue, 'ALL_OLD' | 'NONE'> | undefined;
+export type DxPutReturnValues = Extract<ReturnValue, 'ALL_OLD' | 'NONE'> | undefined;
 
-export interface DxPutItemInput<RV extends DxPutItemReturnValues = undefined>
+export interface DxPutInput<RV extends DxPutReturnValues = undefined>
 	extends DxReturnParams<RV>,
 		DxConditionExpressionParams {}
 
@@ -24,9 +24,9 @@ export interface DxPutCommandInput<
 	Item: Attributes;
 }
 
-export type DxPutItemOutput<
+export type DxPutOutput<
 	K extends AnyKeySpace = AnyKeySpace,
-	RV extends DxPutItemReturnValues = undefined
+	RV extends DxPutReturnValues = undefined
 > = GetReturnValuesOutput<K, RV>;
 
 export interface DxPutCommandOutput<
@@ -35,11 +35,11 @@ export interface DxPutCommandOutput<
 	Attributes?: Attributes;
 }
 
-export const dxPutItem = async <K extends AnyKeySpace = AnyKeySpace, RV extends DxPutItemReturnValues = undefined>(
+export const dxPut = async <K extends AnyKeySpace = AnyKeySpace, RV extends DxPutReturnValues = undefined>(
 	KeySpace: K,
 	item: K['Attributes'],
-	input?: DxPutItemInput<RV>
-): Promise<DxPutItemOutput<K, RV>> => {
+	input?: DxPutInput<RV>
+): Promise<DxPutOutput<K, RV>> => {
 	const baseCommandInput: DxPutCommandInput<K['AttributesAndIndexKeys']> = {
 		...handleTableNameParam(KeySpace.Table),
 		Item: KeySpace.withIndexKeys(item),

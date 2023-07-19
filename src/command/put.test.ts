@@ -1,4 +1,4 @@
-import { dxPutItem } from './putItem';
+import { dxPut } from './put';
 import { TestItem1KeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
 import { randomNumber, randomString } from '../util/utils';
@@ -14,7 +14,7 @@ it('puts new item', async () => {
 		testNumber: randomNumber()
 	};
 
-	const result = await dxPutItem(TestItem1KeySpace, item);
+	const result = await dxPut(TestItem1KeySpace, item);
 
 	const resultTypeCheck: A.Equals<typeof result, undefined> = 1;
 
@@ -29,9 +29,9 @@ it('puts over existing item', async () => {
 		testNumber: randomNumber()
 	};
 
-	await dxPutItem(TestItem1KeySpace, item);
+	await dxPut(TestItem1KeySpace, item);
 
-	const result = await dxPutItem(TestItem1KeySpace, item);
+	const result = await dxPut(TestItem1KeySpace, item);
 
 	const resultTypeCheck: A.Equals<typeof result, undefined> = 1;
 
@@ -46,14 +46,14 @@ it('returns old values', async () => {
 		testNumber: randomNumber()
 	};
 
-	await dxPutItem(TestItem1KeySpace, item);
+	await dxPut(TestItem1KeySpace, item);
 
 	const updatedItem = {
 		...item,
 		optionalString: randomString()
 	};
 
-	const result = await dxPutItem(TestItem1KeySpace, updatedItem, {
+	const result = await dxPut(TestItem1KeySpace, updatedItem, {
 		returnValues: ReturnValue.ALL_OLD
 	});
 
