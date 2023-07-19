@@ -14,14 +14,14 @@ import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middl
 import { UpdateCommand, UpdateCommandInput, UpdateCommandOutput } from '@aws-sdk/lib-dynamodb';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 
-export interface DxUpdateInput<RV extends ReturnValue | undefined = undefined>
+export interface DxUpdateInput<RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW>
 	extends DxReturnParams<RV>,
 		DxUpdateExpressionParams,
 		DxConditionExpressionParams {}
 
 export type DxUpdateOutput<
 	K extends AnyKeySpace = AnyKeySpace,
-	RV extends ReturnValue | undefined = undefined
+	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
 > = GetReturnValuesOutput<K, RV>;
 
 export interface DxUpdateCommandOutput<
@@ -30,7 +30,10 @@ export interface DxUpdateCommandOutput<
 	Attributes?: Attributes | Partial<Attributes>;
 }
 
-export const dxUpdate = async <K extends AnyKeySpace = AnyKeySpace, RV extends ReturnValue | undefined = undefined>(
+export const dxUpdate = async <
+	K extends AnyKeySpace = AnyKeySpace,
+	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
+>(
 	KeySpace: K,
 	keyParams: Parameters<K['keyOf']>[0],
 	input: DxUpdateInput<RV>
@@ -40,7 +43,8 @@ export const dxUpdate = async <K extends AnyKeySpace = AnyKeySpace, RV extends R
 		Key: KeySpace.keyOf(keyParams),
 		...handleUpdateExpressionParams(input),
 		...handleConditionExpressionParams(input),
-		...handleReturnParams(KeySpace, input)
+		...handleReturnParams(KeySpace, input),
+		ReturnValues: handleReturnParams(KeySpace, input).ReturnValues || ReturnValue.ALL_NEW
 	};
 
 	const updateCommandInput = await executeMiddlewares(

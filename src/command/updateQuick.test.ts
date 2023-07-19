@@ -2,7 +2,7 @@ import { TestTable1 } from '../TableTest.dev';
 import { dxUpdateQuick } from './updateQuick';
 import { randomNumber, randomString } from '../util/utils';
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { TestItem2KeySpace } from '../KeySpaceTest.dev';
+import { ITestItem2, TestItem2KeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
 import { dxReset } from './reset';
 import { dxOp } from '../UpdateOp';
@@ -49,7 +49,7 @@ it('updates an existing item', async () => {
 		}
 	});
 
-	const resultTypeCheck: A.Equals<typeof result, undefined> = 1;
+	const resultTypeCheck: A.Equals<typeof result, ITestItem2> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 

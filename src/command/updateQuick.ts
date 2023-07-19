@@ -8,18 +8,18 @@ import { dxUpdate } from './update';
 import { AllSchema } from '../util/Schema';
 import { DxOp } from '../UpdateOp';
 
-export interface DxUpdateQuickInput<RV extends ReturnValue | undefined = undefined>
+export interface DxUpdateQuickInput<RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW>
 	extends DxReturnParams<RV>,
 		DxConditionExpressionParams {}
 
 export type DxUpdateQuickOutput<
 	K extends AnyKeySpace = AnyKeySpace,
-	RV extends ReturnValue | undefined = undefined
+	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
 > = GetReturnValuesOutput<K, RV>;
 
 export const dxUpdateQuick = async <
 	K extends AnyKeySpace = AnyKeySpace,
-	RV extends ReturnValue | undefined = undefined
+	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
 >(
 	KeySpace: K,
 	keyParams: Parameters<K['keyOf']>[0],

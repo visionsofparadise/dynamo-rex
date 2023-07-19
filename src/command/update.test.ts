@@ -32,6 +32,7 @@ it('updates an existing item', async () => {
 	const updatedTestNumber = randomNumber();
 
 	const result = await dxUpdate(TestItem1KeySpace, itemWithoutKeys, {
+		returnValues: ReturnValue.NONE,
 		updateExpression: 'SET testNumber = :updatedTestNumber',
 		expressionAttributeValues: {
 			':updatedTestNumber': updatedTestNumber
