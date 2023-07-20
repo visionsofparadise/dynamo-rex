@@ -68,7 +68,7 @@ export const dxOp = {
 		return output as unknown as number;
 	},
 
-	ListAppend: <T extends unknown>(value: T, end: 'head' | 'tail' = 'tail') => {
+	ListAppend: <T extends unknown>(value: Array<T>, end: 'head' | 'tail' = 'tail') => {
 		const output = new DxOp(({ key, alias, precedingKeys }) => {
 			const path = attributePath({ alias, precedingKeys });
 
