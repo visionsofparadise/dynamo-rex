@@ -9,10 +9,9 @@ import {
 	handleTableNameParam,
 	handleUpdateExpressionParams
 } from '../util/InputParams';
-import { GetReturnValuesOutput, assertReturnValuesAttributes } from '../util/OutputParams';
+import { GetReturnValuesOutput, getReturnValuesAttributes } from '../util/OutputParams';
 import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middleware';
 import { UpdateCommand, UpdateCommandInput, UpdateCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { Table } from '../Table';
 import { GenericAttributes } from '../Dx';
 
 export interface DxUpdateInput<RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW>
@@ -21,9 +20,9 @@ export interface DxUpdateInput<RV extends ReturnValue | undefined = typeof Retur
 		DxConditionExpressionParams {}
 
 export type DxUpdateOutput<
-	Attributes extends GenericAttributes = GenericAttributes,
+	K extends AnyKeySpace = AnyKeySpace,
 	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
-> = GetReturnValuesOutput<Attributes, RV>;
+> = GetReturnValuesOutput<K, RV>;
 
 export interface DxUpdateCommandOutput<Attributes extends GenericAttributes = GenericAttributes>
 	extends Omit<UpdateCommandOutput, 'Attributes'> {
@@ -31,41 +30,39 @@ export interface DxUpdateCommandOutput<Attributes extends GenericAttributes = Ge
 }
 
 export const dxUpdate = async <
-	TorK extends Table | AnyKeySpace = AnyKeySpace,
+	K extends AnyKeySpace = AnyKeySpace,
 	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
 >(
-	TableOrKeySpace: TorK,
-	keyParams: Parameters<TorK['handleInputKeyParams']>[0],
+	KeySpace: K,
+	keyParams: Parameters<K['keyOf']>[0],
 	input: DxUpdateInput<RV>
-): Promise<DxUpdateOutput<ReturnType<TorK['handleOutputItem']>, RV>> => {
+): Promise<DxUpdateOutput<K, RV>> => {
 	const baseCommandInput: UpdateCommandInput = {
-		...handleTableNameParam(TableOrKeySpace),
-		Key: TableOrKeySpace.handleInputKeyParams(keyParams),
+		...handleTableNameParam(KeySpace.Table),
+		Key: KeySpace.keyOf(keyParams),
 		...handleUpdateExpressionParams(input),
 		...handleConditionExpressionParams(input),
-		...handleReturnParams(input, TableOrKeySpace.defaults),
-		ReturnValues: handleReturnParams(input, TableOrKeySpace.defaults).ReturnValues || ReturnValue.ALL_NEW
+		...handleReturnParams(KeySpace, input),
+		ReturnValues: handleReturnParams(KeySpace, input).ReturnValues || ReturnValue.ALL_NEW
 	};
 
 	const updateCommandInput = await executeMiddlewares(
 		['CommandInput', 'WriteCommandInput', 'UpdateCommandInput'],
 		{ type: 'UpdateCommandInput', data: baseCommandInput },
-		TableOrKeySpace.middleware
+		KeySpace.middleware
 	).then(output => output.data);
 
-	const updateCommandOutput = await TableOrKeySpace.client.send(new UpdateCommand(updateCommandInput));
+	const updateCommandOutput = await KeySpace.client.send(new UpdateCommand(updateCommandInput));
 
-	const output = await executeMiddlewares(
+	const commandOutput = await executeMiddlewares(
 		['CommandOutput', 'WriteCommandOutput', 'UpdateCommandOutput'],
 		{ type: 'UpdateCommandOutput', data: updateCommandOutput },
-		TableOrKeySpace.middleware
+		KeySpace.middleware
 	).then(output => output.data);
 
-	await handleOutputMetricsMiddleware(output, TableOrKeySpace.middleware);
+	await handleOutputMetricsMiddleware(commandOutput, KeySpace.middleware);
 
-	const { Attributes } = output;
+	const attributes = getReturnValuesAttributes(KeySpace, commandOutput.Attributes, input?.returnValues);
 
-	assertReturnValuesAttributes(Attributes, input?.returnValues || ReturnValue.ALL_NEW);
-
-	return TableOrKeySpace.handleOutputItem(Attributes);
+	return attributes;
 };

@@ -1,4 +1,4 @@
-import { PrimaryIndex, Table, TableConfig, primaryIndex } from './Table';
+import { PrimaryIndex, Table, primaryIndex } from './Table';
 import { ILogger, zipObject } from './util/utils';
 import { Defaults } from './util/defaults';
 import { DxMiddlewareHook, DxMiddleware, appendMiddleware } from './util/middleware';
@@ -40,8 +40,7 @@ export class KeySpace<
 	IndexValueHandlers extends IndexValueHandlersType<ParentTable, Attributes, SecondaryIndex> = any
 > {
 	client: DynamoDBDocumentClient;
-	tableName: string;
-	indexConfig: TableConfig['indexes'];
+	middleware: Array<DxMiddleware>;
 	defaults: Defaults;
 	logger?: ILogger;
 
@@ -50,11 +49,10 @@ export class KeySpace<
 	constructor(
 		public Table: ParentTable,
 		public config: KeySpaceConfig<ParentTable, Attributes, SecondaryIndex, IndexValueHandlers>,
-		public middleware: Array<DxMiddleware> = []
+		middleware: Array<DxMiddleware<DxMiddlewareHook, Attributes>> = []
 	) {
 		this.client = config.client || Table.client;
-		this.tableName = Table.tableName;
-		this.indexConfig = Table.config.indexes;
+		this.middleware = appendMiddleware(Table.middleware, middleware);
 		this.defaults = { ...Table.defaults, ...config.defaults };
 		this.logger = config.logger || Table.logger;
 
@@ -62,12 +60,13 @@ export class KeySpace<
 	}
 
 	configure<ConfigIndexValueHandlers extends IndexValueHandlersType<ParentTable, Attributes, SecondaryIndex> = any>(
-		config: KeySpaceConfig<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers>
+		config: KeySpaceConfig<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers>,
+		middleware: Array<DxMiddleware<DxMiddlewareHook, Attributes>> = []
 	): KeySpace<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers> {
 		return new KeySpace<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers>(
 			this.Table,
 			config,
-			this.middleware
+			middleware
 		);
 	}
 
@@ -98,17 +97,6 @@ export class KeySpace<
 	IndexHashKeyValueParamsMap!: {
 		[x in this['Index']]: this['IndexValueParamsMap'][x][ParentTable['config']['indexes'][x]['hash']['key']];
 	};
-
-	CommandInputAttributes!: this['Attributes'];
-	CommandInputKeyParams!: KeySpace.GetKeyParams<this, this['PrimaryIndex']>;
-	CommandOutputAttributes!: this['Attributes'];
-
-	handleInputItem = (item: Attributes): this['AttributesAndIndexKeys'] => this.withIndexKeys(item);
-	handleInputKeyParams = (
-		params: this['IndexKeyValueParamsMap'][PrimaryIndex]
-	): this['IndexKeyMap'][this['PrimaryIndex']] => this.keyOf(params);
-	handleOutputItem = (item: this['AttributesAndIndexKeys']): Attributes =>
-		(item ? this.omitIndexKeys(item) : item) as Attributes;
 
 	get indexes() {
 		return Object.keys(this.indexValueHandlers) as Array<this['Index']>;
@@ -170,18 +158,4 @@ export class KeySpace<
 			keyof U.Merge<Table.GetIndexKey<ParentTable, this['Index']>>
 		>;
 	}
-
-	addMiddleware = (
-		newMiddleware: Array<
-			DxMiddleware<DxMiddlewareHook, Attributes & U.Merge<Table.GetIndexKey<ParentTable, this['Index']>>>
-		>
-	) => {
-		const middleware = appendMiddleware(this.middleware, newMiddleware);
-
-		return new KeySpace<ParentTable, Attributes, SecondaryIndex, IndexValueHandlers>(
-			this.Table,
-			this.config,
-			middleware
-		);
-	};
 }

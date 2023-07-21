@@ -19,8 +19,8 @@ interface ITestItem extends IBaseItem {
 it('implements updatedAt attribute with middleware', async () => {
 	jest.useRealTimers();
 
-	const TestTable = new Dx.Table<IBaseItem>()
-		.configure({
+	const TestTable = new Dx.Table<IBaseItem>().configure(
+		{
 			name: process.env.DYNAMODB_TABLE || 'test',
 			indexes: {
 				primaryIndex: {
@@ -34,8 +34,9 @@ it('implements updatedAt attribute with middleware', async () => {
 					}
 				}
 			}
-		})
-		.addMiddleware(dxSetAttributeOnWriteMiddleware('updatedAt', () => dayjs().valueOf()));
+		},
+		dxSetAttributeOnWriteMiddleware('updatedAt', () => dayjs().valueOf())
+	);
 
 	const TestKeySpace = new TestTable.KeySpace<ITestItem>().configure({
 		indexValueHandlers: {

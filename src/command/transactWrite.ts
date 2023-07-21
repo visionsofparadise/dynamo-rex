@@ -88,7 +88,7 @@ export const dxTransactWrite = async <T extends Table = Table>(
 						...handleTableNameParam(Table),
 						Key: request.condition.key,
 						...handleConditionExpressionParams(request.condition),
-						...handleReturnValuesOnConditionCheckFailureParam(Table.defaults)
+						...handleReturnValuesOnConditionCheckFailureParam(Table)
 					}
 				};
 			}
@@ -99,7 +99,7 @@ export const dxTransactWrite = async <T extends Table = Table>(
 						...handleTableNameParam(Table),
 						Item: request.put.item,
 						...handleConditionExpressionParams(request.put),
-						...handleReturnValuesOnConditionCheckFailureParam(Table.defaults)
+						...handleReturnValuesOnConditionCheckFailureParam(Table)
 					}
 				};
 			}
@@ -111,7 +111,7 @@ export const dxTransactWrite = async <T extends Table = Table>(
 						Key: request.update.key,
 						...handleUpdateExpressionParams(request.update),
 						...handleConditionExpressionParams(request.update),
-						...handleReturnValuesOnConditionCheckFailureParam(Table.defaults)
+						...handleReturnValuesOnConditionCheckFailureParam(Table)
 					}
 				};
 			}
@@ -121,7 +121,7 @@ export const dxTransactWrite = async <T extends Table = Table>(
 					...handleTableNameParam(Table),
 					Key: request.delete.key,
 					...handleConditionExpressionParams(request.delete),
-					...handleReturnValuesOnConditionCheckFailureParam(Table.defaults)
+					...handleReturnValuesOnConditionCheckFailureParam(Table)
 				}
 			};
 		}),

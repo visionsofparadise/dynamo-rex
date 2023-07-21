@@ -1,5 +1,4 @@
-import { Table } from '../Table';
-import { AnyKeySpace } from '../KeySpace';
+import { KeySpace, AnyKeySpace } from '../KeySpace';
 import { DxConditionExpressionParams, DxReturnParams } from '../util/InputParams';
 import { dxPut } from './put';
 
@@ -7,18 +6,18 @@ export interface DxCreateInput extends Omit<DxReturnParams, 'returnValues'>, DxC
 
 export type DxCreateOutput = void;
 
-export const dxCreate = async <TorK extends Table | AnyKeySpace = AnyKeySpace>(
-	TableOrKeySpace: TorK,
-	item: Parameters<TorK['handleInputItem']>[0],
+export const dxCreate = async <K extends AnyKeySpace = AnyKeySpace>(
+	KeySpace: K,
+	item: K['Attributes'],
 	input?: DxCreateInput
 ): Promise<DxCreateOutput> => {
-	await dxPut(TableOrKeySpace, item, {
+	await dxPut(KeySpace, item, {
 		...input,
 		conditionExpression: `attribute_not_exists(#hashKey)${
 			input?.conditionExpression ? ` ${input?.conditionExpression}` : ''
 		}`,
 		expressionAttributeNames: {
-			'#hashKey': TableOrKeySpace.indexConfig.primaryIndex.hash.key,
+			'#hashKey': KeySpace.Table.config.indexes.primaryIndex.hash.key,
 			...input?.expressionAttributeNames
 		}
 	});

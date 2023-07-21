@@ -95,15 +95,17 @@ export class Table<
 	Config extends TableConfig<AttributeKey, AttributeValue, ProjectionKeys, Projection> = any
 > {
 	client: DynamoDBDocumentClient;
-	tableName: string;
-	indexConfig: TableConfig['indexes'];
+	middleware: Array<DxMiddleware>;
 	defaults: Defaults;
 	logger?: ILogger;
 
-	constructor(public Dx: DxBase, public config: Config, public middleware: Array<DxMiddleware> = []) {
+	constructor(
+		public Dx: DxBase,
+		public config: Config,
+		middleware: Array<DxMiddleware<DxMiddlewareHook, Attributes>> = []
+	) {
 		this.client = config.client || Dx.client;
-		this.tableName = config.name;
-		this.indexConfig = config.indexes;
+		this.middleware = appendMiddleware(Dx.middleware, middleware);
 		this.defaults = { ...Dx.defaults, ...config.defaults };
 		this.logger = config.logger || Dx.logger;
 	}
@@ -115,7 +117,8 @@ export class Table<
 		ConfigProjection extends IndexProjection<ConfigProjectionKeys>,
 		ConfigConfig extends TableConfig<ConfigAttributeKey, ConfigAttributeValue, ConfigProjectionKeys, ConfigProjection>
 	>(
-		config: ConfigConfig
+		config: ConfigConfig,
+		middleware: Array<DxMiddleware<DxMiddlewareHook, Attributes>> = []
 	): Table<Attributes, ConfigAttributeKey, ConfigAttributeValue, ConfigProjectionKeys, ConfigProjection, ConfigConfig> {
 		return new Table<
 			Attributes,
@@ -124,14 +127,14 @@ export class Table<
 			ConfigProjectionKeys,
 			ConfigProjection,
 			ConfigConfig
-		>(this.Dx, config, this.middleware);
+		>(this.Dx, config, middleware);
 	}
 
 	get KeySpace() {
 		const ParentTable = new Table<Attributes, AttributeKey, AttributeValue, ProjectionKeys, Projection, Config>(
 			this.Dx,
 			this.config,
-			this.middleware
+			this.middleware as Array<DxMiddleware<DxMiddlewareHook, Attributes>>
 		);
 
 		return class TableKeySpace<
@@ -143,7 +146,11 @@ export class Table<
 			SecondaryIndex
 		> {
 			constructor() {
-				super(ParentTable, {} as any, ParentTable.middleware);
+				super(
+					ParentTable,
+					{} as any,
+					ParentTable.middleware as Array<DxMiddleware<DxMiddlewareHook, KeySpaceAttributes>>
+				);
 			}
 		};
 	}
@@ -161,12 +168,6 @@ export class Table<
 	AttributesAndIndexKeys!: Attributes &
 		this['IndexKeyMap'][PrimaryIndex] &
 		Partial<U.Merge<this['IndexKeyMap'][this['SecondaryIndex']]>>;
-
-	handleInputItem = (item: this['AttributesAndIndexKeys']): this['AttributesAndIndexKeys'] => item;
-	handleInputKeyParams = (
-		params: this['IndexKeyMap'][this['PrimaryIndex']]
-	): this['IndexKeyMap'][this['PrimaryIndex']] => params;
-	handleOutputItem = (item: this['AttributesAndIndexKeys']): this['AttributesAndIndexKeys'] => item;
 
 	get indexes() {
 		return Object.keys(this.config.indexes) as Array<string & keyof Config['indexes']>;
@@ -190,14 +191,4 @@ export class Table<
 			AttributeKey
 		>;
 	}
-
-	addMiddleware = (newMiddleware: Array<DxMiddleware<DxMiddlewareHook>>) => {
-		const middleware = appendMiddleware(this.middleware, newMiddleware);
-
-		return new Table<Attributes, AttributeKey, AttributeValue, ProjectionKeys, Projection, Config>(
-			this.Dx,
-			this.config,
-			middleware
-		);
-	};
 }

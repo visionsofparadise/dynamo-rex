@@ -1,3 +1,4 @@
+import { GenericAttributes } from '../Dx';
 import { PrimaryIndex, Table } from '../Table';
 import {
 	DxConsistentReadParam,
@@ -8,7 +9,6 @@ import {
 } from '../util/InputParams';
 import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middleware';
 import { TransactGetCommand, TransactGetCommandInput, TransactGetCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { GenericAttributes } from '../Dx';
 
 export interface DxTransactGetInput
 	extends DxReturnConsumedCapacityParam,

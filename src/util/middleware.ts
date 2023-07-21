@@ -11,6 +11,7 @@ import {
 	UpdateCommandInput
 } from '@aws-sdk/lib-dynamodb';
 import { DxPutCommandInput, DxPutCommandOutput } from '../command/put';
+import { GenericAttributes } from '../Dx';
 import { DxBatchGetCommandOutput } from '../command/batchGet';
 import { DxGetCommandOutput } from '../command/get';
 import { DxTransactGetCommandOutput } from '../command/transactGet';
@@ -20,7 +21,6 @@ import { DxDeleteCommandOutput } from '../command/delete';
 import { DxUpdateCommandOutput } from '../command/update';
 import { DxBatchWriteCommandInput } from '../command/batchWrite';
 import { DxTransactWriteCommandInput } from '../command/transactWrite';
-import { GenericAttributes } from '../Dx';
 
 interface ReadCommandInputMap {
 	BatchGetCommandInput: BatchGetCommandInput;

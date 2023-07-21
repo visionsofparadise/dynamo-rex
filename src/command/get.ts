@@ -1,3 +1,4 @@
+import { GenericAttributes } from '../Dx';
 import { AnyKeySpace } from '../KeySpace';
 import {
 	DxConsistentReadParam,
@@ -10,55 +11,53 @@ import {
 } from '../util/InputParams';
 import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middleware';
 import { GetCommand, GetCommandInput, GetCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { Table } from '../Table';
-import { GenericAttributes } from '../Dx';
 
 export interface DxGetInput
 	extends DxReturnConsumedCapacityParam,
 		DxProjectionExpressionParams,
 		DxConsistentReadParam {}
 
-export type DxGetOutput<Attributes extends GenericAttributes = GenericAttributes> = Attributes;
+export type DxGetOutput<K extends AnyKeySpace = AnyKeySpace> = K['Attributes'];
 
 export interface DxGetCommandOutput<Attributes extends GenericAttributes = GenericAttributes>
 	extends Omit<GetCommandOutput, 'Attributes'> {
 	Item?: Attributes;
 }
 
-export const dxGet = async <TorK extends Table | AnyKeySpace = AnyKeySpace>(
-	TableOrKeySpace: TorK,
-	keyParams: Parameters<TorK['handleInputKeyParams']>[0],
+export const dxGet = async <K extends AnyKeySpace>(
+	KeySpace: K,
+	keyParams: Parameters<K['keyOf']>[0],
 	input?: DxGetInput
-): Promise<DxGetOutput<ReturnType<TorK['handleOutputItem']>>> => {
+): Promise<DxGetOutput<K>> => {
 	const baseCommandInput: GetCommandInput = {
-		...handleTableNameParam(TableOrKeySpace),
-		Key: TableOrKeySpace.handleInputKeyParams(keyParams),
+		...handleTableNameParam(KeySpace.Table),
+		Key: KeySpace.keyOf(keyParams),
 		...handleProjectionExpressionParams(input),
 		...handleConsistentReadParam(input),
-		...handleReturnConsumedCapacityParam(input, TableOrKeySpace.defaults)
+		...handleReturnConsumedCapacityParam(KeySpace, input)
 	};
 
 	const getCommandInput = await executeMiddlewares(
 		['CommandInput', 'ReadCommandInput', 'GetCommandInput'],
 		{ type: 'GetCommandInput', data: baseCommandInput },
-		TableOrKeySpace.middleware
+		KeySpace.middleware
 	).then(output => output.data);
 
-	const getCommandOutput: DxGetCommandOutput<TorK['AttributesAndIndexKeys']> = await TableOrKeySpace.client.send(
+	const getCommandOutput: DxGetCommandOutput<K['AttributesAndIndexKeys']> = await KeySpace.client.send(
 		new GetCommand(getCommandInput)
 	);
 
 	const output = await executeMiddlewares(
 		['CommandOutput', 'ReadCommandOutput', 'GetCommandOutput'],
 		{ type: 'GetCommandOutput', data: getCommandOutput },
-		TableOrKeySpace.middleware
+		KeySpace.middleware
 	).then(output => output.data);
 
-	await handleOutputMetricsMiddleware(output, TableOrKeySpace.middleware);
+	await handleOutputMetricsMiddleware(output, KeySpace.middleware);
 
-	const { Item } = output;
+	if (!output.Item) throw new Error('Not Found');
 
-	if (!Item) throw new Error('Not Found');
+	const item = KeySpace.omitIndexKeys(output.Item);
 
-	return TableOrKeySpace.handleOutputItem(Item);
+	return item;
 };

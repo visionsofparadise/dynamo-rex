@@ -1,17 +1,16 @@
-import { Table } from '../Table';
+import { GenericAttributes } from '../Dx';
+import { PrimaryIndex, Table } from '../Table';
 import { DxReturnParams } from '../util/InputParams';
 import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middleware';
 import { BatchWriteCommand, BatchWriteCommandInput, BatchWriteCommandOutput } from '@aws-sdk/lib-dynamodb';
 import { DeleteRequest, PutRequest, WriteRequest } from '@aws-sdk/client-dynamodb';
-import { AnyKeySpace } from '../KeySpace';
-import { GenericAttributes } from '../Dx';
 
-export interface DxBatchPutRequest<Attributes extends GenericAttributes = GenericAttributes> {
-	put: Attributes;
+export interface DxBatchPutRequest<T extends Table = Table> {
+	put: T['AttributesAndIndexKeys'];
 }
 
-export interface DxBatchDeleteRequest<KeyParams extends GenericAttributes = GenericAttributes> {
-	delete: KeyParams;
+export interface DxBatchDeleteRequest<T extends Table = Table> {
+	delete: T['IndexKeyMap'][PrimaryIndex];
 }
 
 export interface DxBatchWriteInput
@@ -34,11 +33,8 @@ export interface DxBatchWriteCommandInput<Attributes extends GenericAttributes =
 	>;
 }
 
-export interface DxBatchWriteOutput<
-	Attributes extends GenericAttributes = GenericAttributes,
-	KeyParams extends GenericAttributes = GenericAttributes
-> {
-	unprocessedRequests: Array<DxBatchPutRequest<Attributes> | DxBatchDeleteRequest<KeyParams>>;
+export interface DxBatchWriteOutput<T extends Table = Table> {
+	unprocessedRequests: Array<DxBatchPutRequest<T> | DxBatchDeleteRequest<T>>;
 }
 
 export interface DxBatchWriteCommandOutput<Attributes extends GenericAttributes = GenericAttributes>
@@ -56,67 +52,61 @@ export interface DxBatchWriteCommandOutput<Attributes extends GenericAttributes 
 	>;
 }
 
-export const dxBatchWrite = async <TorK extends Table | AnyKeySpace = AnyKeySpace>(
-	TableOrKeySpace: TorK,
-	requests: Array<
-		| DxBatchPutRequest<Parameters<TorK['handleInputItem']>[0]>
-		| DxBatchDeleteRequest<Parameters<TorK['handleInputKeyParams']>[0]>
-	>,
+export const dxBatchWrite = async <T extends Table = Table>(
+	Table: T,
+	requests: Array<DxBatchPutRequest<T> | DxBatchDeleteRequest<T>>,
 	input?: DxBatchWriteInput
-): Promise<DxBatchWriteOutput<TorK['AttributesAndIndexKeys'], TorK['IndexKeyMap'][TorK['PrimaryIndex']]>> => {
+): Promise<DxBatchWriteOutput<T>> => {
 	const pageLimit = input?.pageLimit ? Math.min(input.pageLimit, 25) : 25;
 
 	const recurse = async (
-		remainingRequests: Array<
-			| DxBatchPutRequest<Parameters<TorK['handleInputItem']>[0]>
-			| DxBatchDeleteRequest<Parameters<TorK['handleInputKeyParams']>[0]>
-		>
-	): Promise<DxBatchWriteOutput<any>> => {
+		remainingRequests: Array<DxBatchPutRequest<T> | DxBatchDeleteRequest<T>>
+	): Promise<DxBatchWriteOutput<T>> => {
 		const currentRequests = remainingRequests.slice(0, pageLimit);
 
-		const baseCommandInput: DxBatchWriteCommandInput<TorK['AttributesAndIndexKeys']> = {
+		const baseCommandInput: DxBatchWriteCommandInput<T['AttributesAndIndexKeys']> = {
 			RequestItems: {
-				[TableOrKeySpace.tableName]: currentRequests.map(request => {
+				[Table.config.name]: currentRequests.map(request => {
 					if ('put' in request) {
 						return {
 							PutRequest: {
-								Item: TableOrKeySpace.handleInputItem(request.put)
+								Item: request.put
 							}
 						};
 					}
 
 					return {
 						DeleteRequest: {
-							Key: TableOrKeySpace.handleInputKeyParams(request.delete)
+							Key: request.delete
 						}
 					};
 				})
 			},
-			ReturnItemCollectionMetrics:
-				input?.returnItemCollectionMetrics || TableOrKeySpace.defaults?.returnItemCollectionMetrics,
-			ReturnConsumedCapacity: input?.returnConsumedCapacity || TableOrKeySpace.defaults?.returnConsumedCapacity
+			ReturnItemCollectionMetrics: input?.returnItemCollectionMetrics || Table.defaults?.returnItemCollectionMetrics,
+			ReturnConsumedCapacity: input?.returnConsumedCapacity || Table.defaults?.returnConsumedCapacity
 		};
 
 		const batchWriteCommandInput = await executeMiddlewares(
 			['CommandInput', 'WriteCommandInput', 'BatchWriteCommandInput'],
 			{ type: 'BatchWriteCommandInput', data: baseCommandInput },
-			TableOrKeySpace.middleware
+			Table.middleware
 		).then(output => output.data);
 
-		const batchWriteCommandOutput: DxBatchWriteCommandOutput<TorK['AttributesAndIndexKeys']> =
-			await TableOrKeySpace.client.send(new BatchWriteCommand(batchWriteCommandInput));
+		const batchWriteCommandOutput: DxBatchWriteCommandOutput<T['AttributesAndIndexKeys']> = await Table.client.send(
+			new BatchWriteCommand(batchWriteCommandInput)
+		);
 
 		const output = await executeMiddlewares(
 			['CommandOutput', 'WriteCommandOutput', 'BatchWriteCommandOutput'],
 			{ type: 'BatchWriteCommandOutput', data: batchWriteCommandOutput },
-			TableOrKeySpace.middleware
+			Table.middleware
 		).then(output => output.data);
 
 		const { UnprocessedItems, ConsumedCapacity, ItemCollectionMetrics } = output;
 
-		await handleOutputMetricsMiddleware({ ConsumedCapacity, ItemCollectionMetrics }, TableOrKeySpace.middleware);
+		await handleOutputMetricsMiddleware({ ConsumedCapacity, ItemCollectionMetrics }, Table.middleware);
 
-		const unprocessedRequests = (UnprocessedItems ? UnprocessedItems[TableOrKeySpace.tableName] || [] : [])
+		const unprocessedRequests = (UnprocessedItems ? UnprocessedItems[Table.config.name] || [] : [])
 			.map(request => {
 				if (request.PutRequest?.Item) {
 					return {
@@ -126,7 +116,7 @@ export const dxBatchWrite = async <TorK extends Table | AnyKeySpace = AnyKeySpac
 
 				if (request.DeleteRequest?.Key) {
 					return {
-						delete: request.DeleteRequest.Key as TorK['IndexKeyMap'][TorK['PrimaryIndex']]
+						delete: request.DeleteRequest.Key as T['IndexKeyMap'][PrimaryIndex]
 					};
 				}
 

@@ -15,7 +15,7 @@ import {
 } from '../util/InputParams';
 import { AnyKeySpace } from '../KeySpace';
 import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middleware';
-import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
+import { GenericAttributes } from '../Dx';
 
 export enum DxQueryItemsSort {
 	ASCENDING = 'ascending',
@@ -44,9 +44,8 @@ export type DxQueryOutput<
 	count: number;
 };
 
-export interface DxQueryCommandOutput<
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
-> extends Omit<QueryCommandOutput, 'Attributes'> {
+export interface DxQueryCommandOutput<Attributes extends GenericAttributes = GenericAttributes>
+	extends Omit<QueryCommandOutput, 'Attributes'> {
 	Items?: Array<Attributes>;
 }
 
@@ -75,7 +74,7 @@ export const dxQuery = async <
 			...handleProjectionExpressionParams(input),
 			...handleFilterExpressionParams(input),
 			...handleConsistentReadParam(input),
-			...handleReturnConsumedCapacityParam(input, KeySpace.defaults)
+			...handleReturnConsumedCapacityParam(KeySpace, input)
 		};
 
 		const queryCommandInput = await executeMiddlewares(
