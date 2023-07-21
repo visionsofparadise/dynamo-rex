@@ -2,8 +2,7 @@ import { ILogger } from './util/utils';
 import { Defaults } from './util/defaults';
 import { DxMiddlewareHook, DxMiddleware, appendMiddleware } from './util/middleware';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
-import { DxBase, DxConfig } from './Dx';
+import { DxBase, DxConfig, GenericAttributes } from './Dx';
 import { KeySpace } from './KeySpace';
 import { U } from 'ts-toolbelt';
 
@@ -88,7 +87,7 @@ export interface TableConfig<
 }
 
 export class Table<
-	Attributes extends Record<string, NativeAttributeValue> = any,
+	Attributes extends GenericAttributes = any,
 	AttributeKey extends string = any,
 	AttributeValue extends IndexAttributeValue = any,
 	ProjectionKeys extends string = any,
@@ -96,11 +95,15 @@ export class Table<
 	Config extends TableConfig<AttributeKey, AttributeValue, ProjectionKeys, Projection> = any
 > {
 	client: DynamoDBDocumentClient;
+	tableName: string;
+	indexConfig: TableConfig['indexes'];
 	defaults: Defaults;
 	logger?: ILogger;
 
 	constructor(public Dx: DxBase, public config: Config, public middleware: Array<DxMiddleware> = []) {
 		this.client = config.client || Dx.client;
+		this.tableName = config.name;
+		this.indexConfig = config.indexes;
 		this.defaults = { ...Dx.defaults, ...config.defaults };
 		this.logger = config.logger || Dx.logger;
 	}
@@ -158,6 +161,12 @@ export class Table<
 	AttributesAndIndexKeys!: Attributes &
 		this['IndexKeyMap'][PrimaryIndex] &
 		Partial<U.Merge<this['IndexKeyMap'][this['SecondaryIndex']]>>;
+
+	handleInputItem = (item: this['AttributesAndIndexKeys']): this['AttributesAndIndexKeys'] => item;
+	handleInputKeyParams = (
+		params: this['IndexKeyMap'][this['PrimaryIndex']]
+	): this['IndexKeyMap'][this['PrimaryIndex']] => params;
+	handleOutputItem = (item: this['AttributesAndIndexKeys']): this['AttributesAndIndexKeys'] => item;
 
 	get indexes() {
 		return Object.keys(this.config.indexes) as Array<string & keyof Config['indexes']>;

@@ -11,7 +11,7 @@ import {
 } from '../util/InputParams';
 import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middleware';
 import { TransactWriteCommand, TransactWriteCommandInput } from '@aws-sdk/lib-dynamodb';
-import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
+import { GenericAttributes } from '../Dx';
 
 export interface DxTransactConditionRequest<T extends Table = Table> {
 	condition: {
@@ -47,26 +47,25 @@ export interface DxTransactWriteInput
 	clientRequestToken?: string;
 }
 
-export interface DxTransactWriteCommandInput<
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
-> extends Omit<TransactWriteCommandInput, 'TransactItems'> {
+export interface DxTransactWriteCommandInput<Attributes extends GenericAttributes = GenericAttributes>
+	extends Omit<TransactWriteCommandInput, 'TransactItems'> {
 	TransactItems:
 		| (Omit<TransactWriteItem, 'ConditionCheck' | 'Put' | 'Delete' | 'Update'> & {
 				ConditionCheck?: Omit<ConditionCheck, 'Key' | 'ExpressionAttributeValues'> & {
-					Key: Record<string, NativeAttributeValue> | undefined;
-					ExpressionAttributeValues?: Record<string, NativeAttributeValue>;
+					Key: GenericAttributes | undefined;
+					ExpressionAttributeValues?: GenericAttributes;
 				};
 				Put?: Omit<Put, 'Item' | 'ExpressionAttributeValues'> & {
 					Item: Attributes;
-					ExpressionAttributeValues?: Record<string, NativeAttributeValue>;
+					ExpressionAttributeValues?: GenericAttributes;
 				};
 				Delete?: Omit<Delete, 'Key' | 'ExpressionAttributeValues'> & {
-					Key: Record<string, NativeAttributeValue> | undefined;
-					ExpressionAttributeValues?: Record<string, NativeAttributeValue>;
+					Key: GenericAttributes | undefined;
+					ExpressionAttributeValues?: GenericAttributes;
 				};
 				Update?: Omit<Update, 'Key' | 'ExpressionAttributeValues'> & {
-					Key: Record<string, NativeAttributeValue> | undefined;
-					ExpressionAttributeValues?: Record<string, NativeAttributeValue>;
+					Key: GenericAttributes | undefined;
+					ExpressionAttributeValues?: GenericAttributes;
 				};
 		  })[]
 		| undefined;
@@ -89,7 +88,7 @@ export const dxTransactWrite = async <T extends Table = Table>(
 						...handleTableNameParam(Table),
 						Key: request.condition.key,
 						...handleConditionExpressionParams(request.condition),
-						...handleReturnValuesOnConditionCheckFailureParam(Table)
+						...handleReturnValuesOnConditionCheckFailureParam(Table.defaults)
 					}
 				};
 			}
@@ -100,7 +99,7 @@ export const dxTransactWrite = async <T extends Table = Table>(
 						...handleTableNameParam(Table),
 						Item: request.put.item,
 						...handleConditionExpressionParams(request.put),
-						...handleReturnValuesOnConditionCheckFailureParam(Table)
+						...handleReturnValuesOnConditionCheckFailureParam(Table.defaults)
 					}
 				};
 			}
@@ -112,7 +111,7 @@ export const dxTransactWrite = async <T extends Table = Table>(
 						Key: request.update.key,
 						...handleUpdateExpressionParams(request.update),
 						...handleConditionExpressionParams(request.update),
-						...handleReturnValuesOnConditionCheckFailureParam(Table)
+						...handleReturnValuesOnConditionCheckFailureParam(Table.defaults)
 					}
 				};
 			}
@@ -122,7 +121,7 @@ export const dxTransactWrite = async <T extends Table = Table>(
 					...handleTableNameParam(Table),
 					Key: request.delete.key,
 					...handleConditionExpressionParams(request.delete),
-					...handleReturnValuesOnConditionCheckFailureParam(Table)
+					...handleReturnValuesOnConditionCheckFailureParam(Table.defaults)
 				}
 			};
 		}),

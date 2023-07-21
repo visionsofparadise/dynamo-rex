@@ -75,7 +75,7 @@ export const dxQuery = async <
 			...handleProjectionExpressionParams(input),
 			...handleFilterExpressionParams(input),
 			...handleConsistentReadParam(input),
-			...handleReturnConsumedCapacityParam(KeySpace, input)
+			...handleReturnConsumedCapacityParam(input, KeySpace.defaults)
 		};
 
 		const queryCommandInput = await executeMiddlewares(

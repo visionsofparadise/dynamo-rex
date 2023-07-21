@@ -65,11 +65,11 @@ export const TestItem2KeySpace = new TestTable1.KeySpace<
 	}
 });
 
-export const TestItem3KeySpace = new TestTable1.KeySpace<ITestItem2>().configure({
+export const TestItem3KeySpace = new TestTable1.KeySpace<ITestItem1>().configure({
 	indexValueHandlers: {
 		primaryIndex: {
-			pk: (params: Pick<ITestItem2, 'testNumber'>) => `test-${params.testNumber}`,
-			sk: (params: Pick<ITestItem2, 'testString'>) => `test-${params.testString}`
+			pk: (params: Pick<ITestItem1, 'testNumber'>) => `test-${params.testNumber}`,
+			sk: (params: Pick<ITestItem1, 'testString'>) => `test-${params.testString}`
 		}
 	}
 });

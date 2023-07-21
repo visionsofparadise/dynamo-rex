@@ -1,9 +1,7 @@
-import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 import { DxMiddleware, DxMiddlewareHook } from './middleware';
+import { GenericAttributes } from '../Dx';
 
-export const dxSetAttributeOnWriteMiddleware = <
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
->(
+export const dxSetAttributeOnWriteMiddleware = <Attributes extends GenericAttributes = GenericAttributes>(
 	key: string & keyof Attributes,
 	setter: () => number
 ): Array<DxMiddleware<DxMiddlewareHook, Attributes>> => [

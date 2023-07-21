@@ -1,22 +1,19 @@
-import { AnyKeySpace } from '../KeySpace';
-import { run } from './utils';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
 import { DxFullReturnValues, DxPartialReturnValues } from './InputParams';
-import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
+import { GenericAttributes } from '../Dx';
 
 export type GetReturnValuesOutput<
-	K extends AnyKeySpace,
+	Attributes extends GenericAttributes,
 	RV extends ReturnValue | undefined
-> = RV extends DxFullReturnValues
-	? K['Attributes']
-	: RV extends DxPartialReturnValues
-	? Partial<K['Attributes']>
-	: undefined;
+> = RV extends DxFullReturnValues ? Attributes : RV extends DxPartialReturnValues ? Partial<Attributes> : undefined;
 
-const assertAttributes: <K extends AnyKeySpace = AnyKeySpace, RV extends ReturnValue | undefined = undefined>(
-	attributes?: K['Attributes'] | Partial<K['Attributes']>,
+export const assertReturnValuesAttributes: <
+	Attributes extends GenericAttributes = GenericAttributes,
+	RV extends ReturnValue | undefined = undefined
+>(
+	attributes?: Attributes | Partial<Attributes>,
 	returnValues?: RV
-) => asserts attributes is GetReturnValuesOutput<K, RV> = (attributes, returnValues) => {
+) => asserts attributes is GetReturnValuesOutput<Attributes, RV> = (attributes, returnValues) => {
 	if (
 		(returnValues === ReturnValue.ALL_NEW ||
 			returnValues === ReturnValue.ALL_OLD ||
@@ -26,20 +23,4 @@ const assertAttributes: <K extends AnyKeySpace = AnyKeySpace, RV extends ReturnV
 	)
 		throw new Error();
 	if ((!returnValues || returnValues === ReturnValue.NONE) && attributes) throw new Error();
-};
-
-export const getReturnValuesAttributes = <K extends AnyKeySpace, RV extends ReturnValue | undefined>(
-	KeySpace: K,
-	Attributes?: Record<string, NativeAttributeValue>,
-	returnValues?: RV
-): GetReturnValuesOutput<K, RV> => {
-	const attributes = run(() => {
-		if (!returnValues || returnValues === ReturnValue.NONE || !Attributes) return undefined;
-
-		return KeySpace.omitIndexKeys(Attributes);
-	});
-
-	assertAttributes<K, RV>(attributes, returnValues);
-
-	return attributes;
 };

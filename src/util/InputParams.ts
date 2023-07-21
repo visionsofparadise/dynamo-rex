@@ -7,15 +7,16 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import { AnyKeySpace } from '../KeySpace';
 import { Table } from '../Table';
-import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
+import { Defaults } from './defaults';
+import { GenericAttributes } from '../Dx';
 
-export const handleTableNameParam = (Table: Table) => ({
-	TableName: Table.config.name
+export const handleTableNameParam = (TableOrKeySpace: Table | AnyKeySpace) => ({
+	TableName: TableOrKeySpace.tableName
 });
 
 export interface DxExpressionAttributeParams {
 	expressionAttributeNames?: Record<string, string>;
-	expressionAttributeValues?: Record<string, NativeAttributeValue>;
+	expressionAttributeValues?: GenericAttributes;
 }
 
 export const handleExpressionAttributeParams = (input?: DxExpressionAttributeParams) => ({
@@ -85,11 +86,8 @@ export interface DxReturnConsumedCapacityParam {
 	returnConsumedCapacity?: ReturnConsumedCapacity;
 }
 
-export const handleReturnConsumedCapacityParam = (KeySpace: AnyKeySpace, input?: DxReturnConsumedCapacityParam) => {
-	const returnConsumedCapacity =
-		input?.returnConsumedCapacity ||
-		KeySpace.defaults?.returnConsumedCapacity ||
-		KeySpace.Table.defaults?.returnConsumedCapacity;
+export const handleReturnConsumedCapacityParam = (input?: DxReturnConsumedCapacityParam, defaults?: Defaults) => {
+	const returnConsumedCapacity = input?.returnConsumedCapacity || defaults?.returnConsumedCapacity;
 
 	return {
 		ReturnConsumedCapacity: returnConsumedCapacity
@@ -104,11 +102,11 @@ export interface DxReturnValuesOnConditionCheckFailureParam {
 }
 
 export const handleReturnValuesOnConditionCheckFailureParam = (
-	Table: Table,
-	input?: DxReturnValuesOnConditionCheckFailureParam
+	input?: DxReturnValuesOnConditionCheckFailureParam,
+	defaults?: Defaults
 ) => {
 	const returnValuesOnConditionCheckFailure =
-		input?.returnValuesOnConditionCheckFailure || Table.defaults?.returnValuesOnConditionCheckFailure;
+		input?.returnValuesOnConditionCheckFailure || defaults?.returnValuesOnConditionCheckFailure;
 
 	return {
 		ReturnValuesOnConditionCheckFailure: returnValuesOnConditionCheckFailure
@@ -122,22 +120,17 @@ export interface DxReturnParams<RV extends ReturnValue | undefined = undefined> 
 }
 
 export const handleReturnParams = <RV extends ReturnValue | undefined = undefined>(
-	KeySpace: AnyKeySpace,
-	input?: DxReturnParams<RV>
+	input?: DxReturnParams<RV>,
+	defaults?: Defaults
 ) => {
-	const returnItemCollectionMetrics =
-		input?.returnItemCollectionMetrics ||
-		KeySpace.defaults?.returnItemCollectionMetrics ||
-		KeySpace.Table.defaults?.returnItemCollectionMetrics;
+	const returnItemCollectionMetrics = input?.returnItemCollectionMetrics || defaults?.returnItemCollectionMetrics;
 
 	const returnValuesOnConditionCheckFailure =
-		input?.returnValuesOnConditionCheckFailure ||
-		KeySpace.defaults?.returnValuesOnConditionCheckFailure ||
-		KeySpace.Table.defaults?.returnValuesOnConditionCheckFailure;
+		input?.returnValuesOnConditionCheckFailure || defaults?.returnValuesOnConditionCheckFailure;
 
 	return {
 		ReturnValues: input?.returnValues,
-		...handleReturnConsumedCapacityParam(KeySpace, input),
+		...handleReturnConsumedCapacityParam(input, defaults),
 		ReturnItemCollectionMetrics: returnItemCollectionMetrics,
 		ReturnValuesOnConditionCheckFailure: returnValuesOnConditionCheckFailure
 	};

@@ -1,4 +1,4 @@
-import { PrimaryIndex, Table, primaryIndex } from './Table';
+import { PrimaryIndex, Table, TableConfig, primaryIndex } from './Table';
 import { ILogger, zipObject } from './util/utils';
 import { Defaults } from './util/defaults';
 import { DxMiddlewareHook, DxMiddleware, appendMiddleware } from './util/middleware';
@@ -40,6 +40,8 @@ export class KeySpace<
 	IndexValueHandlers extends IndexValueHandlersType<ParentTable, Attributes, SecondaryIndex> = any
 > {
 	client: DynamoDBDocumentClient;
+	tableName: string;
+	indexConfig: TableConfig['indexes'];
 	defaults: Defaults;
 	logger?: ILogger;
 
@@ -51,6 +53,8 @@ export class KeySpace<
 		public middleware: Array<DxMiddleware> = []
 	) {
 		this.client = config.client || Table.client;
+		this.tableName = Table.tableName;
+		this.indexConfig = Table.config.indexes;
 		this.defaults = { ...Table.defaults, ...config.defaults };
 		this.logger = config.logger || Table.logger;
 
@@ -94,6 +98,17 @@ export class KeySpace<
 	IndexHashKeyValueParamsMap!: {
 		[x in this['Index']]: this['IndexValueParamsMap'][x][ParentTable['config']['indexes'][x]['hash']['key']];
 	};
+
+	CommandInputAttributes!: this['Attributes'];
+	CommandInputKeyParams!: KeySpace.GetKeyParams<this, this['PrimaryIndex']>;
+	CommandOutputAttributes!: this['Attributes'];
+
+	handleInputItem = (item: Attributes): this['AttributesAndIndexKeys'] => this.withIndexKeys(item);
+	handleInputKeyParams = (
+		params: this['IndexKeyValueParamsMap'][PrimaryIndex]
+	): this['IndexKeyMap'][this['PrimaryIndex']] => this.keyOf(params);
+	handleOutputItem = (item: this['AttributesAndIndexKeys']): Attributes =>
+		(item ? this.omitIndexKeys(item) : item) as Attributes;
 
 	get indexes() {
 		return Object.keys(this.indexValueHandlers) as Array<this['Index']>;

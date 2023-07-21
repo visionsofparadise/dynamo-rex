@@ -5,13 +5,15 @@ import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 import { Table } from './Table';
 import { DxMiddleware, appendMiddleware } from './util/middleware';
 
+export type GenericAttributes = Record<string, NativeAttributeValue>;
+
 export interface DxConfig {
 	client: DynamoDBDocumentClient;
 	defaults?: Defaults;
 	logger?: ILogger;
 }
 
-export class DxBase<Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>> {
+export class DxBase<Attributes extends GenericAttributes = GenericAttributes> {
 	client: DynamoDBDocumentClient;
 	defaults: Defaults;
 	logger?: ILogger;

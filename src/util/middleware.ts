@@ -11,7 +11,6 @@ import {
 	UpdateCommandInput
 } from '@aws-sdk/lib-dynamodb';
 import { DxPutCommandInput, DxPutCommandOutput } from '../command/put';
-import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 import { DxBatchGetCommandOutput } from '../command/batchGet';
 import { DxGetCommandOutput } from '../command/get';
 import { DxTransactGetCommandOutput } from '../command/transactGet';
@@ -21,6 +20,7 @@ import { DxDeleteCommandOutput } from '../command/delete';
 import { DxUpdateCommandOutput } from '../command/update';
 import { DxBatchWriteCommandInput } from '../command/batchWrite';
 import { DxTransactWriteCommandInput } from '../command/transactWrite';
+import { GenericAttributes } from '../Dx';
 
 interface ReadCommandInputMap {
 	BatchGetCommandInput: BatchGetCommandInput;
@@ -30,9 +30,7 @@ interface ReadCommandInputMap {
 	TransactGetCommandInput: TransactGetCommandInput;
 }
 
-interface WriteCommandInputMap<
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
-> {
+interface WriteCommandInputMap<Attributes extends GenericAttributes = GenericAttributes> {
 	BatchWriteCommandInput: DxBatchWriteCommandInput<Attributes>;
 	DeleteCommandInput: DeleteCommandInput;
 	PutCommandInput: DxPutCommandInput<Attributes>;
@@ -40,14 +38,11 @@ interface WriteCommandInputMap<
 	UpdateCommandInput: UpdateCommandInput;
 }
 
-interface CommandInputMap<
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
-> extends ReadCommandInputMap,
+interface CommandInputMap<Attributes extends GenericAttributes = GenericAttributes>
+	extends ReadCommandInputMap,
 		WriteCommandInputMap<Attributes> {}
 
-interface ReadCommandOutputMap<
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
-> {
+interface ReadCommandOutputMap<Attributes extends GenericAttributes = GenericAttributes> {
 	BatchGetCommandOutput: DxBatchGetCommandOutput<Attributes>;
 	GetCommandOutput: DxGetCommandOutput<Attributes>;
 	QueryCommandOutput: DxQueryCommandOutput<Attributes>;
@@ -55,9 +50,7 @@ interface ReadCommandOutputMap<
 	TransactGetCommandOutput: DxTransactGetCommandOutput<Attributes>;
 }
 
-interface WriteCommandOutputMap<
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
-> {
+interface WriteCommandOutputMap<Attributes extends GenericAttributes = GenericAttributes> {
 	BatchWriteCommandOutput: BatchWriteCommandOutput;
 	DeleteCommandOutput: DxDeleteCommandOutput<Attributes>;
 	PutCommandOutput: DxPutCommandOutput<Attributes>;
@@ -65,14 +58,12 @@ interface WriteCommandOutputMap<
 	UpdateCommandOutput: DxUpdateCommandOutput<Attributes>;
 }
 
-interface CommandOutputMap<
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
-> extends ReadCommandOutputMap<Attributes>,
+interface CommandOutputMap<Attributes extends GenericAttributes = GenericAttributes>
+	extends ReadCommandOutputMap<Attributes>,
 		WriteCommandOutputMap<Attributes> {}
 
-interface MiddlewareInputMap<
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
-> extends CommandInputMap<Attributes>,
+interface MiddlewareInputMap<Attributes extends GenericAttributes = GenericAttributes>
+	extends CommandInputMap<Attributes>,
 		CommandOutputMap<Attributes> {
 	ConsumedCapacity: ConsumedCapacity;
 	ItemCollectionMetrics: ItemCollectionMetrics;
@@ -80,26 +71,23 @@ interface MiddlewareInputMap<
 
 interface MiddlewareParamsBase<
 	K extends keyof MiddlewareInputMap,
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
+	Attributes extends GenericAttributes = GenericAttributes
 > {
 	type: K;
 	data: MiddlewareInputMap<Attributes>[K];
 }
 
-type MiddlewareUniqueParamsMap<
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
-> = {
+type MiddlewareUniqueParamsMap<Attributes extends GenericAttributes = GenericAttributes> = {
 	[x in keyof MiddlewareInputMap]: MiddlewareParamsBase<x, Attributes>;
 };
 
 export type MiddlewareUniqueParams<
 	K extends keyof MiddlewareUniqueParamsMap,
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
+	Attributes extends GenericAttributes = GenericAttributes
 > = MiddlewareUniqueParamsMap<Attributes>[K];
 
-export interface MiddlewareParamsMap<
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
-> extends MiddlewareUniqueParamsMap<Attributes> {
+export interface MiddlewareParamsMap<Attributes extends GenericAttributes = GenericAttributes>
+	extends MiddlewareUniqueParamsMap<Attributes> {
 	CommandInput: MiddlewareUniqueParams<keyof CommandInputMap, Attributes>;
 	ReadCommandInput: MiddlewareUniqueParams<keyof ReadCommandInputMap, Attributes>;
 	WriteCommandInput: MiddlewareUniqueParams<keyof WriteCommandInputMap, Attributes>;
@@ -110,12 +98,12 @@ export interface MiddlewareParamsMap<
 
 export type MiddlewareParams<
 	K extends keyof MiddlewareParamsMap,
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
+	Attributes extends GenericAttributes = GenericAttributes
 > = MiddlewareParamsMap<Attributes>[K];
 
 export type MiddlewareHandlerType<
 	N extends keyof MiddlewareParamsMap = keyof MiddlewareParamsMap,
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
+	Attributes extends GenericAttributes = GenericAttributes
 > = {
 	hook: N;
 	handler: (
@@ -126,9 +114,7 @@ export type MiddlewareHandlerType<
 		| undefined;
 };
 
-export type MiddlewareHandlerMap<
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
-> = {
+export type MiddlewareHandlerMap<Attributes extends GenericAttributes = GenericAttributes> = {
 	[x in keyof MiddlewareParamsMap]: MiddlewareHandlerType<x, Attributes>;
 };
 
@@ -136,7 +122,7 @@ export type DxMiddlewareHook = keyof MiddlewareHandlerMap;
 
 export type DxMiddleware<
 	N extends DxMiddlewareHook = DxMiddlewareHook,
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
+	Attributes extends GenericAttributes = GenericAttributes
 > = MiddlewareHandlerMap<Attributes>[N];
 
 const assertMiddleware: <N extends DxMiddlewareHook>(

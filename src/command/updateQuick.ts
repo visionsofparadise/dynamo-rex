@@ -7,28 +7,30 @@ import { convertObjectToUpdateExpression } from '../util/convertObjectToUpdateEx
 import { dxUpdate } from './update';
 import { AllSchema } from '../util/Schema';
 import { DxOp } from '../UpdateOp';
+import { Table } from '../Table';
+import { GenericAttributes } from '../Dx';
 
 export interface DxUpdateQuickInput<RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW>
 	extends DxReturnParams<RV>,
 		DxConditionExpressionParams {}
 
 export type DxUpdateQuickOutput<
-	K extends AnyKeySpace = AnyKeySpace,
+	Attributes extends GenericAttributes = GenericAttributes,
 	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
-> = GetReturnValuesOutput<K, RV>;
+> = GetReturnValuesOutput<Attributes, RV>;
 
 export const dxUpdateQuick = async <
-	K extends AnyKeySpace = AnyKeySpace,
+	TorK extends Table | AnyKeySpace = AnyKeySpace,
 	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
 >(
-	KeySpace: K,
-	keyParams: Parameters<K['keyOf']>[0],
-	updateAttributes: O.Partial<O.Unionize<K['Attributes'], AllSchema<K['Attributes'], DxOp>>, 'deep'>,
+	TableOrKeySpace: TorK,
+	keyParams: Parameters<TorK['handleInputKeyParams']>[0],
+	updateAttributes: O.Partial<O.Unionize<TorK['Attributes'], AllSchema<TorK['Attributes'], DxOp>>, 'deep'>,
 	input?: DxUpdateQuickInput<RV>
-): Promise<DxUpdateQuickOutput<K, RV>> => {
+): Promise<DxUpdateQuickOutput<ReturnType<TorK['handleOutputItem']>, RV>> => {
 	const updateExpressionParams = convertObjectToUpdateExpression(updateAttributes);
 
-	const attributes = await dxUpdate(KeySpace, keyParams, {
+	const attributes = await dxUpdate(TableOrKeySpace, keyParams, {
 		...input,
 		...updateExpressionParams,
 		expressionAttributeNames: {

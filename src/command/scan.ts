@@ -13,7 +13,7 @@ import {
 	handleTableNameParam
 } from '../util/InputParams';
 import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middleware';
-import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
+import { GenericAttributes } from '../Dx';
 
 export interface DxScanInput<T extends Table = Table, Index extends T['SecondaryIndex'] | never = never>
 	extends DxReturnConsumedCapacityParam,
@@ -33,9 +33,8 @@ export type DxScanOutput<T extends Table = Table, Index extends T['SecondaryInde
 	scannedCount: number;
 };
 
-export interface DxScanCommandOutput<
-	Attributes extends Record<string, NativeAttributeValue> = Record<string, NativeAttributeValue>
-> extends Omit<ScanCommandOutput, 'Attributes'> {
+export interface DxScanCommandOutput<Attributes extends GenericAttributes = GenericAttributes>
+	extends Omit<ScanCommandOutput, 'Attributes'> {
 	Items?: Array<Attributes>;
 }
 

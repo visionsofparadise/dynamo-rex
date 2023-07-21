@@ -1,6 +1,7 @@
 import { DxUpdateExpressionParams } from './InputParams';
 import { DxOp } from '../UpdateOp';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
+import { GenericAttributes } from '../Dx';
 
 const createUpdateExpressionPart = (
 	alias: string,
@@ -19,7 +20,7 @@ const createUpdateExpressionPart = (
 	}
 });
 
-const createUpdateExpressionParts = <Attributes extends Record<string, NativeAttributeValue>>(
+const createUpdateExpressionParts = <Attributes extends GenericAttributes>(
 	attributes: Attributes,
 	precedingKeys?: Array<string>
 ): Array<DxUpdateExpressionParams> => {
@@ -55,9 +56,7 @@ const createUpdateExpressionParts = <Attributes extends Record<string, NativeAtt
 	});
 };
 
-export const convertObjectToUpdateExpression = <Attributes extends Record<string, NativeAttributeValue>>(
-	attributes: Attributes
-) => {
+export const convertObjectToUpdateExpression = <Attributes extends GenericAttributes>(attributes: Attributes) => {
 	const base: Required<DxUpdateExpressionParams> = {
 		updateExpression: 'SET ',
 		expressionAttributeNames: {},
