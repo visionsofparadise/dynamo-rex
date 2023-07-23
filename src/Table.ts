@@ -2,8 +2,7 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DxBase, DxConfig, GenericAttributes } from './Dx';
 import { KeySpace } from './KeySpace';
 import { U } from 'ts-toolbelt';
-import { DxMiddlewareHandler, DxMiddlewareHook, appendMiddleware } from './Middleware';
-import { DxCommandGenericData } from './command/Command';
+import { DxMiddlewareHandler, appendMiddleware } from './Middleware';
 import { DxClient } from './Client';
 
 export const primaryIndex = 'primaryIndex' as const;
@@ -99,11 +98,7 @@ export class Table<
 
 	tableName: string;
 
-	constructor(
-		public Dx: DxBase,
-		public config: Config,
-		middleware: Array<DxMiddlewareHandler<DxMiddlewareHook, DxCommandGenericData & { Attributes: Attributes }>> = []
-	) {
+	constructor(public Dx: DxBase, public config: Config, middleware: Array<DxMiddlewareHandler> = []) {
 		this.client = config.client || Dx.client;
 		this.dxClient = Dx.dxClient;
 
@@ -122,7 +117,7 @@ export class Table<
 		ConfigConfig extends TableConfig<ConfigAttributeKey, ConfigAttributeValue, ConfigProjectionKeys, ConfigProjection>
 	>(
 		config: ConfigConfig,
-		middleware: Array<DxMiddlewareHandler<DxMiddlewareHook, DxCommandGenericData & { Attributes: Attributes }>> = []
+		middleware: Array<DxMiddlewareHandler> = []
 	): Table<Attributes, ConfigAttributeKey, ConfigAttributeValue, ConfigProjectionKeys, ConfigProjection, ConfigConfig> {
 		return new Table<
 			Attributes,

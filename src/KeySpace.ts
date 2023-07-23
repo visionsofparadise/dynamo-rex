@@ -3,8 +3,7 @@ import { zipObject } from './util/utils';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DxConfig } from './Dx';
 import { U } from 'ts-toolbelt';
-import { DxMiddlewareHandler, DxMiddlewareHook, appendMiddleware } from './Middleware';
-import { DxCommandGenericData } from './command/Command';
+import { DxMiddlewareHandler, appendMiddleware } from './Middleware';
 import { DxClient } from './Client';
 
 export namespace KeySpace {
@@ -50,7 +49,7 @@ export class KeySpace<
 	constructor(
 		public Table: ParentTable,
 		public config: KeySpaceConfig<ParentTable, Attributes, SecondaryIndex, IndexValueHandlers>,
-		middleware: Array<DxMiddlewareHandler<DxMiddlewareHook, DxCommandGenericData & { Attributes: Attributes }>> = []
+		middleware: Array<DxMiddlewareHandler> = []
 	) {
 		this.client = config.client || Table.client;
 		this.dxClient = Table.dxClient;
@@ -66,7 +65,7 @@ export class KeySpace<
 
 	configure<ConfigIndexValueHandlers extends IndexValueHandlersType<ParentTable, Attributes, SecondaryIndex> = any>(
 		config: KeySpaceConfig<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers>,
-		middleware: Array<DxMiddlewareHandler<DxMiddlewareHook, DxCommandGenericData & { Attributes: Attributes }>> = []
+		middleware: Array<DxMiddlewareHandler> = []
 	): KeySpace<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers> {
 		return new KeySpace<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers>(
 			this.Table,
