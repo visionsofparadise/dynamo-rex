@@ -1,37 +1,38 @@
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { ILogger } from './util/utils';
-import { Defaults } from './util/defaults';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
-import { DxMiddleware, DxMiddlewareHook } from './util/middleware';
 import { Table } from './Table';
+import { DxMiddlewareHandler, DxMiddlewareHook } from './Middleware';
+import { DxCommandGenericData } from './command/Command';
+import { DxClient, DxClientConfig } from './Client';
 
 export type GenericAttributes = Record<string, NativeAttributeValue>;
 
-export interface DxConfig {
+export interface DxConfig extends Partial<DxClientConfig> {
 	client: DynamoDBDocumentClient;
-	defaults?: Defaults;
-	logger?: ILogger;
 }
 
 export class DxBase<Attributes extends GenericAttributes = GenericAttributes> {
 	client: DynamoDBDocumentClient;
-	middleware: Array<DxMiddleware>;
-	defaults: Defaults;
-	logger?: ILogger;
+	dxClient: DxClient;
 
-	constructor(public config: DxConfig, middleware: Array<DxMiddleware<DxMiddlewareHook, Attributes>> = []) {
+	constructor(
+		public config: DxConfig,
+		middleware: Array<DxMiddlewareHandler<DxMiddlewareHook, DxCommandGenericData & { Attributes: Attributes }>> = []
+	) {
 		this.client = config.client;
-		this.middleware = middleware as Array<DxMiddleware>;
-		this.defaults = config.defaults || {};
-		this.logger = config.logger;
+		this.dxClient = new DxClient(this.client);
+
+		this.dxClient.setDefaults(config.defaults);
+		this.dxClient.setMiddleware(middleware as Array<DxMiddlewareHandler>);
+		this.dxClient.setLogger(config.logger);
 	}
 
 	get Table() {
-		const ParentDx = new DxBase(this.config, this.middleware);
+		const ParentDx = new DxBase(this.config, this.dxClient.middleware);
 
 		return class DxTable<TableAttributes extends Attributes = Attributes> extends Table<TableAttributes> {
 			constructor() {
-				super(ParentDx, {} as any, ParentDx.middleware as Array<DxMiddleware<DxMiddlewareHook, TableAttributes>>);
+				super(ParentDx, {} as any);
 			}
 		};
 	}

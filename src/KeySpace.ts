@@ -1,18 +1,19 @@
 import { PrimaryIndex, Table, primaryIndex } from './Table';
-import { ILogger, zipObject } from './util/utils';
-import { Defaults } from './util/defaults';
-import { DxMiddlewareHook, DxMiddleware, appendMiddleware } from './util/middleware';
+import { zipObject } from './util/utils';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DxConfig } from './Dx';
 import { U } from 'ts-toolbelt';
+import { DxMiddlewareHandler, DxMiddlewareHook, appendMiddleware } from './Middleware';
+import { DxCommandGenericData } from './command/Command';
+import { DxClient } from './Client';
 
 export namespace KeySpace {
-	export type GetKeyParams<K extends AnyKeySpace, Index extends K['Index']> = U.Merge<
+	export type GetKeyParams<K extends AnyKeySpace, Index extends K['Index']> = U.IntersectOf<
 		K['IndexKeyValueParamsMap'][Index]
 	>;
 }
 
-export type AnyKeySpace = KeySpace | KeySpace<any, any, any, any>;
+export type AnyKeySpace = KeySpace<any, any, any, any>;
 
 export type IndexValueHandlersType<
 	ParentTable extends Table = Table,
@@ -40,28 +41,32 @@ export class KeySpace<
 	IndexValueHandlers extends IndexValueHandlersType<ParentTable, Attributes, SecondaryIndex> = any
 > {
 	client: DynamoDBDocumentClient;
-	middleware: Array<DxMiddleware>;
-	defaults: Defaults;
-	logger?: ILogger;
+	dxClient: DxClient;
+
+	tableName: string;
 
 	indexValueHandlers: IndexValueHandlers;
 
 	constructor(
 		public Table: ParentTable,
 		public config: KeySpaceConfig<ParentTable, Attributes, SecondaryIndex, IndexValueHandlers>,
-		middleware: Array<DxMiddleware<DxMiddlewareHook, Attributes>> = []
+		middleware: Array<DxMiddlewareHandler<DxMiddlewareHook, DxCommandGenericData & { Attributes: Attributes }>> = []
 	) {
 		this.client = config.client || Table.client;
-		this.middleware = appendMiddleware(Table.middleware, middleware);
-		this.defaults = { ...Table.defaults, ...config.defaults };
-		this.logger = config.logger || Table.logger;
+		this.dxClient = Table.dxClient;
 
+		this.dxClient.setClient(config.client);
+		this.dxClient.setDefaults({ ...this.dxClient.defaults, ...config.defaults });
+		this.dxClient.setMiddleware(appendMiddleware(this.dxClient.middleware, middleware));
+		this.dxClient.setLogger(config.logger);
+
+		this.tableName = Table.config.name;
 		this.indexValueHandlers = config.indexValueHandlers;
 	}
 
 	configure<ConfigIndexValueHandlers extends IndexValueHandlersType<ParentTable, Attributes, SecondaryIndex> = any>(
 		config: KeySpaceConfig<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers>,
-		middleware: Array<DxMiddleware<DxMiddlewareHook, Attributes>> = []
+		middleware: Array<DxMiddlewareHandler<DxMiddlewareHook, DxCommandGenericData & { Attributes: Attributes }>> = []
 	): KeySpace<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers> {
 		return new KeySpace<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers>(
 			this.Table,
@@ -77,12 +82,12 @@ export class KeySpace<
 	SecondaryIndex!: SecondaryIndex;
 
 	IndexKeyMap!: {
-		[x in this['Index']]: Table['IndexKeyMap'][x];
+		[x in this['Index']]: this['Table']['IndexKeyMap'][x];
 	};
 
-	AttributesAndIndexKeys!: Attributes & U.Merge<this['IndexKeyMap'][this['Index']]>;
+	AttributesAndIndexKeys!: Attributes & {} & U.IntersectOf<this['IndexKeyMap'][this['Index']]>;
 
-	IndexKeyKey!: keyof U.Merge<IndexValueHandlers[this['Index']]>;
+	IndexKeyKey!: keyof U.IntersectOf<IndexValueHandlers[this['Index']]>;
 
 	IndexValueParamsMap!: {
 		[x in this['Index']]: {
@@ -91,7 +96,7 @@ export class KeySpace<
 	};
 
 	IndexKeyValueParamsMap!: {
-		[x in this['Index']]: U.Merge<this['IndexValueParamsMap'][x][keyof this['IndexValueParamsMap'][x]]>;
+		[x in this['Index']]: {} & U.IntersectOf<this['IndexValueParamsMap'][x][keyof this['IndexValueParamsMap'][x]]>;
 	};
 
 	IndexHashKeyValueParamsMap!: {
@@ -106,9 +111,9 @@ export class KeySpace<
 		return Object.keys(this.indexValueHandlers[index]) as Array<string & keyof IndexValueHandlers[Index]>;
 	}
 
-	get attributeKeys(): Array<string & keyof U.Merge<IndexValueHandlers[this['Index']]>> {
+	get attributeKeys(): Array<string & keyof U.IntersectOf<IndexValueHandlers[this['Index']]>> {
 		return this.indexes.flatMap(index => this.indexAttributeKeys(index)) as Array<
-			string & keyof U.Merge<IndexValueHandlers[this['Index']]>
+			string & keyof U.IntersectOf<IndexValueHandlers[this['Index']]>
 		>;
 	}
 
@@ -116,11 +121,11 @@ export class KeySpace<
 		index: Index,
 		key: Key,
 		params: this['IndexValueParamsMap'][Index][Key]
-	) {
-		return this.indexValueHandlers[index][key](params);
+	): ReturnType<this['config']['indexValueHandlers'][Index][Key]> {
+		return this.indexValueHandlers[index][key](params) as ReturnType<this['config']['indexValueHandlers'][Index][Key]>;
 	}
 
-	keyOf(params: this['IndexKeyValueParamsMap'][PrimaryIndex]) {
+	keyOf(params: this['IndexKeyValueParamsMap'][PrimaryIndex]): this['IndexKeyMap'][PrimaryIndex] {
 		return this.indexKeyOf(primaryIndex, params);
 	}
 
@@ -129,33 +134,34 @@ export class KeySpace<
 
 		const values = keys.map(key => this.indexAttributeValue(index, key, params as any));
 
-		return zipObject(keys, values) as ParentTable['IndexKeyMap'][Index];
+		return zipObject(keys, values) as unknown as this['IndexKeyMap'][Index];
 	}
 
-	indexKeysOf(params: U.Merge<this['IndexKeyValueParamsMap'][this['Index']]>) {
+	indexKeysOf(params: U.IntersectOf<this['IndexKeyValueParamsMap'][this['Index']]>) {
 		return this.indexes.reduce(
 			(currentIndexKeys, index) => ({
 				...currentIndexKeys,
 				...this.indexKeyOf(index, params as this['IndexKeyValueParamsMap'][typeof index])
 			}),
 			{}
-		) as U.Merge<Table.GetIndexKey<ParentTable, this['Index']>>;
+		) as {} & U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>;
 	}
 
-	withIndexKeys<Item extends U.Merge<this['IndexKeyValueParamsMap'][this['Index']]>>(
+	withIndexKeys<Item extends {} & U.IntersectOf<this['IndexKeyValueParamsMap'][this['Index']]>>(
 		item: Item
-	): Item & U.Merge<Table.GetIndexKey<ParentTable, this['Index']>> {
-		return { ...item, ...this.indexKeysOf(item) } as Item & U.Merge<Table.GetIndexKey<ParentTable, this['Index']>>;
+	): Item & U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>> {
+		return { ...item, ...this.indexKeysOf(item) } as Item &
+			U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>;
 	}
 
-	omitIndexKeys<Item extends Partial<Attributes & U.Merge<Table.GetIndexKey<ParentTable, this['Index']>>>>(
+	omitIndexKeys<Item extends Partial<Attributes & U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>>>(
 		itemWithIndexKeys: Item
 	) {
 		const keyMap = new Map(this.attributeKeys.map(key => [key, true]));
 
 		return Object.fromEntries(Object.entries(itemWithIndexKeys).filter(([key]) => !keyMap.has(key as any))) as Omit<
 			Item,
-			keyof U.Merge<Table.GetIndexKey<ParentTable, this['Index']>>
+			keyof U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>
 		>;
 	}
 }

@@ -4,7 +4,7 @@ import { A, U } from 'ts-toolbelt';
 
 export const primaryIndexKeyCheck: A.Equals<
 	(typeof TestTable1)['IndexKeyMap'][PrimaryIndex],
-	{ pk: string; sk: string }
+	{ pk: string } & { sk: string }
 > = 1;
 
 export const secondaryIndexCheck: A.Equals<
@@ -13,24 +13,33 @@ export const secondaryIndexCheck: A.Equals<
 > = 1;
 
 export const secondaryIndexKeyCheck: A.Equals<
-	U.Merge<(typeof TestTable1)['IndexKeyMap'][(typeof TestTable1)['SecondaryIndex']]>,
+	U.IntersectOf<(typeof TestTable1)['IndexKeyMap'][(typeof TestTable1)['SecondaryIndex']]>,
 	{
 		gsi0Pk: string;
+	} & {
 		gsi0Sk: string;
+	} & {
 		gsi1Pk: number;
+	} & {
 		gsi1Sk: number | undefined;
+	} & {
 		gsi2Pk: string;
+	} & {
 		gsi2Sk: number;
+	} & {
 		gsi3Pk: number;
+	} & {
 		gsi3Sk: string | undefined;
+	} & {
 		gsi4Pk: string;
+	} & {
 		gsi5Pk: number;
 	}
 > = 1;
 
 export const primaryIndexKeyCheck2: A.Equals<
 	(typeof TestTable2)['IndexKeyMap'][PrimaryIndex],
-	{ pk: string; sk: string }
+	{ pk: string } & { sk: string }
 > = 1;
 
 export const secondaryIndexCheck2: A.Equals<(typeof TestTable2)['SecondaryIndex'], never> = 1;
@@ -39,12 +48,12 @@ export const neverSecondaryIndexCheck2: A.Equals<Table.GetIndexKey<typeof TestTa
 
 export const secondaryIndexKeyCheck2: A.Equals<
 	Table.GetIndexKey<typeof TestTable2, (typeof TestTable2)['Index']>,
-	{ pk: string; sk: string }
+	{ pk: string } & { sk: string }
 > = 1;
 
 export const AttributesAndIndexKeysCheck2: A.Equals<
 	(typeof TestTable2)['AttributesAndIndexKeys'],
-	IBaseItem & { pk: string; sk: string } & Partial<{}>
+	IBaseItem & { pk: string } & { sk: string } & Partial<{}>
 > = 1;
 
 it('type checks are valid', () => {

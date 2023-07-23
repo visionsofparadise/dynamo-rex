@@ -1,63 +1,103 @@
-import { GenericAttributes } from '../Dx';
-import { AnyKeySpace } from '../KeySpace';
-import {
-	DxConsistentReadParam,
-	DxProjectionExpressionParams,
-	DxReturnConsumedCapacityParam,
-	handleConsistentReadParam,
-	handleProjectionExpressionParams,
-	handleReturnConsumedCapacityParam,
-	handleTableNameParam
-} from '../util/InputParams';
-import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middleware';
 import { GetCommand, GetCommandInput, GetCommandOutput } from '@aws-sdk/lib-dynamodb';
+import { DxCommand } from './Command';
+import { GenericAttributes } from '../Dx';
+import { LowerCaseObjectKeys, lowerCaseKeys, upperCaseKeys } from '../util/keyCapitalize';
+import { applyDefaults } from '../util/defaults';
+import { DxClientConfig } from '../Client';
+import { executeMiddlewares, executeMiddleware } from '../Middleware';
 
-export interface DxGetInput
-	extends DxReturnConsumedCapacityParam,
-		DxProjectionExpressionParams,
-		DxConsistentReadParam {}
+const GET_COMMAND_INPUT_DATA_TYPE = 'GetCommandInput' as const;
+const GET_COMMAND_INPUT_HOOK = ['CommandInput', 'ReadCommandInput', GET_COMMAND_INPUT_DATA_TYPE] as const;
 
-export type DxGetOutput<K extends AnyKeySpace = AnyKeySpace> = K['Attributes'];
+const GET_COMMAND_OUTPUT_DATA_TYPE = 'GetCommandOutput' as const;
+const GET_COMMAND_OUTPUT_HOOK = ['CommandOutput', 'ReadCommandOutput', GET_COMMAND_OUTPUT_DATA_TYPE] as const;
 
-export interface DxGetCommandOutput<Attributes extends GenericAttributes = GenericAttributes>
-	extends Omit<GetCommandOutput, 'Attributes'> {
-	Item?: Attributes;
+export interface DxGetCommandInput<Key extends GenericAttributes = GenericAttributes>
+	extends LowerCaseObjectKeys<Omit<GetCommandInput, 'Key'>> {
+	key: Key;
 }
 
-export const dxGet = async <K extends AnyKeySpace>(
-	KeySpace: K,
-	keyParams: Parameters<K['keyOf']>[0],
-	input?: DxGetInput
-): Promise<DxGetOutput<K>> => {
-	const baseCommandInput: GetCommandInput = {
-		...handleTableNameParam(KeySpace.Table),
-		Key: KeySpace.keyOf(keyParams),
-		...handleProjectionExpressionParams(input),
-		...handleConsistentReadParam(input),
-		...handleReturnConsumedCapacityParam(KeySpace, input)
+export interface DxGetCommandOutput<Attributes extends GenericAttributes = GenericAttributes>
+	extends LowerCaseObjectKeys<Omit<GetCommandOutput, 'Item'>> {
+	item: Attributes;
+}
+
+export class DxGetCommand<
+	Attributes extends GenericAttributes = GenericAttributes,
+	Key extends GenericAttributes = GenericAttributes
+> extends DxCommand<
+	typeof GET_COMMAND_INPUT_DATA_TYPE,
+	(typeof GET_COMMAND_INPUT_HOOK)[number],
+	DxGetCommandInput<Key>,
+	GetCommandInput,
+	typeof GET_COMMAND_OUTPUT_DATA_TYPE,
+	(typeof GET_COMMAND_OUTPUT_HOOK)[number],
+	DxGetCommandOutput<Attributes>,
+	GetCommandOutput
+> {
+	constructor(input: DxGetCommandInput<Key>) {
+		super(input);
+	}
+
+	inputMiddlewareConfig = { dataType: GET_COMMAND_INPUT_DATA_TYPE, hooks: GET_COMMAND_INPUT_HOOK };
+	outputMiddlewareConfig = { dataType: GET_COMMAND_OUTPUT_DATA_TYPE, hooks: GET_COMMAND_OUTPUT_HOOK };
+
+	handleInput = async ({ defaults, middleware }: DxClientConfig): Promise<GetCommandInput> => {
+		const postDefaultsInput = applyDefaults(this.input, defaults, ['returnConsumedCapacity']);
+
+		const { data: postMiddlewareInput } = await executeMiddlewares(
+			[...this.inputMiddlewareConfig.hooks],
+			{
+				dataType: this.inputMiddlewareConfig.dataType,
+				data: postDefaultsInput
+			},
+			middleware
+		);
+
+		const upperCaseInput = upperCaseKeys(postMiddlewareInput);
+
+		return upperCaseInput;
 	};
 
-	const getCommandInput = await executeMiddlewares(
-		['CommandInput', 'ReadCommandInput', 'GetCommandInput'],
-		{ type: 'GetCommandInput', data: baseCommandInput },
-		KeySpace.middleware
-	).then(output => output.data);
+	handleOutput = async (
+		output: GetCommandOutput,
+		{ middleware }: DxClientConfig
+	): Promise<DxGetCommandOutput<Attributes>> => {
+		const lowerCaseOutput = lowerCaseKeys(output);
 
-	const getCommandOutput: DxGetCommandOutput<K['AttributesAndIndexKeys']> = await KeySpace.client.send(
-		new GetCommand(getCommandInput)
-	);
+		const item = output.Item as Attributes | undefined;
 
-	const output = await executeMiddlewares(
-		['CommandOutput', 'ReadCommandOutput', 'GetCommandOutput'],
-		{ type: 'GetCommandOutput', data: getCommandOutput },
-		KeySpace.middleware
-	).then(output => output.data);
+		if (!item) throw new Error('Item Not Found');
 
-	await handleOutputMetricsMiddleware(output, KeySpace.middleware);
+		const formattedOutput: DxGetCommandOutput<Attributes> = {
+			...lowerCaseOutput,
+			item
+		};
 
-	if (!output.Item) throw new Error('Not Found');
+		const { data: postMiddlewareOutput } = await executeMiddlewares(
+			[...this.outputMiddlewareConfig.hooks],
+			{
+				dataType: this.outputMiddlewareConfig.dataType,
+				data: formattedOutput
+			},
+			middleware
+		);
 
-	const item = KeySpace.omitIndexKeys(output.Item);
+		if (postMiddlewareOutput.consumedCapacity)
+			await executeMiddleware(
+				'ConsumedCapacity',
+				{ dataType: 'ConsumedCapacity', data: postMiddlewareOutput.consumedCapacity },
+				middleware
+			);
 
-	return item;
-};
+		return postMiddlewareOutput;
+	};
+
+	send = async (clientConfig: DxClientConfig) => {
+		const input = await this.handleInput(clientConfig);
+
+		const output = await clientConfig.client.send(new GetCommand(input));
+
+		return this.handleOutput(output, clientConfig);
+	};
+}

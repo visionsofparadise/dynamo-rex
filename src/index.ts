@@ -1,21 +1,47 @@
 export { DxBase } from './Dx';
 
-export { dxBatchGet, DxBatchGetInput, DxBatchGetOutput } from './command/batchGet';
-export { dxBatchWrite, DxBatchWriteInput, DxBatchWriteOutput } from './command/batchWrite';
-export { dxCreate, DxCreateInput, DxCreateOutput } from './command/create';
-export { dxDelete, DxDeleteInput, DxDeleteOutput } from './command/delete';
-export { dxGet, DxGetInput, DxGetOutput } from './command/get';
-export { dxPut, DxPutInput, DxPutOutput } from './command/put';
-export { dxQueryGet, DxQueryGetInput, DxQueryGetOutput } from './command/queryGet';
-export { dxQuery, DxQueryInput, DxQueryOutput, DxQueryItemsSort } from './command/query';
-export { dxQueryQuick, DxQueryQuickInput, DxQueryQuickOutput } from './command/queryQuick';
-export { dxUpdateQuick, DxUpdateQuickInput, DxUpdateQuickOutput } from './command/updateQuick';
-export { dxReset } from './command/reset';
-export { dxScan, DxScanInput, DxScanOutput } from './command/scan';
-export { dxTransactGet, DxTransactGetInput, DxTransactGetOutput } from './command/transactGet';
-export { dxTransactWrite, DxTransactWriteInput, DxTransactWriteOutput } from './command/transactWrite';
-export { dxUpdate, DxUpdateInput, DxUpdateOutput } from './command/update';
+export { DxClient } from './Client';
 
-export { DxMiddleware, DxMiddlewareHook } from './util/middleware';
+export { DxBatchGetCommand, DxBatchGetCommandInput, DxBatchGetCommandOutput } from './command/BatchGet';
+export { DxBatchWriteCommand, DxBatchWriteCommandInput, DxBatchWriteCommandOutput } from './command/BatchWrite';
+export { DxDeleteCommand, DxDeleteCommandInput, DxDeleteCommandOutput, DxDeleteReturnValues } from './command/Delete';
+export { DxGetCommand, DxGetCommandInput, DxGetCommandOutput } from './command/Get';
+export { DxPutCommand, DxPutCommandInput, DxPutCommandOutput, DxPutReturnValues } from './command/Put';
+export { DxQueryCommand, DxQueryCommandInput, DxQueryCommandOutput, DxQueryItemsSort } from './command/Query';
+export { DxScanCommand, DxScanCommandInput, DxScanCommandOutput } from './command/Scan';
+export { DxTransactGetCommand, DxTransactGetCommandInput, DxTransactGetCommandOutput } from './command/TransactGet';
+export {
+	DxTransactWriteCommand,
+	DxTransactWriteCommandInput,
+	DxTransactWriteCommandOutput,
+	DxTransactWriteCommandInputConditionCheck,
+	DxTransactWriteCommandInputDelete,
+	DxTransactWriteCommandInputPut,
+	DxTransactWriteCommandInputUpdate
+} from './command/TransactWrite';
+export { DxUpdateCommand, DxUpdateCommandInput, DxUpdateCommandOutput, DxUpdateReturnValues } from './command/Update';
+
+export { dxTableBatchGet, dxBatchGet, DxBatchGetInput, DxBatchGetOutput } from './method/batchGet';
+export { dxTableBatchWrite, dxBatchWrite, DxBatchWriteInput, DxBatchWriteOutput } from './method/batchWrite';
+export { dxTableCreate, dxCreate, DxCreateInput, DxCreateOutput } from './method/create';
+export { dxTableDelete, dxDelete, DxDeleteInput, DxDeleteOutput } from './method/delete';
+export { dxTableGet, dxGet, DxGetInput, DxGetOutput } from './method/get';
+export { dxTablePut, dxPut, DxPutInput, DxPutOutput } from './method/put';
+export { dxTableQueryGet, dxQueryGet, DxQueryGetInput, DxQueryGetOutput } from './method/queryGet';
+export { dxTableQuery, dxQuery, DxQueryInput, DxQueryOutput } from './method/query';
+export { dxTableQueryQuick, dxQueryQuick, DxQueryQuickInput, DxQueryQuickOutput } from './method/queryQuick';
+export { dxTableUpdateQuick, dxUpdateQuick, DxUpdateQuickInput, DxUpdateQuickOutput } from './method/updateQuick';
+export { dxTableReset } from './method/reset';
+export { dxTableScan, DxScanInput, DxScanOutput } from './method/scan';
+export { dxTableTransactGet, dxTransactGet, DxTransactGetInput, DxTransactGetOutput } from './method/transactGet';
+export {
+	dxTableTransactWrite,
+	dxTransactWrite,
+	DxTransactWriteInput,
+	DxTransactWriteOutput
+} from './method/transactWrite';
+export { dxTableUpdate, dxUpdate, DxUpdateInput, DxUpdateOutput } from './method/update';
+
+export { DxMiddlewareHandler, DxMiddlewareHook } from './Middleware';
 export { dxSetAttributeOnWriteMiddleware } from './util/setAttributeOnWriteMiddleware';
 export { dxOp } from './UpdateOp';

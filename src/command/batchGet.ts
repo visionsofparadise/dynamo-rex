@@ -1,96 +1,156 @@
-import { GenericAttributes } from '../Dx';
-import { PrimaryIndex, Table } from '../Table';
-import {
-	DxConsistentReadParam,
-	DxProjectionExpressionParams,
-	DxReturnConsumedCapacityParam,
-	handleConsistentReadParam,
-	handleProjectionExpressionParams
-} from '../util/InputParams';
-import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middleware';
 import { BatchGetCommand, BatchGetCommandInput, BatchGetCommandOutput } from '@aws-sdk/lib-dynamodb';
+import { DxCommand } from './Command';
+import { GenericAttributes } from '../Dx';
+import { LowerCaseObjectKeys, lowerCaseKeys, upperCaseKeys } from '../util/keyCapitalize';
+import { applyDefaults } from '../util/defaults';
+import { DxClientConfig } from '../Client';
+import { executeMiddlewares, executeMiddleware } from '../Middleware';
+import { KeysAndAttributes } from '@aws-sdk/client-dynamodb';
 
-export interface DxBatchGetInput
-	extends DxReturnConsumedCapacityParam,
-		DxProjectionExpressionParams,
-		DxConsistentReadParam {
-	pageLimit?: number;
+const BATCH_GET_COMMAND_INPUT_DATA_TYPE = 'BatchGetCommandInput' as const;
+const BATCH_GET_COMMAND_INPUT_HOOK = ['CommandInput', 'ReadCommandInput', BATCH_GET_COMMAND_INPUT_DATA_TYPE] as const;
+
+const BATCH_GET_COMMAND_OUTPUT_DATA_TYPE = 'BatchGetCommandOutput' as const;
+const BATCH_GET_COMMAND_OUTPUT_HOOK = [
+	'CommandOutput',
+	'ReadCommandOutput',
+	BATCH_GET_COMMAND_OUTPUT_DATA_TYPE
+] as const;
+
+export interface DxBatchGetCommandInput<Key extends GenericAttributes = GenericAttributes>
+	extends LowerCaseObjectKeys<Omit<BatchGetCommandInput, 'RequestItems'>> {
+	requestItems: Record<
+		string,
+		LowerCaseObjectKeys<Omit<KeysAndAttributes, 'Keys' | 'AttributesToGet'>> & {
+			keys: Key[];
+		}
+	>;
 }
 
-export interface DxBatchGetOutput<T extends Table = Table> {
-	items: Array<T['AttributesAndIndexKeys']>;
-	unprocessedKeys: Array<T['IndexKeyMap'][PrimaryIndex]>;
+export interface DxBatchGetCommandOutput<
+	Attributes extends GenericAttributes = GenericAttributes,
+	Key extends GenericAttributes = GenericAttributes
+> extends LowerCaseObjectKeys<Omit<BatchGetCommandOutput, 'Responses' | 'UnprocessedKeys'>> {
+	items: Record<string, Attributes[]>;
+	unprocessedKeys: Record<
+		string,
+		| (LowerCaseObjectKeys<Omit<KeysAndAttributes, 'Keys' | 'AttributesToGet'>> & {
+				keys: Key[];
+		  })
+		| undefined
+	>;
 }
 
-export interface DxBatchGetCommandOutput<Attributes extends GenericAttributes = GenericAttributes>
-	extends Omit<BatchGetCommandOutput, 'Items'> {
-	Items?: Array<Attributes>;
-}
+export class DxBatchGetCommand<
+	Attributes extends GenericAttributes = GenericAttributes,
+	Key extends GenericAttributes = GenericAttributes
+> extends DxCommand<
+	typeof BATCH_GET_COMMAND_INPUT_DATA_TYPE,
+	(typeof BATCH_GET_COMMAND_INPUT_HOOK)[number],
+	DxBatchGetCommandInput<Key>,
+	BatchGetCommandInput,
+	typeof BATCH_GET_COMMAND_OUTPUT_DATA_TYPE,
+	(typeof BATCH_GET_COMMAND_OUTPUT_HOOK)[number],
+	DxBatchGetCommandOutput<Attributes, Key>,
+	BatchGetCommandOutput
+> {
+	constructor(input: DxBatchGetCommandInput<Key>) {
+		super(input);
+	}
 
-export const dxBatchGet = async <T extends Table = Table>(
-	Table: T,
-	keys: Array<T['IndexKeyMap'][PrimaryIndex]>,
-	input?: DxBatchGetInput
-): Promise<DxBatchGetOutput<T>> => {
-	const pageLimit = input?.pageLimit ? Math.min(input.pageLimit, 100) : 100;
+	inputMiddlewareConfig = { dataType: BATCH_GET_COMMAND_INPUT_DATA_TYPE, hooks: BATCH_GET_COMMAND_INPUT_HOOK };
+	outputMiddlewareConfig = { dataType: BATCH_GET_COMMAND_OUTPUT_DATA_TYPE, hooks: BATCH_GET_COMMAND_OUTPUT_HOOK };
 
-	const recurse = async (remainingKeys: Array<T['IndexKeyMap'][PrimaryIndex]>): Promise<DxBatchGetOutput<T>> => {
-		const currentKeys = remainingKeys.slice(0, pageLimit);
+	handleInput = async ({ defaults, middleware }: DxClientConfig): Promise<BatchGetCommandInput> => {
+		const postDefaultsInput = applyDefaults(this.input, defaults, ['returnConsumedCapacity']);
 
-		const baseCommandInput: BatchGetCommandInput = {
-			RequestItems: {
-				[Table.config.name]: {
-					Keys: currentKeys,
-					...handleProjectionExpressionParams(input),
-					...handleConsistentReadParam(input)
-				}
+		const { data: postMiddlewareInput } = await executeMiddlewares(
+			[...this.inputMiddlewareConfig.hooks],
+			{
+				dataType: this.inputMiddlewareConfig.dataType,
+				data: postDefaultsInput
 			},
-			ReturnConsumedCapacity: input?.returnConsumedCapacity || Table.defaults?.returnConsumedCapacity
-		};
-
-		const batchGetCommandInput = await executeMiddlewares(
-			['CommandInput', 'ReadCommandInput', 'BatchGetCommandInput'],
-			{ type: 'BatchGetCommandInput', data: baseCommandInput },
-			Table.middleware
-		).then(output => output.data);
-
-		const batchGetCommandOutput: DxBatchGetCommandOutput<T['AttributesAndIndexKeys']> = await Table.client.send(
-			new BatchGetCommand(batchGetCommandInput)
+			middleware
 		);
 
-		const output = await executeMiddlewares(
-			['CommandOutput', 'ReadCommandOutput', 'BatchGetCommandOutput'],
-			{ type: 'BatchGetCommandOutput', data: batchGetCommandOutput },
-			Table.middleware
-		).then(output => output.data);
+		const { requestItems, ...rest } = postMiddlewareInput;
 
-		const { Responses, UnprocessedKeys, ConsumedCapacity } = output;
-
-		await handleOutputMetricsMiddleware({ ConsumedCapacity }, Table.middleware);
-
-		const nextRemainingKeys = remainingKeys.slice(pageLimit);
-
-		const items = Responses ? Responses[Table.config.name] : [];
-
-		const unprocessedKeys =
-			UnprocessedKeys && UnprocessedKeys[Table.config.name] && UnprocessedKeys[Table.config.name].Keys
-				? (UnprocessedKeys[Table.config.name].Keys as Array<T['IndexKeyMap'][PrimaryIndex]>)
-				: [];
-
-		if (nextRemainingKeys.length === 0) {
-			return {
-				items,
-				unprocessedKeys
-			};
-		}
-
-		const nextPage = await recurse(nextRemainingKeys);
-
-		return {
-			items: [...items, ...nextPage.items],
-			unprocessedKeys: [...unprocessedKeys, ...nextPage.unprocessedKeys]
+		const formattedInput = {
+			requestItems: Object.fromEntries(
+				Object.entries(requestItems).map(([tableName, keysAndAttributes]) => [
+					tableName,
+					upperCaseKeys(keysAndAttributes)
+				])
+			),
+			...rest
 		};
+
+		const upperCaseInput = upperCaseKeys(formattedInput);
+
+		return upperCaseInput;
 	};
 
-	return recurse(keys);
-};
+	handleOutput = async (
+		output: BatchGetCommandOutput,
+		{ middleware }: DxClientConfig
+	): Promise<DxBatchGetCommandOutput<Attributes, Key>> => {
+		const lowerCaseOutput = lowerCaseKeys(output);
+
+		const { responses, unprocessedKeys, ...rest } = lowerCaseOutput;
+
+		const items = Object.fromEntries(
+			Object.entries(responses || {}).map(([tableName, tableItems]) => {
+				const typedTableItems = (tableItems || []) as Array<Attributes>;
+
+				return [tableName, typedTableItems];
+			})
+		);
+
+		const formattedUnprocessedKeys = Object.fromEntries(
+			Object.entries(unprocessedKeys || {}).map(([tableName, keysAndAttributes]) => {
+				if (!keysAndAttributes) return [tableName, undefined];
+
+				const { Keys, ...unprocessedRest } = keysAndAttributes;
+
+				const typedKeys = (Keys || []) as Array<Key>;
+
+				return [tableName, lowerCaseKeys({ Keys: typedKeys, ...unprocessedRest })];
+			})
+		);
+
+		const formattedOutput: DxBatchGetCommandOutput<Attributes, Key> = {
+			...rest,
+			items,
+			unprocessedKeys: formattedUnprocessedKeys as DxBatchGetCommandOutput<Attributes, Key>['unprocessedKeys']
+		};
+
+		const { data: postMiddlewareOutput } = await executeMiddlewares(
+			[...this.outputMiddlewareConfig.hooks],
+			{
+				dataType: this.outputMiddlewareConfig.dataType,
+				data: formattedOutput
+			},
+			middleware
+		);
+
+		if (postMiddlewareOutput.consumedCapacity) {
+			for (const consumedCapacity of postMiddlewareOutput.consumedCapacity) {
+				await executeMiddleware(
+					'ConsumedCapacity',
+					{ dataType: 'ConsumedCapacity', data: consumedCapacity },
+					middleware
+				);
+			}
+		}
+
+		return postMiddlewareOutput;
+	};
+
+	send = async (clientConfig: DxClientConfig) => {
+		const input = await this.handleInput(clientConfig);
+
+		const output = await clientConfig.client.send(new BatchGetCommand(input));
+
+		return this.handleOutput(output, clientConfig);
+	};
+}

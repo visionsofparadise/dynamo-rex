@@ -1,4 +1,4 @@
-import { DxExpressionAttributeParams } from './util/InputParams';
+import { DxUpdateExpressionParams } from './util/convertObjectToUpdateExpression';
 
 type Params = {
 	key: string;
@@ -6,7 +6,7 @@ type Params = {
 	precedingKeys?: Array<string>;
 };
 
-type CreateUpdateExpressionPart = (params: Params) => DxExpressionAttributeParams;
+type CreateUpdateExpressionPart = (params: Params) => DxUpdateExpressionParams;
 
 export class DxOp {
 	constructor(public createUpdateExpressionPart: CreateUpdateExpressionPart) {}

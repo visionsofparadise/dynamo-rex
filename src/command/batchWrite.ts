@@ -1,143 +1,176 @@
-import { GenericAttributes } from '../Dx';
-import { PrimaryIndex, Table } from '../Table';
-import { DxReturnParams } from '../util/InputParams';
-import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middleware';
 import { BatchWriteCommand, BatchWriteCommandInput, BatchWriteCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { DeleteRequest, PutRequest, WriteRequest } from '@aws-sdk/client-dynamodb';
+import { DxCommand } from './Command';
+import { GenericAttributes } from '../Dx';
+import { LowerCaseObjectKeys, lowerCaseKeys, upperCaseKeys } from '../util/keyCapitalize';
+import { applyDefaults } from '../util/defaults';
+import { DxClientConfig } from '../Client';
+import { executeMiddlewares, executeMiddleware } from '../Middleware';
 
-export interface DxBatchPutRequest<T extends Table = Table> {
-	put: T['AttributesAndIndexKeys'];
+const BATCH_WRITE_COMMAND_INPUT_DATA_TYPE = 'BatchWriteCommandInput' as const;
+const BATCH_WRITE_COMMAND_INPUT_HOOK = [
+	'CommandInput',
+	'WriteCommandInput',
+	BATCH_WRITE_COMMAND_INPUT_DATA_TYPE
+] as const;
+
+const BATCH_WRITE_COMMAND_OUTPUT_DATA_TYPE = 'BatchWriteCommandOutput' as const;
+const BATCH_WRITE_COMMAND_OUTPUT_HOOK = [
+	'CommandOutput',
+	'WriteCommandOutput',
+	BATCH_WRITE_COMMAND_OUTPUT_DATA_TYPE
+] as const;
+
+export interface DxBatchWriteCommandInput<
+	Attributes extends GenericAttributes = GenericAttributes,
+	Key extends GenericAttributes = GenericAttributes
+> extends LowerCaseObjectKeys<Omit<BatchWriteCommandInput, 'RequestItems'>> {
+	requestItems: Record<string, Array<{ put: Attributes } | { delete: Key }>>;
 }
 
-export interface DxBatchDeleteRequest<T extends Table = Table> {
-	delete: T['IndexKeyMap'][PrimaryIndex];
+export interface DxBatchWriteCommandOutput<
+	Attributes extends GenericAttributes = GenericAttributes,
+	Key extends GenericAttributes = GenericAttributes
+> extends LowerCaseObjectKeys<Omit<BatchWriteCommandOutput, 'UnprocessedItems'>> {
+	unprocessedItems: Record<string, Array<{ put: Attributes } | { delete: Key }>>;
 }
 
-export interface DxBatchWriteInput
-	extends Pick<DxReturnParams, 'returnConsumedCapacity' | 'returnItemCollectionMetrics'> {
-	pageLimit?: number;
-}
+export class DxBatchWriteCommand<
+	Attributes extends GenericAttributes = GenericAttributes,
+	Key extends GenericAttributes = GenericAttributes
+> extends DxCommand<
+	typeof BATCH_WRITE_COMMAND_INPUT_DATA_TYPE,
+	(typeof BATCH_WRITE_COMMAND_INPUT_HOOK)[number],
+	DxBatchWriteCommandInput<Attributes, Key>,
+	BatchWriteCommandInput,
+	typeof BATCH_WRITE_COMMAND_OUTPUT_DATA_TYPE,
+	(typeof BATCH_WRITE_COMMAND_OUTPUT_HOOK)[number],
+	DxBatchWriteCommandOutput<Attributes, Key>,
+	BatchWriteCommandOutput
+> {
+	constructor(input: DxBatchWriteCommandInput<Attributes, Key>) {
+		super(input);
+	}
 
-export interface DxBatchWriteCommandInput<Attributes extends GenericAttributes = GenericAttributes>
-	extends Omit<BatchWriteCommandInput, 'RequestItems'> {
-	RequestItems: Record<
-		string,
-		(Omit<WriteRequest, 'PutRequest' | 'DeleteRequest'> & {
-			PutRequest?: Omit<PutRequest, 'Item'> & {
-				Item: Attributes;
-			};
-			DeleteRequest?: Omit<DeleteRequest, 'Key'> & {
-				Key: GenericAttributes;
-			};
-		})[]
-	>;
-}
+	inputMiddlewareConfig = { dataType: BATCH_WRITE_COMMAND_INPUT_DATA_TYPE, hooks: BATCH_WRITE_COMMAND_INPUT_HOOK };
+	outputMiddlewareConfig = { dataType: BATCH_WRITE_COMMAND_OUTPUT_DATA_TYPE, hooks: BATCH_WRITE_COMMAND_OUTPUT_HOOK };
 
-export interface DxBatchWriteOutput<T extends Table = Table> {
-	unprocessedRequests: Array<DxBatchPutRequest<T> | DxBatchDeleteRequest<T>>;
-}
+	handleInput = async ({ defaults, middleware }: DxClientConfig): Promise<BatchWriteCommandInput> => {
+		const postDefaultsInput = applyDefaults(this.input, defaults, [
+			'returnConsumedCapacity',
+			'returnItemCollectionMetrics'
+		]);
 
-export interface DxBatchWriteCommandOutput<Attributes extends GenericAttributes = GenericAttributes>
-	extends Omit<BatchWriteCommandOutput, 'UnprocessedItems'> {
-	UnprocessedItems?: Record<
-		string,
-		(Omit<WriteRequest, 'PutRequest' | 'DeleteRequest'> & {
-			PutRequest?: Omit<PutRequest, 'Item'> & {
-				Item: Attributes | undefined;
-			};
-			DeleteRequest?: Omit<DeleteRequest, 'Key'> & {
-				Key: GenericAttributes | undefined;
-			};
-		})[]
-	>;
-}
+		const { data: postMiddlewareInput } = await executeMiddlewares(
+			[...this.inputMiddlewareConfig.hooks],
+			{
+				dataType: this.inputMiddlewareConfig.dataType,
+				data: postDefaultsInput
+			},
+			middleware
+		);
 
-export const dxBatchWrite = async <T extends Table = Table>(
-	Table: T,
-	requests: Array<DxBatchPutRequest<T> | DxBatchDeleteRequest<T>>,
-	input?: DxBatchWriteInput
-): Promise<DxBatchWriteOutput<T>> => {
-	const pageLimit = input?.pageLimit ? Math.min(input.pageLimit, 25) : 25;
+		const { requestItems, ...rest } = postMiddlewareInput;
 
-	const recurse = async (
-		remainingRequests: Array<DxBatchPutRequest<T> | DxBatchDeleteRequest<T>>
-	): Promise<DxBatchWriteOutput<T>> => {
-		const currentRequests = remainingRequests.slice(0, pageLimit);
+		const formattedInput = {
+			requestItems: Object.fromEntries(
+				Object.entries(requestItems).map(([tableName, requests]) => {
+					const formattedRequests = requests.map(request => {
+						if ('put' in request) {
+							return {
+								PutRequest: {
+									Item: request.put
+								}
+							};
+						}
 
-		const baseCommandInput: DxBatchWriteCommandInput<T['AttributesAndIndexKeys']> = {
-			RequestItems: {
-				[Table.config.name]: currentRequests.map(request => {
-					if ('put' in request) {
 						return {
-							PutRequest: {
-								Item: request.put
+							DeleteRequest: {
+								Key: request.delete
 							}
+						};
+					});
+
+					return [tableName, formattedRequests];
+				})
+			),
+			...rest
+		};
+
+		const upperCaseInput = upperCaseKeys(formattedInput);
+
+		return upperCaseInput;
+	};
+
+	handleOutput = async (
+		output: BatchWriteCommandOutput,
+		{ middleware }: DxClientConfig
+	): Promise<DxBatchWriteCommandOutput<Attributes, Key>> => {
+		const lowerCaseOutput = lowerCaseKeys(output);
+
+		const { unprocessedItems, ...rest } = lowerCaseOutput;
+
+		const formattedUnprocessedItems = Object.fromEntries(
+			Object.entries(unprocessedItems || {}).map(([tableName, requests]) => {
+				const formattedRequests = requests.map(request => {
+					if (request.PutRequest) {
+						const item = request.PutRequest.Item as Attributes;
+
+						return {
+							put: item
 						};
 					}
 
+					const key = request.DeleteRequest?.Key as Key;
+
 					return {
-						DeleteRequest: {
-							Key: request.delete
-						}
+						delete: key
 					};
-				})
-			},
-			ReturnItemCollectionMetrics: input?.returnItemCollectionMetrics || Table.defaults?.returnItemCollectionMetrics,
-			ReturnConsumedCapacity: input?.returnConsumedCapacity || Table.defaults?.returnConsumedCapacity
-		};
+				});
 
-		const batchWriteCommandInput = await executeMiddlewares(
-			['CommandInput', 'WriteCommandInput', 'BatchWriteCommandInput'],
-			{ type: 'BatchWriteCommandInput', data: baseCommandInput },
-			Table.middleware
-		).then(output => output.data);
-
-		const batchWriteCommandOutput: DxBatchWriteCommandOutput<T['AttributesAndIndexKeys']> = await Table.client.send(
-			new BatchWriteCommand(batchWriteCommandInput)
+				return [tableName, formattedRequests];
+			})
 		);
 
-		const output = await executeMiddlewares(
-			['CommandOutput', 'WriteCommandOutput', 'BatchWriteCommandOutput'],
-			{ type: 'BatchWriteCommandOutput', data: batchWriteCommandOutput },
-			Table.middleware
-		).then(output => output.data);
+		const formattedOutput: DxBatchWriteCommandOutput<Attributes, Key> = {
+			...rest,
+			unprocessedItems: formattedUnprocessedItems
+		};
 
-		const { UnprocessedItems, ConsumedCapacity, ItemCollectionMetrics } = output;
+		const { data: postMiddlewareOutput } = await executeMiddlewares(
+			[...this.outputMiddlewareConfig.hooks],
+			{
+				dataType: this.outputMiddlewareConfig.dataType,
+				data: formattedOutput
+			},
+			middleware
+		);
 
-		await handleOutputMetricsMiddleware({ ConsumedCapacity, ItemCollectionMetrics }, Table.middleware);
-
-		const unprocessedRequests = (UnprocessedItems ? UnprocessedItems[Table.config.name] || [] : [])
-			.map(request => {
-				if (request.PutRequest?.Item) {
-					return {
-						put: request.PutRequest.Item
-					};
-				}
-
-				if (request.DeleteRequest?.Key) {
-					return {
-						delete: request.DeleteRequest.Key as T['IndexKeyMap'][PrimaryIndex]
-					};
-				}
-
-				return undefined;
-			})
-			.filter((request): request is NonNullable<typeof request> => !!request);
-
-		const nextRemainingRequests = remainingRequests.slice(pageLimit);
-
-		if (nextRemainingRequests.length === 0) {
-			return {
-				unprocessedRequests
-			};
+		if (postMiddlewareOutput.consumedCapacity) {
+			for (const consumedCapacity of postMiddlewareOutput.consumedCapacity) {
+				await executeMiddleware(
+					'ConsumedCapacity',
+					{ dataType: 'ConsumedCapacity', data: consumedCapacity },
+					middleware
+				);
+			}
 		}
 
-		const nextPage = await recurse(nextRemainingRequests);
+		if (postMiddlewareOutput.itemCollectionMetrics) {
+			await executeMiddleware(
+				'ItemCollectionMetrics',
+				{ dataType: 'ItemCollectionMetrics', data: postMiddlewareOutput.itemCollectionMetrics },
+				middleware
+			);
+		}
 
-		return {
-			unprocessedRequests: [...unprocessedRequests, ...nextPage.unprocessedRequests]
-		};
+		return postMiddlewareOutput;
 	};
 
-	return recurse(requests);
-};
+	send = async (clientConfig: DxClientConfig) => {
+		const input = await this.handleInput(clientConfig);
+
+		const output = await clientConfig.client.send(new BatchWriteCommand(input));
+
+		return this.handleOutput(output, clientConfig);
+	};
+}

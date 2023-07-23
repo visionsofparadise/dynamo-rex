@@ -23,7 +23,7 @@ it('reset deletes all items', async () => {
 
 		await TestTable1.client.send(
 			new PutCommand({
-				TableName: TestTable1.config.name,
+				TableName: TestTable1.tableName,
 				Item: item
 			})
 		);

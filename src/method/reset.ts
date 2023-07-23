@@ -1,13 +1,13 @@
 import { PrimaryIndex, Table } from '../Table';
-import { dxScan } from './scan';
-import { dxBatchWrite } from './batchWrite';
+import { dxTableScan } from './scan';
+import { dxTableBatchWrite } from './batchWrite';
 
-export const dxReset = async <T extends Table = Table>(Table: T) => {
-	const scanData = await dxScan(Table, undefined);
+export const dxTableReset = async <T extends Table = Table>(Table: T) => {
+	const scanData = await dxTableScan(Table, undefined);
 
 	if (scanData.items.length === 0) return;
 
-	await dxBatchWrite(
+	await dxTableBatchWrite(
 		Table,
 		scanData.items.map(item => {
 			if (!Table.config.indexes.primaryIndex.sort) {

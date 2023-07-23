@@ -24,7 +24,7 @@ it('scan returns list of items', async () => {
 
 		await TestTable1.client.send(
 			new PutCommand({
-				TableName: TestTable1.config.name,
+				TableName: TestTable1.tableName,
 				Item: item
 			})
 		);
@@ -34,25 +34,20 @@ it('scan returns list of items', async () => {
 
 	const result = await dxScan(TestTable1);
 
-	const cursorTypeCheck: A.Equals<(typeof result)['cursorKey'], { pk: string; sk: string } | undefined> = 1;
+	const cursorTypeCheck: A.Equals<(typeof result)['cursorKey'], ({ pk: string } & { sk: string }) | undefined> = 1;
 
 	expect(cursorTypeCheck).toBe(1);
 
 	const itemsTypeCheck: A.Equals<
 		(typeof result)['items'],
 		Array<
-			IBaseItem & { pk: string; sk: string } & Partial<{
-					gsi0Pk: string;
-					gsi0Sk: string;
-					gsi1Pk: number;
-					gsi1Sk: number | undefined;
-					gsi2Pk: string;
-					gsi2Sk: number;
-					gsi3Pk: number;
-					gsi3Sk: string | undefined;
-					gsi4Pk: string;
-					gsi5Pk: number;
-				}>
+			IBaseItem & { pk: string } & { sk: string } & Partial<
+					{ gsi0Pk: string } & { gsi0Sk: string } & { gsi1Pk: number } & { gsi1Sk: number | undefined } & {
+						gsi2Pk: string;
+					} & { gsi2Sk: number } & { gsi3Pk: number } & { gsi3Sk: string | undefined } & { gsi4Pk: string } & {
+						gsi5Pk: number;
+					}
+				>
 		>
 	> = 1;
 
@@ -79,7 +74,7 @@ it('scan on index returns list of items', async () => {
 
 		await TestTable1.client.send(
 			new PutCommand({
-				TableName: TestTable1.config.name,
+				TableName: TestTable1.tableName,
 				Item: item
 			})
 		);
@@ -93,7 +88,7 @@ it('scan on index returns list of items', async () => {
 
 	const cursorTypeCheck: A.Equals<
 		(typeof result)['cursorKey'],
-		{ pk: string; sk: string; gsi0Pk: string; gsi0Sk: string } | undefined
+		({ pk: string } & { sk: string } & { gsi0Pk: string } & { gsi0Sk: string }) | undefined
 	> = 1;
 
 	expect(cursorTypeCheck).toBe(1);
@@ -117,7 +112,7 @@ it('limits and pages correctly', async () => {
 
 		await TestTable1.client.send(
 			new PutCommand({
-				TableName: TestTable1.config.name,
+				TableName: TestTable1.tableName,
 				Item: item
 			})
 		);

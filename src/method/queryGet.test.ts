@@ -24,7 +24,7 @@ it('gets a put item', async () => {
 
 	await TestTable1.client.send(
 		new PutCommand({
-			TableName: TestTable1.config.name,
+			TableName: TestTable1.tableName,
 			Item: item
 		})
 	);

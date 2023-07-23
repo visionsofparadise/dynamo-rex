@@ -1,10 +1,10 @@
-import { Dx } from '../TableTest.dev';
+import { Dx } from './TableTest.dev';
 import dayjs from 'dayjs';
-import { randomNumber, randomString } from './utils';
-import { dxCreate } from '../command/create';
-import { dxGet } from '../command/get';
-import { dxUpdateQuick } from '../command/updateQuick';
-import { dxSetAttributeOnWriteMiddleware } from './setAttributeOnWriteMiddleware';
+import { randomNumber, randomString } from './util/utils';
+import { dxCreate } from './method/create';
+import { dxGet } from './method/get';
+import { dxUpdateQuick } from './method/updateQuick';
+import { dxSetAttributeOnWriteMiddleware } from './util/setAttributeOnWriteMiddleware';
 
 interface IBaseItem {
 	updatedAt?: number;

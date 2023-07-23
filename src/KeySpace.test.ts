@@ -16,20 +16,11 @@ const testItem: (typeof TestItem2KeySpace)['Attributes'] = {
 	}
 };
 
-type TestKeySpace2IndexKeys = {
-	pk: string;
-	sk: string;
-	gsi0Pk: string;
-	gsi0Sk: string;
+type TestKeySpace2IndexKeys = { pk: string } & { sk: string } & { gsi0Pk: string } & { gsi0Sk: string } & {
 	gsi1Pk: number;
-	gsi1Sk: number | undefined;
-	gsi2Pk: string;
-	gsi2Sk: number;
-	gsi3Pk: number;
+} & { gsi1Sk: number | undefined } & { gsi2Pk: string } & { gsi2Sk: number } & { gsi3Pk: number } & {
 	gsi3Sk: string | undefined;
-	gsi4Pk: string;
-	gsi5Pk: number;
-};
+} & { gsi4Pk: string } & { gsi5Pk: number };
 
 it('returns indexes', () => {
 	const check: A.Equals<
@@ -84,10 +75,7 @@ it('returns index key keys', () => {
 it('generates primary index key', () => {
 	const paramCheck: A.Equals<
 		Parameters<(typeof TestItem2KeySpace)['keyOf']>[0],
-		{
-			testString: string;
-			testNumber: number;
-		}
+		Pick<ITestItem2, 'testString'> & Pick<ITestItem2, 'testNumber'>
 	> = 1;
 
 	expect(paramCheck).toBe(1);
@@ -97,7 +85,7 @@ it('generates primary index key', () => {
 		testNumber
 	});
 
-	const check: A.Equals<typeof primaryIndexKey, { pk: string; sk: string }> = 1;
+	const check: A.Equals<typeof primaryIndexKey, { pk: string } & { sk: string }> = 1;
 
 	expect(check).toBe(1);
 
@@ -112,7 +100,7 @@ it('generates secondary index key', () => {
 		testString
 	});
 
-	const check: A.Equals<typeof secondaryIndexKey, { gsi0Pk: string; gsi0Sk: string }> = 1;
+	const check: A.Equals<typeof secondaryIndexKey, { gsi0Pk: string } & { gsi0Sk: string }> = 1;
 
 	expect(check).toBe(1);
 

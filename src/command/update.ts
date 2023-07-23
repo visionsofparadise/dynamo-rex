@@ -1,68 +1,126 @@
-import { AnyKeySpace } from '../KeySpace';
-import { ReturnValue } from '@aws-sdk/client-dynamodb';
-import {
-	DxConditionExpressionParams,
-	DxReturnParams,
-	DxUpdateExpressionParams,
-	handleConditionExpressionParams,
-	handleReturnParams,
-	handleTableNameParam,
-	handleUpdateExpressionParams
-} from '../util/InputParams';
-import { GetReturnValuesOutput, getReturnValuesAttributes } from '../util/OutputParams';
-import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middleware';
 import { UpdateCommand, UpdateCommandInput, UpdateCommandOutput } from '@aws-sdk/lib-dynamodb';
+import { DxCommand } from './Command';
+import { ReturnValue } from '@aws-sdk/client-dynamodb';
 import { GenericAttributes } from '../Dx';
+import { ReturnValuesAttributes, assertReturnValuesAttributes } from '../util/returnValuesAttributes';
+import { LowerCaseObjectKeys, lowerCaseKeys, upperCaseKeys } from '../util/keyCapitalize';
+import { applyDefaults } from '../util/defaults';
+import { DxClientConfig } from '../Client';
+import { executeMiddlewares, executeMiddleware } from '../Middleware';
 
-export interface DxUpdateInput<RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW>
-	extends DxReturnParams<RV>,
-		DxUpdateExpressionParams,
-		DxConditionExpressionParams {}
+const UPDATE_COMMAND_INPUT_DATA_TYPE = 'UpdateCommandInput' as const;
+const UPDATE_COMMAND_INPUT_HOOK = ['CommandInput', 'WriteCommandInput', UPDATE_COMMAND_INPUT_DATA_TYPE] as const;
 
-export type DxUpdateOutput<
-	K extends AnyKeySpace = AnyKeySpace,
-	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
-> = GetReturnValuesOutput<K, RV>;
+const UPDATE_COMMAND_OUTPUT_DATA_TYPE = 'UpdateCommandOutput' as const;
+const UPDATE_COMMAND_OUTPUT_HOOK = ['CommandOutput', 'WriteCommandOutput', UPDATE_COMMAND_OUTPUT_DATA_TYPE] as const;
 
-export interface DxUpdateCommandOutput<Attributes extends GenericAttributes = GenericAttributes>
-	extends Omit<UpdateCommandOutput, 'Attributes'> {
-	Attributes?: Attributes | Partial<Attributes>;
+export type DxUpdateReturnValues = ReturnValue | undefined;
+
+export interface DxUpdateCommandInput<
+	Key extends GenericAttributes = GenericAttributes,
+	ReturnValues extends DxUpdateReturnValues = DxUpdateReturnValues
+> extends LowerCaseObjectKeys<
+		Omit<UpdateCommandInput, 'Key' | 'ReturnValues' | 'AttributeUpdates' | 'Expected' | 'ConditionalOperator'>
+	> {
+	key: Key;
+	returnValues?: ReturnValues;
 }
 
-export const dxUpdate = async <
-	K extends AnyKeySpace = AnyKeySpace,
-	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
->(
-	KeySpace: K,
-	keyParams: Parameters<K['keyOf']>[0],
-	input: DxUpdateInput<RV>
-): Promise<DxUpdateOutput<K, RV>> => {
-	const baseCommandInput: UpdateCommandInput = {
-		...handleTableNameParam(KeySpace.Table),
-		Key: KeySpace.keyOf(keyParams),
-		...handleUpdateExpressionParams(input),
-		...handleConditionExpressionParams(input),
-		...handleReturnParams(KeySpace, input),
-		ReturnValues: handleReturnParams(KeySpace, input).ReturnValues || ReturnValue.ALL_NEW
+export interface DxUpdateCommandOutput<
+	Attributes extends GenericAttributes = GenericAttributes,
+	ReturnValues extends DxUpdateReturnValues = DxUpdateReturnValues
+> extends LowerCaseObjectKeys<Omit<UpdateCommandOutput, 'Attributes'>> {
+	attributes: ReturnValuesAttributes<Attributes, ReturnValues>;
+}
+
+export class DxUpdateCommand<
+	Attributes extends GenericAttributes = GenericAttributes,
+	Key extends GenericAttributes = GenericAttributes,
+	ReturnValues extends DxUpdateReturnValues = DxUpdateReturnValues
+> extends DxCommand<
+	typeof UPDATE_COMMAND_INPUT_DATA_TYPE,
+	(typeof UPDATE_COMMAND_INPUT_HOOK)[number],
+	DxUpdateCommandInput<Key, ReturnValues>,
+	UpdateCommandInput,
+	typeof UPDATE_COMMAND_OUTPUT_DATA_TYPE,
+	(typeof UPDATE_COMMAND_OUTPUT_HOOK)[number],
+	DxUpdateCommandOutput<Attributes, ReturnValues>,
+	UpdateCommandOutput
+> {
+	constructor(input: DxUpdateCommandInput<Key, ReturnValues>) {
+		super(input);
+	}
+
+	inputMiddlewareConfig = { dataType: UPDATE_COMMAND_INPUT_DATA_TYPE, hooks: UPDATE_COMMAND_INPUT_HOOK };
+	outputMiddlewareConfig = { dataType: UPDATE_COMMAND_OUTPUT_DATA_TYPE, hooks: UPDATE_COMMAND_OUTPUT_HOOK };
+
+	handleInput = async ({ defaults, middleware }: DxClientConfig): Promise<UpdateCommandInput> => {
+		const postDefaultsInput = applyDefaults(this.input, defaults, [
+			'returnConsumedCapacity',
+			'returnItemCollectionMetrics',
+			'returnValuesOnConditionCheckFailure'
+		]);
+
+		const { data: postMiddlewareInput } = await executeMiddlewares(
+			[...this.inputMiddlewareConfig.hooks],
+			{
+				dataType: this.inputMiddlewareConfig.dataType,
+				data: postDefaultsInput
+			},
+			middleware
+		);
+
+		const upperCaseInput = upperCaseKeys(postMiddlewareInput);
+
+		return upperCaseInput;
 	};
 
-	const updateCommandInput = await executeMiddlewares(
-		['CommandInput', 'WriteCommandInput', 'UpdateCommandInput'],
-		{ type: 'UpdateCommandInput', data: baseCommandInput },
-		KeySpace.middleware
-	).then(output => output.data);
+	handleOutput = async (
+		output: UpdateCommandOutput,
+		{ middleware }: DxClientConfig
+	): Promise<DxUpdateCommandOutput<Attributes, ReturnValues>> => {
+		const lowerCaseOutput = lowerCaseKeys(output);
 
-	const updateCommandOutput = await KeySpace.client.send(new UpdateCommand(updateCommandInput));
+		const attributes = output.Attributes as Attributes | undefined;
 
-	const commandOutput = await executeMiddlewares(
-		['CommandOutput', 'WriteCommandOutput', 'UpdateCommandOutput'],
-		{ type: 'UpdateCommandOutput', data: updateCommandOutput },
-		KeySpace.middleware
-	).then(output => output.data);
+		assertReturnValuesAttributes(attributes, this.input.returnValues);
 
-	await handleOutputMetricsMiddleware(commandOutput, KeySpace.middleware);
+		const formattedOutput: DxUpdateCommandOutput<Attributes, ReturnValues> = {
+			...lowerCaseOutput,
+			attributes
+		};
 
-	const attributes = getReturnValuesAttributes(KeySpace, commandOutput.Attributes, input?.returnValues);
+		const { data: postMiddlewareOutput } = await executeMiddlewares(
+			[...this.outputMiddlewareConfig.hooks],
+			{
+				dataType: this.outputMiddlewareConfig.dataType,
+				data: formattedOutput
+			},
+			middleware
+		);
 
-	return attributes;
-};
+		if (postMiddlewareOutput.consumedCapacity)
+			await executeMiddleware(
+				'ConsumedCapacity',
+				{ dataType: 'ConsumedCapacity', data: postMiddlewareOutput.consumedCapacity },
+				middleware
+			);
+
+		if (postMiddlewareOutput.itemCollectionMetrics)
+			await executeMiddleware(
+				'ItemCollectionMetrics',
+				{ dataType: 'ItemCollectionMetrics', data: postMiddlewareOutput.itemCollectionMetrics },
+				middleware
+			);
+
+		return postMiddlewareOutput;
+	};
+
+	send = async (clientConfig: DxClientConfig) => {
+		const input = await this.handleInput(clientConfig);
+
+		const output = await clientConfig.client.send(new UpdateCommand(input));
+
+		return this.handleOutput(output, clientConfig);
+	};
+}

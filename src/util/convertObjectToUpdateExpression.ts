@@ -1,7 +1,12 @@
-import { DxUpdateExpressionParams } from './InputParams';
 import { DxOp } from '../UpdateOp';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 import { GenericAttributes } from '../Dx';
+
+export interface DxUpdateExpressionParams {
+	updateExpression?: string;
+	expressionAttributeNames?: Record<string, string>;
+	expressionAttributeValues?: GenericAttributes;
+}
 
 const createUpdateExpressionPart = (
 	alias: string,

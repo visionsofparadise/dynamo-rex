@@ -4,10 +4,10 @@ import { randomNumber, randomString } from '../util/utils';
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { TestItem1KeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
-import { dxReset } from './reset';
+import { dxTableReset } from './reset';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
 
-beforeEach(() => dxReset(TestTable1));
+beforeEach(() => dxTableReset(TestTable1));
 
 it('updates an existing item', async () => {
 	const testString = randomString();
@@ -22,7 +22,7 @@ it('updates an existing item', async () => {
 
 	await TestTable1.client.send(
 		new PutCommand({
-			TableName: TestTable1.config.name,
+			TableName: TestTable1.tableName,
 			Item: item
 		})
 	);
@@ -45,7 +45,7 @@ it('updates an existing item', async () => {
 
 	const { Item } = await TestTable1.client.send(
 		new GetCommand({
-			TableName: TestTable1.config.name,
+			TableName: TestTable1.tableName,
 			Key: TestItem1KeySpace.keyOf(itemWithoutKeys)
 		})
 	);
@@ -66,7 +66,7 @@ it('returns all new values', async () => {
 
 	await TestTable1.client.send(
 		new PutCommand({
-			TableName: TestTable1.config.name,
+			TableName: TestTable1.tableName,
 			Item: item
 		})
 	);
@@ -108,7 +108,7 @@ it('returns all old values', async () => {
 
 	await TestTable1.client.send(
 		new PutCommand({
-			TableName: TestTable1.config.name,
+			TableName: TestTable1.tableName,
 			Item: item
 		})
 	);
@@ -145,7 +145,7 @@ it('returns updated new values', async () => {
 
 	await TestTable1.client.send(
 		new PutCommand({
-			TableName: TestTable1.config.name,
+			TableName: TestTable1.tableName,
 			Item: item
 		})
 	);
@@ -186,7 +186,7 @@ it('returns updated old values', async () => {
 
 	await TestTable1.client.send(
 		new PutCommand({
-			TableName: TestTable1.config.name,
+			TableName: TestTable1.tableName,
 			Item: item
 		})
 	);

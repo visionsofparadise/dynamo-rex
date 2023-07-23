@@ -1,16 +1,16 @@
 import { TestTable1 } from '../TableTest.dev';
 import { setTimeout } from 'timers/promises';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { dxTransactGet } from './transactGet';
+import { dxTableBatchGet } from './batchGet';
 import { dxReset } from './reset';
 import { arrayOfLength, randomString } from '../util/utils';
 
 beforeEach(() => dxReset(TestTable1));
 
-it('it gets 10 items', async () => {
+it('it gets 120 items', async () => {
 	jest.useRealTimers();
 
-	const items = arrayOfLength(10).map(() => {
+	const items = arrayOfLength(120).map(() => {
 		const testString = randomString();
 		const testNumber = 1;
 
@@ -25,7 +25,7 @@ it('it gets 10 items', async () => {
 	for (const item of items) {
 		await TestTable1.client.send(
 			new PutCommand({
-				TableName: TestTable1.config.name,
+				TableName: TestTable1.tableName,
 				Item: item
 			})
 		);
@@ -33,12 +33,12 @@ it('it gets 10 items', async () => {
 
 	await setTimeout(1000);
 
-	const result = await dxTransactGet(
+	const result = await dxTableBatchGet(
 		TestTable1,
 		items.map(({ pk, sk }) => {
 			return { pk, sk };
 		})
 	);
 
-	expect(result.length).toBe(10);
+	expect(result.items.length).toBe(120);
 });

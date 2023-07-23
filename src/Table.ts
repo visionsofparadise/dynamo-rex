@@ -1,10 +1,10 @@
-import { ILogger } from './util/utils';
-import { Defaults } from './util/defaults';
-import { DxMiddlewareHook, DxMiddleware, appendMiddleware } from './util/middleware';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DxBase, DxConfig, GenericAttributes } from './Dx';
 import { KeySpace } from './KeySpace';
 import { U } from 'ts-toolbelt';
+import { DxMiddlewareHandler, DxMiddlewareHook, appendMiddleware } from './Middleware';
+import { DxCommandGenericData } from './command/Command';
+import { DxClient } from './Client';
 
 export const primaryIndex = 'primaryIndex' as const;
 
@@ -13,7 +13,7 @@ export type PrimaryIndex = typeof primaryIndex;
 export namespace Table {
 	export type GetIndexKeyFromConfig<
 		Config extends PrimaryIndexConfig | SecondaryIndexConfig = PrimaryIndexConfig | SecondaryIndexConfig
-	> = U.Merge<
+	> = U.IntersectOf<
 		| {
 				[x in Config['hash']['key']]: IndexAttributeValueToType<Config['hash']['value']>;
 		  }
@@ -24,7 +24,7 @@ export namespace Table {
 
 	export type GetIndexKey<T extends Table, Index extends T['Index'] = T['Index']> = T['IndexKeyMap'][Index];
 
-	export type GetIndexCursorKey<T extends Table, Index extends T['SecondaryIndex']> = U.Merge<
+	export type GetIndexCursorKey<T extends Table, Index extends T['SecondaryIndex']> = {} & U.IntersectOf<
 		GetIndexKey<T, Exclude<PrimaryIndex | Index, never>>
 	>;
 }
@@ -95,19 +95,23 @@ export class Table<
 	Config extends TableConfig<AttributeKey, AttributeValue, ProjectionKeys, Projection> = any
 > {
 	client: DynamoDBDocumentClient;
-	middleware: Array<DxMiddleware>;
-	defaults: Defaults;
-	logger?: ILogger;
+	dxClient: DxClient;
+
+	tableName: string;
 
 	constructor(
 		public Dx: DxBase,
 		public config: Config,
-		middleware: Array<DxMiddleware<DxMiddlewareHook, Attributes>> = []
+		middleware: Array<DxMiddlewareHandler<DxMiddlewareHook, DxCommandGenericData & { Attributes: Attributes }>> = []
 	) {
 		this.client = config.client || Dx.client;
-		this.middleware = appendMiddleware(Dx.middleware, middleware);
-		this.defaults = { ...Dx.defaults, ...config.defaults };
-		this.logger = config.logger || Dx.logger;
+		this.dxClient = Dx.dxClient;
+
+		this.dxClient.setClient(config.client);
+		this.dxClient.setDefaults({ ...this.dxClient.defaults, ...config.defaults });
+		this.dxClient.setMiddleware(appendMiddleware(this.dxClient.middleware, middleware));
+
+		this.tableName = this.config.name;
 	}
 
 	configure<
@@ -118,7 +122,7 @@ export class Table<
 		ConfigConfig extends TableConfig<ConfigAttributeKey, ConfigAttributeValue, ConfigProjectionKeys, ConfigProjection>
 	>(
 		config: ConfigConfig,
-		middleware: Array<DxMiddleware<DxMiddlewareHook, Attributes>> = []
+		middleware: Array<DxMiddlewareHandler<DxMiddlewareHook, DxCommandGenericData & { Attributes: Attributes }>> = []
 	): Table<Attributes, ConfigAttributeKey, ConfigAttributeValue, ConfigProjectionKeys, ConfigProjection, ConfigConfig> {
 		return new Table<
 			Attributes,
@@ -133,8 +137,7 @@ export class Table<
 	get KeySpace() {
 		const ParentTable = new Table<Attributes, AttributeKey, AttributeValue, ProjectionKeys, Projection, Config>(
 			this.Dx,
-			this.config,
-			this.middleware as Array<DxMiddleware<DxMiddlewareHook, Attributes>>
+			this.config
 		);
 
 		return class TableKeySpace<
@@ -146,11 +149,7 @@ export class Table<
 			SecondaryIndex
 		> {
 			constructor() {
-				super(
-					ParentTable,
-					{} as any,
-					ParentTable.middleware as Array<DxMiddleware<DxMiddlewareHook, KeySpaceAttributes>>
-				);
+				super(ParentTable, {} as any);
 			}
 		};
 	}
@@ -167,7 +166,7 @@ export class Table<
 
 	AttributesAndIndexKeys!: Attributes &
 		this['IndexKeyMap'][PrimaryIndex] &
-		Partial<U.Merge<this['IndexKeyMap'][this['SecondaryIndex']]>>;
+		Partial<U.IntersectOf<this['IndexKeyMap'][this['SecondaryIndex']]>>;
 
 	get indexes() {
 		return Object.keys(this.config.indexes) as Array<string & keyof Config['indexes']>;
@@ -181,7 +180,7 @@ export class Table<
 		}) as Array<AttributeKey>;
 	}
 
-	omitIndexKeys<Item extends Partial<Attributes & U.Merge<this['IndexKeyMap'][this['Index']]>>>(
+	omitIndexKeys<Item extends Partial<Attributes & U.IntersectOf<this['IndexKeyMap'][this['Index']]>>>(
 		itemWithIndexKeys: Item
 	) {
 		const keyMap = new Map(this.attributeKeys.map(key => [key, true]));

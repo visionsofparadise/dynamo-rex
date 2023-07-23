@@ -1,54 +1,43 @@
-export type DxQuickQueryOperators =
-	| {
-			beginsWith: string | number;
-	  }
-	| {
-			greaterThan: string | number;
-			lessThan: string | number;
-	  }
-	| {
-			greaterThan: string | number;
-	  }
-	| {
-			lessThan: string | number;
-	  }
-	| {}
-	| undefined;
+export type DxQuickQueryOperators = {
+	beginsWith?: string | number;
+	greaterThan?: string | number;
+	lessThan?: string | number;
+};
 
 export const createQueryQuickSort = (sortKey?: string | undefined, operators?: DxQuickQueryOperators) => {
 	if (operators && sortKey) {
-		if ('greaterThan' in operators && 'lessThan' in operators) {
+		if (operators.greaterThan && operators.lessThan) {
 			return {
-				KeyConditionExpression: `AND ${sortKey} BETWEEN :min AND :max`,
-				ExpressionAttributeValues: {
+				keyConditionExpression: `AND ${sortKey} BETWEEN :min AND :max`,
+				expressionAttributeValues: {
 					[`:min`]: operators.greaterThan,
 					[`:max`]: operators.lessThan
 				}
 			};
 		}
 
-		if ('lessThan' in operators) {
+		if (operators.lessThan) {
 			return {
-				KeyConditionExpression: `AND ${sortKey} < :max`,
-				ExpressionAttributeValues: {
+				keyConditionExpression: `AND ${sortKey} < :max`,
+				expressionAttributeValues: {
 					[`:max`]: operators.lessThan
 				}
 			};
 		}
 
-		if ('greaterThan' in operators) {
+		if (operators.greaterThan) {
 			return {
-				KeyConditionExpression: `AND ${sortKey} > :min`,
-				ExpressionAttributeValues: {
+				keyConditionExpression: `AND ${sortKey} > :min`,
+				expressionAttributeValues: {
 					[`:min`]: operators.greaterThan
 				}
 			};
 		}
 
-		if ('beginsWith' in operators) {
+		if (operators.beginsWith) {
 			return {
-				KeyConditionExpression: `AND begins_with(${sortKey}, :beginsWith)`,
-				ExpressionAttributeValues: {
+				keyConditionExpression: `AND begins_with(${sortKey}, :beginsWith)`,
+				expressionAttributeValues: {
 					[`:beginsWith`]: operators.beginsWith
 				}
 			};

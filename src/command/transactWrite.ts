@@ -1,151 +1,184 @@
-import { ConditionCheck, Delete, Put, TransactWriteItem, Update } from '@aws-sdk/client-dynamodb';
-import { PrimaryIndex, Table } from '../Table';
-import {
-	DxConditionExpressionParams,
-	DxReturnParams,
-	DxUpdateExpressionParams,
-	handleConditionExpressionParams,
-	handleReturnValuesOnConditionCheckFailureParam,
-	handleTableNameParam,
-	handleUpdateExpressionParams
-} from '../util/InputParams';
-import { executeMiddlewares, handleOutputMetricsMiddleware } from '../util/middleware';
-import { TransactWriteCommand, TransactWriteCommandInput } from '@aws-sdk/lib-dynamodb';
+import { TransactWriteCommand, TransactWriteCommandInput, TransactWriteCommandOutput } from '@aws-sdk/lib-dynamodb';
+import { DxCommand } from './Command';
 import { GenericAttributes } from '../Dx';
+import { LowerCaseObjectKeys, lowerCaseKeys, upperCaseKeys } from '../util/keyCapitalize';
+import { applyDefaults } from '../util/defaults';
+import { DxClientConfig } from '../Client';
+import { executeMiddlewares, executeMiddleware } from '../Middleware';
+import { ConditionCheck, Delete, Put, Update } from '@aws-sdk/client-dynamodb';
 
-export interface DxTransactConditionRequest<T extends Table = Table> {
-	condition: {
-		key: T['IndexKeyMap'][PrimaryIndex];
-	} & DxConditionExpressionParams &
-		Pick<DxReturnParams, 'returnValuesOnConditionCheckFailure'>;
+const TRANSACT_WRITE_COMMAND_INPUT_DATA_TYPE = 'TransactWriteCommandInput' as const;
+const TRANSACT_WRITE_COMMAND_INPUT_HOOK = [
+	'CommandInput',
+	'WriteCommandInput',
+	TRANSACT_WRITE_COMMAND_INPUT_DATA_TYPE
+] as const;
+
+const TRANSACT_WRITE_COMMAND_OUTPUT_DATA_TYPE = 'TransactWriteCommandOutput' as const;
+const TRANSACT_WRITE_COMMAND_OUTPUT_HOOK = [
+	'CommandOutput',
+	'WriteCommandOutput',
+	TRANSACT_WRITE_COMMAND_OUTPUT_DATA_TYPE
+] as const;
+
+export interface DxTransactWriteCommandInputConditionCheck<Key extends GenericAttributes = GenericAttributes>
+	extends LowerCaseObjectKeys<Omit<ConditionCheck, 'Key'>> {
+	type: 'conditionCheck';
+	key: Key;
 }
 
-export interface DxTransactPutRequest<T extends Table = Table> {
-	put: {
-		item: T['AttributesAndIndexKeys'];
-	} & DxConditionExpressionParams &
-		Pick<DxReturnParams, 'returnValuesOnConditionCheckFailure'>;
+export interface DxTransactWriteCommandInputPut<Attributes extends GenericAttributes = GenericAttributes>
+	extends LowerCaseObjectKeys<Omit<Put, 'Item'>> {
+	type: 'put';
+	item: Attributes;
 }
 
-export interface DxTransactUpdateRequest<T extends Table = Table> {
-	update: {
-		key: T['IndexKeyMap'][PrimaryIndex];
-	} & DxUpdateExpressionParams &
-		DxConditionExpressionParams &
-		Pick<DxReturnParams, 'returnValuesOnConditionCheckFailure'>;
+export interface DxTransactWriteCommandInputDelete<Key extends GenericAttributes = GenericAttributes>
+	extends LowerCaseObjectKeys<Omit<Delete, 'Key'>> {
+	type: 'delete';
+	key: Key;
 }
 
-export interface DxTransactDeleteRequest<T extends Table = Table> {
-	delete: {
-		key: T['IndexKeyMap'][PrimaryIndex];
-	} & DxConditionExpressionParams &
-		Pick<DxReturnParams, 'returnValuesOnConditionCheckFailure'>;
+export interface DxTransactWriteCommandInputUpdate<Key extends GenericAttributes = GenericAttributes>
+	extends LowerCaseObjectKeys<Omit<Update, 'Key'>> {
+	type: 'update';
+	key: Key;
 }
 
-export interface DxTransactWriteInput
-	extends Pick<DxReturnParams, 'returnConsumedCapacity' | 'returnItemCollectionMetrics'> {
-	clientRequestToken?: string;
+export interface DxTransactWriteCommandInput<
+	Attributes extends GenericAttributes = GenericAttributes,
+	Key extends GenericAttributes = GenericAttributes
+> extends LowerCaseObjectKeys<Omit<TransactWriteCommandInput, 'RequestItems'>> {
+	transactItems: Array<
+		| DxTransactWriteCommandInputConditionCheck<Key>
+		| DxTransactWriteCommandInputPut<Attributes>
+		| DxTransactWriteCommandInputDelete<Key>
+		| DxTransactWriteCommandInputUpdate<Key>
+	>;
 }
 
-export interface DxTransactWriteCommandInput<Attributes extends GenericAttributes = GenericAttributes>
-	extends Omit<TransactWriteCommandInput, 'TransactItems'> {
-	TransactItems:
-		| (Omit<TransactWriteItem, 'ConditionCheck' | 'Put' | 'Delete' | 'Update'> & {
-				ConditionCheck?: Omit<ConditionCheck, 'Key' | 'ExpressionAttributeValues'> & {
-					Key: GenericAttributes | undefined;
-					ExpressionAttributeValues?: GenericAttributes;
-				};
-				Put?: Omit<Put, 'Item' | 'ExpressionAttributeValues'> & {
-					Item: Attributes;
-					ExpressionAttributeValues?: GenericAttributes;
-				};
-				Delete?: Omit<Delete, 'Key' | 'ExpressionAttributeValues'> & {
-					Key: GenericAttributes | undefined;
-					ExpressionAttributeValues?: GenericAttributes;
-				};
-				Update?: Omit<Update, 'Key' | 'ExpressionAttributeValues'> & {
-					Key: GenericAttributes | undefined;
-					ExpressionAttributeValues?: GenericAttributes;
-				};
-		  })[]
-		| undefined;
-}
+export interface DxTransactWriteCommandOutput extends LowerCaseObjectKeys<TransactWriteCommandOutput> {}
 
-export type DxTransactWriteOutput = void;
+export class DxTransactWriteCommand<
+	Attributes extends GenericAttributes = GenericAttributes,
+	Key extends GenericAttributes = GenericAttributes
+> extends DxCommand<
+	typeof TRANSACT_WRITE_COMMAND_INPUT_DATA_TYPE,
+	(typeof TRANSACT_WRITE_COMMAND_INPUT_HOOK)[number],
+	DxTransactWriteCommandInput<Attributes, Key>,
+	TransactWriteCommandInput,
+	typeof TRANSACT_WRITE_COMMAND_OUTPUT_DATA_TYPE,
+	(typeof TRANSACT_WRITE_COMMAND_OUTPUT_HOOK)[number],
+	DxTransactWriteCommandOutput,
+	TransactWriteCommandOutput
+> {
+	constructor(input: DxTransactWriteCommandInput<Attributes, Key>) {
+		super(input);
+	}
 
-export const dxTransactWrite = async <T extends Table = Table>(
-	Table: T,
-	requests: Array<
-		DxTransactConditionRequest<T> | DxTransactPutRequest<T> | DxTransactUpdateRequest<T> | DxTransactDeleteRequest<T>
-	>,
-	input?: DxTransactWriteInput
-): Promise<DxTransactWriteOutput> => {
-	const baseCommandInput: DxTransactWriteCommandInput<T['AttributesAndIndexKeys']> = {
-		TransactItems: requests.map(request => {
-			if ('condition' in request) {
-				return {
-					ConditionCheck: {
-						...handleTableNameParam(Table),
-						Key: request.condition.key,
-						...handleConditionExpressionParams(request.condition),
-						...handleReturnValuesOnConditionCheckFailureParam(Table)
-					}
-				};
-			}
-
-			if ('put' in request) {
-				return {
-					Put: {
-						...handleTableNameParam(Table),
-						Item: request.put.item,
-						...handleConditionExpressionParams(request.put),
-						...handleReturnValuesOnConditionCheckFailureParam(Table)
-					}
-				};
-			}
-
-			if ('update' in request) {
-				return {
-					Update: {
-						...handleTableNameParam(Table),
-						Key: request.update.key,
-						...handleUpdateExpressionParams(request.update),
-						...handleConditionExpressionParams(request.update),
-						...handleReturnValuesOnConditionCheckFailureParam(Table)
-					}
-				};
-			}
-
-			return {
-				Delete: {
-					...handleTableNameParam(Table),
-					Key: request.delete.key,
-					...handleConditionExpressionParams(request.delete),
-					...handleReturnValuesOnConditionCheckFailureParam(Table)
-				}
-			};
-		}),
-		ReturnItemCollectionMetrics: input?.returnItemCollectionMetrics || Table.defaults?.returnItemCollectionMetrics,
-		ReturnConsumedCapacity: input?.returnConsumedCapacity || Table.defaults?.returnConsumedCapacity
+	inputMiddlewareConfig = {
+		dataType: TRANSACT_WRITE_COMMAND_INPUT_DATA_TYPE,
+		hooks: TRANSACT_WRITE_COMMAND_INPUT_HOOK
+	};
+	outputMiddlewareConfig = {
+		dataType: TRANSACT_WRITE_COMMAND_OUTPUT_DATA_TYPE,
+		hooks: TRANSACT_WRITE_COMMAND_OUTPUT_HOOK
 	};
 
-	const transactWriteCommandInput = await executeMiddlewares(
-		['CommandInput', 'WriteCommandInput', 'TransactWriteCommandInput'],
-		{ type: 'TransactWriteCommandInput', data: baseCommandInput },
-		Table.middleware
-	).then(output => output.data);
+	handleInput = async ({ defaults, middleware }: DxClientConfig): Promise<TransactWriteCommandInput> => {
+		const postDefaultsInput = applyDefaults(this.input, defaults, [
+			'returnConsumedCapacity',
+			'returnItemCollectionMetrics'
+		]);
 
-	const transactWriteCommandOutput = await Table.client.send(new TransactWriteCommand(transactWriteCommandInput));
+		const { data: postMiddlewareInput } = await executeMiddlewares(
+			[...this.inputMiddlewareConfig.hooks],
+			{
+				dataType: this.inputMiddlewareConfig.dataType,
+				data: postDefaultsInput
+			},
+			middleware
+		);
 
-	const output = await executeMiddlewares(
-		['CommandOutput', 'WriteCommandOutput', 'TransactWriteCommandOutput'],
-		{ type: 'TransactWriteCommandOutput', data: transactWriteCommandOutput },
-		Table.middleware
-	).then(output => output.data);
+		const { transactItems, ...rest } = postMiddlewareInput;
 
-	const { ItemCollectionMetrics, ConsumedCapacity } = output;
+		const formattedInput = {
+			transactItems: transactItems.map(request => {
+				if (request.type === 'conditionCheck') {
+					return {
+						ConditionCheck: upperCaseKeys(request)
+					};
+				}
 
-	await handleOutputMetricsMiddleware({ ItemCollectionMetrics, ConsumedCapacity }, Table.middleware);
+				if (request.type === 'put') {
+					return {
+						Put: upperCaseKeys(request)
+					};
+				}
 
-	return;
-};
+				if (request.type === 'delete') {
+					return {
+						Delete: upperCaseKeys(request)
+					};
+				}
+
+				if (request.type === 'update') {
+					return {
+						Update: upperCaseKeys(request)
+					};
+				}
+
+				return {};
+			}),
+			...rest
+		};
+
+		const upperCaseInput = upperCaseKeys(formattedInput);
+
+		return upperCaseInput;
+	};
+
+	handleOutput = async (
+		output: TransactWriteCommandOutput,
+		{ middleware }: DxClientConfig
+	): Promise<DxTransactWriteCommandOutput> => {
+		const lowerCaseOutput = lowerCaseKeys(output);
+
+		const { data: postMiddlewareOutput } = await executeMiddlewares(
+			[...this.outputMiddlewareConfig.hooks],
+			{
+				dataType: this.outputMiddlewareConfig.dataType,
+				data: lowerCaseOutput
+			},
+			middleware
+		);
+
+		if (postMiddlewareOutput.consumedCapacity) {
+			for (const consumedCapacity of postMiddlewareOutput.consumedCapacity) {
+				await executeMiddleware(
+					'ConsumedCapacity',
+					{ dataType: 'ConsumedCapacity', data: consumedCapacity },
+					middleware
+				);
+			}
+		}
+
+		if (postMiddlewareOutput.itemCollectionMetrics) {
+			await executeMiddleware(
+				'ItemCollectionMetrics',
+				{ dataType: 'ItemCollectionMetrics', data: postMiddlewareOutput.itemCollectionMetrics },
+				middleware
+			);
+		}
+
+		return postMiddlewareOutput;
+	};
+
+	send = async (clientConfig: DxClientConfig) => {
+		const input = await this.handleInput(clientConfig);
+
+		const output = await clientConfig.client.send(new TransactWriteCommand(input));
+
+		return this.handleOutput(output, clientConfig);
+	};
+}

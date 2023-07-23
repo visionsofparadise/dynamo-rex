@@ -1,29 +1,28 @@
-import { DxMiddleware, DxMiddlewareHook } from './middleware';
+import { DxMiddlewareHandler } from '../Middleware';
 import { GenericAttributes } from '../Dx';
+import { DxCommandGenericData } from '../command/Command';
 
 export const dxSetAttributeOnWriteMiddleware = <Attributes extends GenericAttributes = GenericAttributes>(
 	key: string & keyof Attributes,
 	setter: () => number
-): Array<DxMiddleware<DxMiddlewareHook, Attributes>> => [
-	{
+): Array<DxMiddlewareHandler> => {
+	const batchWriteHandler: DxMiddlewareHandler<
+		'BatchWriteCommandInput',
+		DxCommandGenericData & { Attributes: Attributes }
+	> = {
 		hook: 'BatchWriteCommandInput',
 		handler: ({ data: batchWriteCommandInput }) => {
-			if (!batchWriteCommandInput.RequestItems) return;
-
 			return {
 				...batchWriteCommandInput,
-				RequestItems: Object.fromEntries(
-					Object.entries(batchWriteCommandInput.RequestItems).map(([tableName, requests]) => [
+				requestItems: Object.fromEntries(
+					Object.entries(batchWriteCommandInput.requestItems).map(([tableName, requests]) => [
 						tableName,
 						requests.map(request => {
-							if (request.PutRequest) {
+							if ('put' in request) {
 								return {
-									PutRequest: {
-										...request.PutRequest,
-										Item: {
-											...request.PutRequest.Item,
-											[key]: setter()
-										}
+									put: {
+										...request.put,
+										[key]: setter()
 									}
 								};
 							}
@@ -34,71 +33,80 @@ export const dxSetAttributeOnWriteMiddleware = <Attributes extends GenericAttrib
 				)
 			};
 		}
-	},
-	{
+	};
+
+	const putHandler: DxMiddlewareHandler<'PutCommandInput', DxCommandGenericData & { Attributes: Attributes }> = {
 		hook: 'PutCommandInput',
 		handler: ({ data: putCommandInput }) => {
-			if (!putCommandInput.Item) return;
-
 			return {
 				...putCommandInput,
-				Item: {
-					...putCommandInput.Item,
+				item: {
+					...putCommandInput.item,
 					[key]: setter()
 				}
 			};
 		}
-	},
-	{
+	};
+
+	const transactWriteHandler: DxMiddlewareHandler<
+		'TransactWriteCommandInput',
+		DxCommandGenericData & { Attributes: Attributes }
+	> = {
 		hook: 'TransactWriteCommandInput',
 		handler: ({ data: transactWriteCommandInput }) => {
-			if (!transactWriteCommandInput.TransactItems) return;
-
 			return {
 				...transactWriteCommandInput,
-				TransactItems: Object.fromEntries(
-					Object.entries(transactWriteCommandInput.TransactItems).map(([tableName, transaction]) => [
-						tableName,
-						{
-							...transaction,
-							Put: transaction.Put
-								? {
-										...transaction.Put,
-										Item: {
-											...transaction.Put.Item,
-											[key]: setter()
-										}
-								  }
-								: undefined,
-							Update: transaction.Update
-								? {
-										...transaction.Update,
-										UpdateExpression: transaction.Update.UpdateExpression + `, ${key} = :${key}`,
-										ExpressionAttributeValues: {
-											...transaction.Update.ExpressionAttributeValues,
-											[`:${key}`]: setter()
-										}
-								  }
-								: undefined
+				transactItems: Object.fromEntries(
+					Object.entries(transactWriteCommandInput.transactItems).map(([tableName, transaction]) => {
+						if (transaction.type === 'put') {
+							return [
+								tableName,
+								{
+									...transaction,
+									item: {
+										...transaction.item,
+										[key]: setter()
+									}
+								}
+							];
 						}
-					])
+
+						if (transaction.type === 'update') {
+							return [
+								tableName,
+								{
+									...transaction,
+									updateExpression: transaction.updateExpression + `, ${key} = :${key}`,
+									expressionAttributeValues: {
+										...transaction.expressionAttributeValues,
+										[`:${key}`]: setter()
+									}
+								}
+							];
+						}
+
+						return [tableName, transaction];
+					})
 				)
 			};
 		}
-	} as DxMiddleware<'TransactWriteCommandInput', Attributes>,
-	{
+	};
+
+	const updateHandler: DxMiddlewareHandler<'UpdateCommandInput', DxCommandGenericData & { Attributes: Attributes }> = {
 		hook: 'UpdateCommandInput',
 		handler: ({ data: updateCommandInput }) => {
-			if (!updateCommandInput.UpdateExpression!.startsWith('SET')) return;
+			if (!updateCommandInput.updateExpression!.startsWith('SET')) return;
 
 			return {
 				...updateCommandInput,
-				UpdateExpression: updateCommandInput.UpdateExpression + `, ${key} = :${key}`,
-				ExpressionAttributeValues: {
-					...updateCommandInput.ExpressionAttributeValues,
+				updateExpression: updateCommandInput.updateExpression + `, ${key} = :${key}`,
+				expressionAttributeValues: {
+					...updateCommandInput.expressionAttributeValues,
 					[`:${key}`]: setter()
 				}
 			};
 		}
-	}
-];
+	};
+
+	return [batchWriteHandler, putHandler, transactWriteHandler, updateHandler] as any;
+};

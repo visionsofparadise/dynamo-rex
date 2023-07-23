@@ -1,7 +1,7 @@
 import { TestTable1 } from '../TableTest.dev';
 import { setTimeout } from 'timers/promises';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { dxBatchWrite } from './batchWrite';
+import { dxTableBatchWrite } from './batchWrite';
 import { dxReset } from './reset';
 import { arrayOfLength, randomString } from '../util/utils';
 
@@ -25,7 +25,7 @@ it('it puts 50 items', async () => {
 	for (const item of items) {
 		await TestTable1.client.send(
 			new PutCommand({
-				TableName: TestTable1.config.name,
+				TableName: TestTable1.tableName,
 				Item: item
 			})
 		);
@@ -38,14 +38,14 @@ it('it puts 50 items', async () => {
 		testString: randomString()
 	}));
 
-	const result = await dxBatchWrite(
+	const result = await dxTableBatchWrite(
 		TestTable1,
 		updatedItems.map(item => {
 			return { put: item };
 		})
 	);
 
-	expect(result.unprocessedRequests.length).toBe(0);
+	expect(result.unprocessedItems?.length).toBe(0);
 });
 
 it('it deletes 50 items', async () => {
@@ -66,7 +66,7 @@ it('it deletes 50 items', async () => {
 	for (const item of items) {
 		await TestTable1.client.send(
 			new PutCommand({
-				TableName: TestTable1.config.name,
+				TableName: TestTable1.tableName,
 				Item: item
 			})
 		);
@@ -79,12 +79,12 @@ it('it deletes 50 items', async () => {
 		testString: randomString()
 	}));
 
-	const result = await dxBatchWrite(
+	const result = await dxTableBatchWrite(
 		TestTable1,
 		updatedItems.map(({ pk, sk }) => {
 			return { delete: { pk, sk } };
 		})
 	);
 
-	expect(result.unprocessedRequests.length).toBe(0);
+	expect(result.unprocessedItems?.length).toBe(0);
 });
