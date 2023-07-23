@@ -1,5 +1,5 @@
 import { A } from 'ts-toolbelt';
-import { ITestItem2, TestItem2KeySpace } from './KeySpaceTest.dev';
+import { ITestItem2, TestItem2KeySpace, TestItem4KeySpace, TestItem5KeySpace } from './KeySpaceTest.dev';
 
 const testString = 'test';
 const testNumber = 1;
@@ -149,4 +149,16 @@ it('omits index keys', () => {
 	expect(check).toBe(1);
 
 	expect(Object.keys(omitIndexKeys).length).toBe(1);
+});
+
+it('combines params without never', () => {
+	const check: A.Equals<Parameters<typeof TestItem4KeySpace.keyOf>[0], { testString: string }> = 1;
+
+	expect(check).toBe(1);
+});
+
+it('combines params without never', () => {
+	const check: A.Equals<Parameters<typeof TestItem5KeySpace.keyOf>[0], {}> = 1;
+
+	expect(check).toBe(1);
 });

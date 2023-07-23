@@ -73,3 +73,21 @@ export const TestItem3KeySpace = new TestTable1.KeySpace<ITestItem2>().configure
 		}
 	}
 });
+
+export const TestItem4KeySpace = new TestTable1.KeySpace<ITestItem2>().configure({
+	indexValueHandlers: {
+		primaryIndex: {
+			pk: () => `test`,
+			sk: (params: Pick<ITestItem2, 'testString'>) => `test-${params.testString}`
+		}
+	}
+});
+
+export const TestItem5KeySpace = new TestTable1.KeySpace<ITestItem2>().configure({
+	indexValueHandlers: {
+		primaryIndex: {
+			pk: () => `test`,
+			sk: () => `test`
+		}
+	}
+});

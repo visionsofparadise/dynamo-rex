@@ -9,7 +9,7 @@ import { DxClient } from './Client';
 
 export namespace KeySpace {
 	export type GetKeyParams<K extends AnyKeySpace, Index extends K['Index']> = U.IntersectOf<
-		K['IndexKeyValueParamsMap'][Index]
+		Exclude<K['IndexKeyValueParamsMap'][Index], never>
 	>;
 }
 
@@ -96,7 +96,9 @@ export class KeySpace<
 	};
 
 	IndexKeyValueParamsMap!: {
-		[x in this['Index']]: {} & U.IntersectOf<this['IndexValueParamsMap'][x][keyof this['IndexValueParamsMap'][x]]>;
+		[x in this['Index']]: {} & U.IntersectOf<
+			Exclude<this['IndexValueParamsMap'][x][keyof this['IndexValueParamsMap'][x]], undefined>
+		>;
 	};
 
 	IndexHashKeyValueParamsMap!: {
