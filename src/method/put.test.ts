@@ -2,11 +2,11 @@ import { dxPut } from './put';
 import { TestItem1KeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
 import { randomNumber, randomString } from '../util/utils';
-import { dxReset } from './reset';
+import { dxTableReset } from './reset';
 import { TestTable1 } from '../TableTest.dev';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
 
-beforeEach(() => dxReset(TestTable1));
+beforeEach(() => dxTableReset(TestTable1));
 
 it('puts new item', async () => {
 	const item = {

@@ -2,10 +2,10 @@ import { TestTable1 } from '../TableTest.dev';
 import { setTimeout } from 'timers/promises';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { dxTableBatchWrite } from './batchWrite';
-import { dxReset } from './reset';
+import { dxTableReset } from './reset';
 import { arrayOfLength, randomString } from '../util/utils';
 
-beforeEach(() => dxReset(TestTable1));
+beforeEach(() => dxTableReset(TestTable1));
 
 it('it puts 50 items', async () => {
 	jest.useRealTimers();

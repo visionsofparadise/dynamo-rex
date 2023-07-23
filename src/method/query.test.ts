@@ -2,12 +2,12 @@ import { TestTable1 } from '../TableTest.dev';
 import { setTimeout } from 'timers/promises';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { dxQuery } from './query';
-import { dxReset } from './reset';
+import { dxTableReset } from './reset';
 import { ITestItem1, TestItem1KeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
 import { randomString } from '../util/utils';
 
-beforeEach(() => dxReset(TestTable1));
+beforeEach(() => dxTableReset(TestTable1));
 
 it('query returns list of items', async () => {
 	jest.useRealTimers();

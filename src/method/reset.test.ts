@@ -1,11 +1,11 @@
-import { dxScan } from './scan';
+import { dxTableScan } from './scan';
 import { TestTable1 } from '../TableTest.dev';
 import { setTimeout } from 'timers/promises';
-import { dxReset } from './reset';
+import { dxTableReset } from './reset';
 import { randomNumber, randomString } from '../util/utils';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 
-beforeEach(() => dxReset(TestTable1));
+beforeEach(() => dxTableReset(TestTable1));
 
 it('reset deletes all items', async () => {
 	jest.useRealTimers();
@@ -31,13 +31,13 @@ it('reset deletes all items', async () => {
 
 	await setTimeout(1000);
 
-	const beforeReset = await dxScan(TestTable1);
+	const beforeReset = await dxTableScan(TestTable1);
 
 	expect(beforeReset.items.length).toBe(10);
 
-	await dxReset(TestTable1);
+	await dxTableReset(TestTable1);
 
-	const result = await dxScan(TestTable1);
+	const result = await dxTableScan(TestTable1);
 
 	expect(result.items.length).toBe(0);
 });

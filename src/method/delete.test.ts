@@ -4,10 +4,10 @@ import { randomNumber, randomString } from '../util/utils';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { TestItem1KeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
-import { dxReset } from './reset';
+import { dxTableReset } from './reset';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
 
-beforeEach(() => dxReset(TestTable1));
+beforeEach(() => dxTableReset(TestTable1));
 
 it('deletes an existing item', async () => {
 	const testString = randomString();

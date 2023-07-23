@@ -2,11 +2,11 @@ import { IBaseItem, TestTable1 } from '../TableTest.dev';
 import { setTimeout } from 'timers/promises';
 import { randomNumber, randomString } from '../util/utils';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { dxScan } from './scan';
-import { dxReset } from './reset';
+import { dxTableScan } from './scan';
+import { dxTableReset } from './reset';
 import { A } from 'ts-toolbelt';
 
-beforeEach(() => dxReset(TestTable1));
+beforeEach(() => dxTableReset(TestTable1));
 
 it('scan returns list of items', async () => {
 	jest.useRealTimers();
@@ -32,7 +32,7 @@ it('scan returns list of items', async () => {
 
 	await setTimeout(1000);
 
-	const result = await dxScan(TestTable1);
+	const result = await dxTableScan(TestTable1);
 
 	const cursorTypeCheck: A.Equals<(typeof result)['cursorKey'], ({ pk: string } & { sk: string }) | undefined> = 1;
 
@@ -82,7 +82,7 @@ it('scan on index returns list of items', async () => {
 
 	await setTimeout(1000);
 
-	const result = await dxScan(TestTable1, {
+	const result = await dxTableScan(TestTable1, {
 		index: 'gsi0'
 	});
 
@@ -120,14 +120,14 @@ it('limits and pages correctly', async () => {
 
 	await setTimeout(1000);
 
-	const result = await dxScan(TestTable1, {
+	const result = await dxTableScan(TestTable1, {
 		pageLimit: 5
 	});
 
 	expect(result.items.length).toBe(5);
 	expect(result.cursorKey).toBeDefined();
 
-	const result2 = await dxScan(TestTable1, {
+	const result2 = await dxTableScan(TestTable1, {
 		cursorKey: result.cursorKey
 	});
 

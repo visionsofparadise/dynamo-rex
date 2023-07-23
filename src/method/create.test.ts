@@ -1,10 +1,10 @@
 import { dxCreate } from './create';
-import { dxReset } from './reset';
+import { dxTableReset } from './reset';
 import { TestItem1KeySpace } from '../KeySpaceTest.dev';
 import { randomNumber, randomString } from '../util/utils';
 import { TestTable1 } from '../TableTest.dev';
 
-beforeEach(() => dxReset(TestTable1));
+beforeEach(() => dxTableReset(TestTable1));
 
 it('creates new item', async () => {
 	const item = {

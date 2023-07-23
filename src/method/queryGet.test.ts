@@ -3,11 +3,11 @@ import { dxQueryGet } from './queryGet';
 import { TestTable1 } from '../TableTest.dev';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { randomNumber, randomString } from '../util/utils';
-import { dxReset } from './reset';
+import { dxTableReset } from './reset';
 import { A } from 'ts-toolbelt';
 import { setTimeout } from 'timers/promises';
 
-beforeEach(() => dxReset(TestTable1));
+beforeEach(() => dxTableReset(TestTable1));
 
 it('gets a put item', async () => {
 	const testString = randomString();
