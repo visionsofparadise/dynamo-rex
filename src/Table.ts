@@ -12,23 +12,20 @@ export type PrimaryIndex = typeof primaryIndex;
 export namespace Table {
 	export type GetIndexKeyFromConfig<
 		Config extends PrimaryIndexConfig | SecondaryIndexConfig = PrimaryIndexConfig | SecondaryIndexConfig
-	> = A.Compute<
-		U.IntersectOf<
-			| {
-					[x in Config['hash']['key']]: IndexAttributeValueToType<Config['hash']['value']>;
-			  }
-			| (Config['sort'] extends IndexAttributeConfig
-					? { [x in Config['sort']['key']]: IndexAttributeValueToType<Config['sort']['value']> }
-					: {})
-		>,
-		'flat'
+	> = U.IntersectOf<
+		| {
+				[x in Config['hash']['key']]: IndexAttributeValueToType<Config['hash']['value']>;
+		  }
+		| (Config['sort'] extends IndexAttributeConfig
+				? { [x in Config['sort']['key']]: IndexAttributeValueToType<Config['sort']['value']> }
+				: {})
 	>;
 
 	export type GetIndexKey<T extends Table, Index extends T['Index'] = T['Index']> = T['IndexKeyMap'][Index];
 
-	export type GetIndexCursorKey<T extends Table, Index extends T['SecondaryIndex']> = A.Compute<
-		A.Cast<U.IntersectOf<GetIndexKey<T, Exclude<PrimaryIndex | Index, never>>>, {}>,
-		'flat'
+	export type GetIndexCursorKey<T extends Table, Index extends T['SecondaryIndex']> = A.Cast<
+		U.IntersectOf<GetIndexKey<T, Exclude<PrimaryIndex | Index, never>>>,
+		{}
 	>;
 }
 
@@ -163,18 +160,15 @@ export class Table<
 		[x in this['Index']]: Table.GetIndexKeyFromConfig<Config['indexes'][x]>;
 	};
 
-	AttributesAndIndexKeys!: A.Compute<
-		Attributes &
-			this['IndexKeyMap'][PrimaryIndex] &
-			Partial<U.IntersectOf<this['IndexKeyMap'][this['SecondaryIndex']]>>,
-		'flat'
-	>;
+	AttributesAndIndexKeys!: Attributes &
+		this['IndexKeyMap'][PrimaryIndex] &
+		Partial<U.IntersectOf<this['IndexKeyMap'][this['SecondaryIndex']]>>;
 
-	get indexes() {
-		return Object.keys(this.config.indexes) as Array<string & keyof Config['indexes']>;
+	get indexes(): Array<this['Index']> {
+		return Object.keys(this.config.indexes) as Array<this['Index']>;
 	}
 
-	get attributeKeys() {
+	get attributeKeys(): Array<AttributeKey> {
 		return this.indexes.flatMap(index => {
 			const indexConfig = this.config.indexes[index];
 
@@ -184,7 +178,7 @@ export class Table<
 
 	omitIndexKeys<Item extends Partial<Attributes & U.IntersectOf<this['IndexKeyMap'][this['Index']]>>>(
 		itemWithIndexKeys: Item
-	) {
+	): Omit<Item, AttributeKey> {
 		const keyMap = new Map(this.attributeKeys.map(key => [key, true]));
 
 		return Object.fromEntries(Object.entries(itemWithIndexKeys).filter(([key]) => !keyMap.has(key as any))) as Omit<

@@ -102,11 +102,11 @@ export class KeySpace<
 		[x in this['Index']]: this['IndexValueParamsMap'][x][ParentTable['config']['indexes'][x]['hash']['key']];
 	};
 
-	get indexes() {
+	get indexes(): Array<this['Index']> {
 		return Object.keys(this.indexValueHandlers) as Array<this['Index']>;
 	}
 
-	indexAttributeKeys<Index extends this['Index']>(index: Index) {
+	indexAttributeKeys<Index extends this['Index']>(index: Index): Array<string & keyof IndexValueHandlers[Index]> {
 		return Object.keys(this.indexValueHandlers[index]) as Array<string & keyof IndexValueHandlers[Index]>;
 	}
 
@@ -124,43 +124,42 @@ export class KeySpace<
 		return this.indexValueHandlers[index][key](params) as ReturnType<this['config']['indexValueHandlers'][Index][Key]>;
 	}
 
-	keyOf(
-		params: A.Compute<this['IndexKeyValueParamsMap'][PrimaryIndex], 'flat'>
-	): A.Compute<this['IndexKeyMap'][PrimaryIndex], 'flat'> {
+	keyOf(params: this['IndexKeyValueParamsMap'][PrimaryIndex]): this['IndexKeyMap'][PrimaryIndex] {
 		return this.indexKeyOf(primaryIndex, params);
 	}
 
 	indexKeyOf<Index extends this['Index']>(
 		index: Index,
-		params: A.Compute<this['IndexKeyValueParamsMap'][Index], 'flat'>
-	) {
+		params: this['IndexKeyValueParamsMap'][Index]
+	): this['IndexKeyMap'][Index] {
 		const keys = this.indexAttributeKeys(index);
 
 		const values = keys.map(key => this.indexAttributeValue(index, key, params as any));
 
-		return zipObject(keys, values) as unknown as A.Compute<this['IndexKeyMap'][Index], 'flat'>;
+		return zipObject(keys, values) as unknown as this['IndexKeyMap'][Index];
 	}
 
-	indexKeysOf(params: A.Cast<U.IntersectOf<this['IndexKeyValueParamsMap'][this['Index']]>, {}>) {
+	indexKeysOf(
+		params: A.Cast<U.IntersectOf<this['IndexKeyValueParamsMap'][this['Index']]>, {}>
+	): A.Cast<U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>, {}> {
 		return this.indexes.reduce(
 			(currentIndexKeys, index) => ({
 				...currentIndexKeys,
-				...this.indexKeyOf(index, params as A.Compute<this['IndexKeyValueParamsMap'][typeof index], 'flat'>)
+				...this.indexKeyOf(index, params as this['IndexKeyValueParamsMap'][typeof index])
 			}),
 			{}
-		) as A.Compute<A.Cast<U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>, {}>, 'flat'>;
+		) as A.Cast<U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>, {}>;
 	}
 
-	withIndexKeys<Item extends A.Cast<U.IntersectOf<this['IndexKeyValueParamsMap'][this['Index']]>, {}>>(item: Item) {
-		return { ...item, ...this.indexKeysOf(item) } as A.Compute<
-			Item & U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>,
-			'flat'
-		>;
+	withIndexKeys<Item extends A.Cast<U.IntersectOf<this['IndexKeyValueParamsMap'][this['Index']]>, {}>>(
+		item: Item
+	): Item & A.Cast<U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>, {}> {
+		return { ...item, ...this.indexKeysOf(item) };
 	}
 
 	omitIndexKeys<Item extends Partial<Attributes & U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>>>(
 		itemWithIndexKeys: Item
-	) {
+	): Omit<Item, keyof U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>> {
 		const keyMap = new Map(this.attributeKeys.map(key => [key, true]));
 
 		return Object.fromEntries(Object.entries(itemWithIndexKeys).filter(([key]) => !keyMap.has(key as any))) as Omit<

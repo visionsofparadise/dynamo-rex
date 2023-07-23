@@ -4,7 +4,7 @@ import { randomNumber, randomString } from '../util/utils';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { dxTableScan } from './scan';
 import { dxTableReset } from './reset';
-import { A, O } from 'ts-toolbelt';
+import { A } from 'ts-toolbelt';
 
 beforeEach(() => dxTableReset(TestTable1));
 
@@ -34,30 +34,20 @@ it('scan returns list of items', async () => {
 
 	const result = await dxTableScan(TestTable1);
 
-	const cursorTypeCheck: A.Equals<(typeof result)['cursorKey'], { pk: string; sk: string } | undefined> = 1;
+	const cursorTypeCheck: A.Equals<(typeof result)['cursorKey'], ({ pk: string } & { sk: string }) | undefined> = 1;
 
 	expect(cursorTypeCheck).toBe(1);
 
 	const itemsTypeCheck: A.Equals<
 		(typeof result)['items'],
 		Array<
-			O.Merge<
-				IBaseItem,
-				{
-					pk: string;
-					sk: string;
-					gsi0Pk?: string;
-					gsi0Sk?: string;
-					gsi1Pk?: number;
-					gsi1Sk?: number | undefined;
-					gsi2Pk?: string;
-					gsi2Sk?: number;
-					gsi3Pk?: number;
-					gsi3Sk?: string | undefined;
-					gsi4Pk?: string;
-					gsi5Pk?: number;
-				}
-			>
+			IBaseItem & { pk: string } & { sk: string } & Partial<
+					{ gsi0Pk: string } & { gsi0Sk: string } & { gsi1Pk: number } & { gsi1Sk: number | undefined } & {
+						gsi2Pk: string;
+					} & { gsi2Sk: number } & { gsi3Pk: number } & { gsi3Sk: string | undefined } & { gsi4Pk: string } & {
+						gsi5Pk: number;
+					}
+				>
 		>
 	> = 1;
 
@@ -98,7 +88,7 @@ it('scan on index returns list of items', async () => {
 
 	const cursorTypeCheck: A.Equals<
 		(typeof result)['cursorKey'],
-		{ pk: string; sk: string; gsi0Pk: string; gsi0Sk: string } | undefined
+		({ pk: string } & { sk: string } & { gsi0Pk: string } & { gsi0Sk: string }) | undefined
 	> = 1;
 
 	expect(cursorTypeCheck).toBe(1);
