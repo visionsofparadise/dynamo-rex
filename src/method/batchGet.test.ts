@@ -10,17 +10,19 @@ beforeEach(() => dxTableReset(TestTable1));
 it('it gets 120 items', async () => {
 	jest.useRealTimers();
 
-	const items = arrayOfLength(120).map(() => {
-		const testString = randomString();
-		const testNumber = 1;
+	const items: Array<{ pk: string; sk: string; testString: string; testNumber: number }> = arrayOfLength(120).map(
+		() => {
+			const testString = randomString();
+			const testNumber = 1;
 
-		return {
-			pk: `test-${testNumber}`,
-			sk: `test-${testString}`,
-			testString,
-			testNumber
-		};
-	});
+			return {
+				pk: `test-${testNumber}`,
+				sk: `test-${testString}`,
+				testString,
+				testNumber
+			};
+		}
+	);
 
 	for (const item of items) {
 		await TestTable1.client.send(

@@ -61,7 +61,10 @@ export const dxQueryQuick = async <
 	input: DxQueryQuickInput<
 		Index,
 		Table.GetIndexCursorKey<K['Table'], Index>,
-		{} & K['IndexHashKeyValueParamsMap'][Index extends never | undefined ? PrimaryIndex : Index]
+		{} & Exclude<
+			K['IndexHashKeyValueParamsMap'][Index extends never | undefined ? PrimaryIndex : Index],
+			never | undefined
+		>
 	>
 ): Promise<DxQueryQuickOutput<K['Attributes'], Table.GetIndexCursorKey<K['Table'], Index>>> => {
 	const index = input.index || primaryIndex;

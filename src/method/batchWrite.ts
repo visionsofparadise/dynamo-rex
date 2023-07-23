@@ -16,10 +16,7 @@ export interface DxBatchWriteOutput<
 
 export const dxTableBatchWrite = async <T extends Table = Table>(
 	Table: T,
-	requests: DxBatchWriteCommandInput<
-		T['AttributesAndIndexKeys'],
-		T['IndexKeyMap'][T['PrimaryIndex']]
-	>['requestItems'][string],
+	requests: Array<{ put: T['AttributesAndIndexKeys'] } | { delete: T['IndexKeyMap'][T['PrimaryIndex']] }>,
 	input?: DxBatchWriteInput
 ): Promise<DxBatchWriteOutput<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']]>> => {
 	const pageLimit = input?.pageLimit ? Math.min(input.pageLimit, 25) : 25;

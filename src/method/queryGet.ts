@@ -10,7 +10,7 @@ export type DxQueryGetOutput<Attributes extends GenericAttributes = GenericAttri
 
 export const dxTableQueryGet = async <T extends Table = Table, Index extends T['Index'] | never = never>(
 	Table: T,
-	index: T['Index'],
+	index: Index,
 	key: T['IndexKeyMap'][Index],
 	input?: DxQueryGetInput
 ): Promise<DxQueryGetOutput<T['AttributesAndIndexKeys']>> => {

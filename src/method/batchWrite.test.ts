@@ -10,7 +10,7 @@ beforeEach(() => dxTableReset(TestTable1));
 it('it puts 50 items', async () => {
 	jest.useRealTimers();
 
-	const items = arrayOfLength(50).map(() => {
+	const items: Array<{ pk: string; sk: string; testString: string; testNumber: number }> = arrayOfLength(50).map(() => {
 		const testString = randomString();
 		const testNumber = 1;
 
@@ -38,6 +38,8 @@ it('it puts 50 items', async () => {
 		testString: randomString()
 	}));
 
+	TestTable1.AttributesAndIndexKeys;
+
 	const result = await dxTableBatchWrite(
 		TestTable1,
 		updatedItems.map(item => {
@@ -51,7 +53,7 @@ it('it puts 50 items', async () => {
 it('it deletes 50 items', async () => {
 	jest.useRealTimers();
 
-	const items = arrayOfLength(50).map(() => {
+	const items: Array<{ pk: string; sk: string; testString: string; testNumber: number }> = arrayOfLength(50).map(() => {
 		const testString = randomString();
 		const testNumber = 1;
 

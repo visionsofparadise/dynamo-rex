@@ -1,4 +1,4 @@
-import { A } from 'ts-toolbelt';
+import { A, O } from 'ts-toolbelt';
 import { ITestItem2, TestItem2KeySpace, TestItem4KeySpace, TestItem5KeySpace } from './KeySpaceTest.dev';
 
 const testString = 'test';
@@ -16,11 +16,20 @@ const testItem: (typeof TestItem2KeySpace)['Attributes'] = {
 	}
 };
 
-type TestKeySpace2IndexKeys = { pk: string } & { sk: string } & { gsi0Pk: string } & { gsi0Sk: string } & {
+type TestKeySpace2IndexKeys = {
+	pk: string;
+	sk: string;
+	gsi0Pk: string;
+	gsi0Sk: string;
 	gsi1Pk: number;
-} & { gsi1Sk: number | undefined } & { gsi2Pk: string } & { gsi2Sk: number } & { gsi3Pk: number } & {
+	gsi1Sk: number | undefined;
+	gsi2Pk: string;
+	gsi2Sk: number;
+	gsi3Pk: number;
 	gsi3Sk: string | undefined;
-} & { gsi4Pk: string } & { gsi5Pk: number };
+	gsi4Pk: string;
+	gsi5Pk: number;
+};
 
 it('returns indexes', () => {
 	const check: A.Equals<
@@ -75,7 +84,7 @@ it('returns index key keys', () => {
 it('generates primary index key', () => {
 	const paramCheck: A.Equals<
 		Parameters<(typeof TestItem2KeySpace)['keyOf']>[0],
-		Pick<ITestItem2, 'testString'> & Pick<ITestItem2, 'testNumber'>
+		Pick<ITestItem2, 'testString' | 'testNumber'>
 	> = 1;
 
 	expect(paramCheck).toBe(1);
@@ -85,7 +94,7 @@ it('generates primary index key', () => {
 		testNumber
 	});
 
-	const check: A.Equals<typeof primaryIndexKey, { pk: string } & { sk: string }> = 1;
+	const check: A.Equals<typeof primaryIndexKey, { pk: string; sk: string }> = 1;
 
 	expect(check).toBe(1);
 
@@ -100,7 +109,7 @@ it('generates secondary index key', () => {
 		testString
 	});
 
-	const check: A.Equals<typeof secondaryIndexKey, { gsi0Pk: string } & { gsi0Sk: string }> = 1;
+	const check: A.Equals<typeof secondaryIndexKey, { gsi0Pk: string; gsi0Sk: string }> = 1;
 
 	expect(check).toBe(1);
 
@@ -129,7 +138,7 @@ it('generates index keys', () => {
 it('returns testItem with index keys', () => {
 	const withIndexKeys = TestItem2KeySpace.withIndexKeys(testItem);
 
-	const check: A.Equals<typeof withIndexKeys, ITestItem2 & TestKeySpace2IndexKeys> = 1;
+	const check: A.Equals<typeof withIndexKeys, O.Merge<ITestItem2, TestKeySpace2IndexKeys>> = 1;
 
 	expect(check).toBe(1);
 

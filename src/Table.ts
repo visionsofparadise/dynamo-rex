@@ -1,7 +1,7 @@
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DxBase, DxConfig, GenericAttributes } from './Dx';
 import { KeySpace } from './KeySpace';
-import { U } from 'ts-toolbelt';
+import { A, U } from 'ts-toolbelt';
 import { DxMiddlewareHandler, appendMiddleware } from './Middleware';
 import { DxClient } from './Client';
 
@@ -12,19 +12,23 @@ export type PrimaryIndex = typeof primaryIndex;
 export namespace Table {
 	export type GetIndexKeyFromConfig<
 		Config extends PrimaryIndexConfig | SecondaryIndexConfig = PrimaryIndexConfig | SecondaryIndexConfig
-	> = U.IntersectOf<
-		| {
-				[x in Config['hash']['key']]: IndexAttributeValueToType<Config['hash']['value']>;
-		  }
-		| (Config['sort'] extends IndexAttributeConfig
-				? { [x in Config['sort']['key']]: IndexAttributeValueToType<Config['sort']['value']> }
-				: {})
+	> = A.Compute<
+		U.IntersectOf<
+			| {
+					[x in Config['hash']['key']]: IndexAttributeValueToType<Config['hash']['value']>;
+			  }
+			| (Config['sort'] extends IndexAttributeConfig
+					? { [x in Config['sort']['key']]: IndexAttributeValueToType<Config['sort']['value']> }
+					: {})
+		>,
+		'flat'
 	>;
 
 	export type GetIndexKey<T extends Table, Index extends T['Index'] = T['Index']> = T['IndexKeyMap'][Index];
 
-	export type GetIndexCursorKey<T extends Table, Index extends T['SecondaryIndex']> = {} & U.IntersectOf<
-		GetIndexKey<T, Exclude<PrimaryIndex | Index, never>>
+	export type GetIndexCursorKey<T extends Table, Index extends T['SecondaryIndex']> = A.Compute<
+		A.Cast<U.IntersectOf<GetIndexKey<T, Exclude<PrimaryIndex | Index, never>>>, {}>,
+		'flat'
 	>;
 }
 
@@ -159,9 +163,12 @@ export class Table<
 		[x in this['Index']]: Table.GetIndexKeyFromConfig<Config['indexes'][x]>;
 	};
 
-	AttributesAndIndexKeys!: Attributes &
-		this['IndexKeyMap'][PrimaryIndex] &
-		Partial<U.IntersectOf<this['IndexKeyMap'][this['SecondaryIndex']]>>;
+	AttributesAndIndexKeys!: A.Compute<
+		Attributes &
+			this['IndexKeyMap'][PrimaryIndex] &
+			Partial<U.IntersectOf<this['IndexKeyMap'][this['SecondaryIndex']]>>,
+		'flat'
+	>;
 
 	get indexes() {
 		return Object.keys(this.config.indexes) as Array<string & keyof Config['indexes']>;
