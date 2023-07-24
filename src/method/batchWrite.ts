@@ -75,10 +75,10 @@ export const dxBatchWrite = async <K extends AnyKeySpace = AnyKeySpace>(
 		KeySpace.Table,
 		requests.map(request => {
 			if ('put' in request) {
-				return KeySpace.withIndexKeys(request.put);
+				return { put: KeySpace.withIndexKeys(request.put) };
 			}
 
-			return KeySpace.keyOf(request.delete as any);
+			return { delete: KeySpace.keyOf(request.delete as any) };
 		}),
 		input
 	);
