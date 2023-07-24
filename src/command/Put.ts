@@ -18,7 +18,7 @@ export type DxPutReturnValues = Extract<ReturnValue, 'ALL_OLD' | 'NONE'> | undef
 
 export interface DxPutCommandInput<
 	Attributes extends GenericAttributes = GenericAttributes,
-	ReturnValues extends DxPutReturnValues = DxPutReturnValues
+	ReturnValues extends DxPutReturnValues = undefined
 > extends LowerCaseObjectKeys<Omit<PutCommandInput, 'Item' | 'ReturnValues' | 'Expected' | 'ConditionalOperator'>> {
 	item: Attributes;
 	returnValues?: ReturnValues;
@@ -26,14 +26,14 @@ export interface DxPutCommandInput<
 
 export interface DxPutCommandOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
-	ReturnValues extends DxPutReturnValues = DxPutReturnValues
+	ReturnValues extends DxPutReturnValues = undefined
 > extends LowerCaseObjectKeys<Omit<PutCommandOutput, 'Attributes'>> {
 	attributes: ReturnValuesAttributes<Attributes, ReturnValues>;
 }
 
 export class DxPutCommand<
 	Attributes extends GenericAttributes = GenericAttributes,
-	ReturnValues extends DxPutReturnValues = DxPutReturnValues
+	ReturnValues extends DxPutReturnValues = undefined
 > extends DxCommand<
 	typeof PUT_COMMAND_INPUT_DATA_TYPE,
 	(typeof PUT_COMMAND_INPUT_HOOK)[number],

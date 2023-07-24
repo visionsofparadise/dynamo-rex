@@ -1,6 +1,9 @@
 import { DxOp } from '../UpdateOp';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 import { GenericAttributes } from '../Dx';
+import { customAlphabet } from 'nanoid';
+
+const aliasGenerator = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 10);
 
 export interface DxUpdateExpressionParams {
 	updateExpression?: string;
@@ -32,7 +35,7 @@ const createUpdateExpressionParts = <Attributes extends GenericAttributes>(
 	return Object.entries(attributes).flatMap(entry => {
 		const [key, value] = entry;
 
-		const alias = [...(precedingKeys || []), key].join('_');
+		const alias = aliasGenerator();
 
 		if (value instanceof DxOp) {
 			const updateExpressionPart = value.createUpdateExpressionPart({ key, alias, precedingKeys });

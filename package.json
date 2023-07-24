@@ -1,6 +1,6 @@
 {
 	"name": "dynamox",
-	"version": "1.0.15",
+	"version": "1.0.16",
 	"main": "./dist/index.js",
 	"scripts": {
 		"compile": "tsc",
@@ -43,5 +43,8 @@
 	"bugs": {
 		"url": "https://github.com/visionsofparadise/dynamox/issues"
 	},
-	"homepage": "https://github.com/visionsofparadise/dynamox#readme"
+	"homepage": "https://github.com/visionsofparadise/dynamox#readme",
+	"dependencies": {
+		"nanoid": "^3.3.4"
+	}
 }
