@@ -19,7 +19,7 @@ const BATCH_GET_COMMAND_OUTPUT_HOOK = [
 
 export interface DxBatchGetCommandInput<Key extends GenericAttributes = GenericAttributes>
 	extends LowerCaseObjectKeys<Omit<BatchGetCommandInput, 'RequestItems'>> {
-	requestItems: Record<
+	requests: Record<
 		string,
 		LowerCaseObjectKeys<Omit<KeysAndAttributes, 'Keys' | 'AttributesToGet'>> & {
 			keys: Key[];
@@ -32,7 +32,7 @@ export interface DxBatchGetCommandOutput<
 	Key extends GenericAttributes = GenericAttributes
 > extends LowerCaseObjectKeys<Omit<BatchGetCommandOutput, 'Responses' | 'UnprocessedKeys'>> {
 	items: Record<string, Attributes[]>;
-	unprocessedKeys: Record<
+	unprocessedRequests: Record<
 		string,
 		| (LowerCaseObjectKeys<Omit<KeysAndAttributes, 'Keys' | 'AttributesToGet'>> & {
 				keys: Key[];
@@ -73,14 +73,11 @@ export class DxBatchGetCommand<
 			middleware
 		);
 
-		const { requestItems, ...rest } = postMiddlewareInput;
+		const { requests, ...rest } = postMiddlewareInput;
 
 		const formattedInput = {
 			requestItems: Object.fromEntries(
-				Object.entries(requestItems).map(([tableName, keysAndAttributes]) => [
-					tableName,
-					upperCaseKeys(keysAndAttributes)
-				])
+				Object.entries(requests).map(([tableName, keysAndAttributes]) => [tableName, upperCaseKeys(keysAndAttributes)])
 			),
 			...rest
 		};
@@ -96,6 +93,8 @@ export class DxBatchGetCommand<
 	): Promise<DxBatchGetCommandOutput<Attributes, Key>> => {
 		const lowerCaseOutput = lowerCaseKeys(output);
 
+		console.log({ lowerCaseOutput });
+
 		const { responses, unprocessedKeys, ...rest } = lowerCaseOutput;
 
 		const items = Object.fromEntries(
@@ -106,11 +105,11 @@ export class DxBatchGetCommand<
 			})
 		);
 
-		const formattedUnprocessedKeys = Object.fromEntries(
-			Object.entries(unprocessedKeys || {}).map(([tableName, keysAndAttributes]) => {
-				if (!keysAndAttributes) return [tableName, undefined];
+		const formattedUnprocessedRequests = Object.fromEntries(
+			Object.entries(unprocessedKeys || {}).map(([tableName, request]) => {
+				if (!request) return [tableName, undefined];
 
-				const { Keys, ...unprocessedRest } = keysAndAttributes;
+				const { Keys, ...unprocessedRest } = request;
 
 				const typedKeys = (Keys || []) as Array<Key>;
 
@@ -121,7 +120,10 @@ export class DxBatchGetCommand<
 		const formattedOutput: DxBatchGetCommandOutput<Attributes, Key> = {
 			...rest,
 			items,
-			unprocessedKeys: formattedUnprocessedKeys as DxBatchGetCommandOutput<Attributes, Key>['unprocessedKeys']
+			unprocessedRequests: formattedUnprocessedRequests as DxBatchGetCommandOutput<
+				Attributes,
+				Key
+			>['unprocessedRequests']
 		};
 
 		const { data: postMiddlewareOutput } = await executeMiddlewares(

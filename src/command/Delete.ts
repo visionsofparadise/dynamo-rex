@@ -18,7 +18,7 @@ export type DxDeleteReturnValues = Extract<ReturnValue, 'ALL_OLD' | 'NONE'> | un
 
 export interface DxDeleteCommandInput<
 	Key extends GenericAttributes = GenericAttributes,
-	ReturnValues extends DxDeleteReturnValues = DxDeleteReturnValues
+	ReturnValues extends DxDeleteReturnValues = undefined
 > extends LowerCaseObjectKeys<Omit<DeleteCommandInput, 'Key'>> {
 	key: Key;
 	returnValues?: ReturnValues;
@@ -26,7 +26,7 @@ export interface DxDeleteCommandInput<
 
 export interface DxDeleteCommandOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
-	ReturnValues extends DxDeleteReturnValues = DxDeleteReturnValues
+	ReturnValues extends DxDeleteReturnValues = undefined
 > extends LowerCaseObjectKeys<Omit<DeleteCommandOutput, 'Attributes'>> {
 	attributes: ReturnValuesAttributes<Attributes, ReturnValues>;
 }
@@ -34,7 +34,7 @@ export interface DxDeleteCommandOutput<
 export class DxDeleteCommand<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes,
-	ReturnValues extends DxDeleteReturnValues = DxDeleteReturnValues
+	ReturnValues extends DxDeleteReturnValues = undefined
 > extends DxCommand<
 	typeof DELETE_COMMAND_INPUT_DATA_TYPE,
 	(typeof DELETE_COMMAND_INPUT_HOOK)[number],
@@ -59,11 +59,16 @@ export class DxDeleteCommand<
 			'returnValuesOnConditionCheckFailure'
 		]);
 
+		const formattedInput = {
+			...postDefaultsInput,
+			returnValues: postDefaultsInput.returnValues || undefined
+		};
+
 		const { data: postMiddlewareInput } = await executeMiddlewares(
 			[...this.inputMiddlewareConfig.hooks],
 			{
 				dataType: this.inputMiddlewareConfig.dataType,
-				data: postDefaultsInput
+				data: formattedInput
 			},
 			middleware
 		);

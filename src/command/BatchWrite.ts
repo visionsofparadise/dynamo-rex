@@ -24,14 +24,14 @@ export interface DxBatchWriteCommandInput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
 > extends LowerCaseObjectKeys<Omit<BatchWriteCommandInput, 'RequestItems'>> {
-	requestItems: Record<string, Array<{ put: Attributes } | { delete: Key }>>;
+	requests: Record<string, Array<{ put: Attributes } | { delete: Key }>>;
 }
 
 export interface DxBatchWriteCommandOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
 > extends LowerCaseObjectKeys<Omit<BatchWriteCommandOutput, 'UnprocessedItems'>> {
-	unprocessedItems: Record<string, Array<{ put: Attributes } | { delete: Key }>>;
+	unprocessedRequests: Record<string, Array<{ put: Attributes } | { delete: Key }>>;
 }
 
 export class DxBatchWriteCommand<
@@ -69,11 +69,11 @@ export class DxBatchWriteCommand<
 			middleware
 		);
 
-		const { requestItems, ...rest } = postMiddlewareInput;
+		const { requests, ...rest } = postMiddlewareInput;
 
 		const formattedInput = {
 			requestItems: Object.fromEntries(
-				Object.entries(requestItems).map(([tableName, requests]) => {
+				Object.entries(requests).map(([tableName, requests]) => {
 					const formattedRequests = requests.map(request => {
 						if ('put' in request) {
 							return {
@@ -109,7 +109,7 @@ export class DxBatchWriteCommand<
 
 		const { unprocessedItems, ...rest } = lowerCaseOutput;
 
-		const formattedUnprocessedItems = Object.fromEntries(
+		const formattedUnprocessedRequests = Object.fromEntries(
 			Object.entries(unprocessedItems || {}).map(([tableName, requests]) => {
 				const formattedRequests = requests.map(request => {
 					if (request.PutRequest) {
@@ -133,7 +133,7 @@ export class DxBatchWriteCommand<
 
 		const formattedOutput: DxBatchWriteCommandOutput<Attributes, Key> = {
 			...rest,
-			unprocessedItems: formattedUnprocessedItems
+			unprocessedRequests: formattedUnprocessedRequests
 		};
 
 		const { data: postMiddlewareOutput } = await executeMiddlewares(

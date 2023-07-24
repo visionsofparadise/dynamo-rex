@@ -7,6 +7,7 @@ import { AllSchema } from '../util/Schema';
 import { DxOp } from '../UpdateOp';
 import { GenericAttributes } from '../Dx';
 import { Table } from '../Table';
+import { ReturnValuesAttributes } from '../util/returnValuesAttributes';
 
 export interface DxUpdateQuickInput<RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW>
 	extends DxUpdateInput<RV> {}
@@ -59,5 +60,10 @@ export const dxUpdateQuick = async <
 		input
 	);
 
-	return attributes;
+	const strippedAttributes = (attributes ? KeySpace.omitIndexKeys(attributes) : undefined) as ReturnValuesAttributes<
+		K['Attributes'],
+		RV
+	>;
+
+	return strippedAttributes;
 };

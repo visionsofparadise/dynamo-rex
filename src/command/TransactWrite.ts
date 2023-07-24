@@ -49,7 +49,7 @@ export interface DxTransactWriteCommandInput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
 > extends LowerCaseObjectKeys<Omit<TransactWriteCommandInput, 'TransactItems'>> {
-	transactItems: Array<
+	requests: Array<
 		| DxTransactWriteCommandInputConditionCheck<Key>
 		| DxTransactWriteCommandInputPut<Attributes>
 		| DxTransactWriteCommandInputDelete<Key>
@@ -100,10 +100,10 @@ export class DxTransactWriteCommand<
 			middleware
 		);
 
-		const { transactItems, ...rest } = postMiddlewareInput;
+		const { requests, ...rest } = postMiddlewareInput;
 
 		const formattedInput = {
-			transactItems: transactItems.map(request => {
+			transactItems: requests.map(request => {
 				if (request.type === 'conditionCheck') {
 					return {
 						ConditionCheck: upperCaseKeys(request)

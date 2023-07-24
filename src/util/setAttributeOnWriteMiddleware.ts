@@ -15,8 +15,8 @@ export const dxSetAttributeOnWriteMiddleware = <Attributes extends GenericAttrib
 		handler: ({ data: batchWriteCommandInput }) => {
 			return {
 				...batchWriteCommandInput,
-				requestItems: Object.fromEntries(
-					Object.entries(batchWriteCommandInput.requestItems).map(([tableName, requests]) => [
+				requests: Object.fromEntries(
+					Object.entries(batchWriteCommandInput.requests).map(([tableName, requests]) => [
 						tableName,
 						requests.map(request => {
 							if ('put' in request) {
@@ -57,7 +57,7 @@ export const dxSetAttributeOnWriteMiddleware = <Attributes extends GenericAttrib
 		handler: ({ data: transactWriteCommandInput }) => {
 			return {
 				...transactWriteCommandInput,
-				transactItems: transactWriteCommandInput.transactItems.map(request => {
+				requests: transactWriteCommandInput.requests.map(request => {
 					if (request.type === 'put') {
 						return {
 							...request,

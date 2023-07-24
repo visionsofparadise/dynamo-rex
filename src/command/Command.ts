@@ -21,14 +21,14 @@ export interface DxCommandGenericData {
 export type DxCommandMap<Data extends DxCommandGenericData = DxCommandGenericData> = {
 	BatchGetCommand: DxBatchGetCommand<Data['Attributes'], Data['Key']>;
 	BatchWriteCommand: DxBatchWriteCommand<Data['Attributes'], Data['Key']>;
-	DeleteCommand: DxDeleteCommand<Data['Attributes'], Data['Key']>;
+	DeleteCommand: DxDeleteCommand<Data['Attributes'], Data['Key'], any>;
 	GetCommand: DxGetCommand<Data['Attributes'], Data['Key']>;
-	PutCommand: DxPutCommand<Data['Attributes']>;
+	PutCommand: DxPutCommand<Data['Attributes'], any>;
 	QueryCommand: DxQueryCommand<Data['Attributes'], Data['CursorKey']>;
 	ScanCommand: DxScanCommand<Data['Attributes'], Data['CursorKey']>;
 	TransactGetCommand: DxTransactGetCommand<Data['Attributes'], Data['Key']>;
 	TransactWriteCommand: DxTransactWriteCommand<Data['Attributes'], Data['Key']>;
-	UpdateCommand: DxUpdateCommand<Data['Attributes'], Data['Key']>;
+	UpdateCommand: DxUpdateCommand<Data['Attributes'], Data['Key'], any>;
 };
 
 export type DxCommandMiddlewareData<Data extends DxCommandGenericData = DxCommandGenericData> = {

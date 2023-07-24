@@ -10,7 +10,7 @@ import {
 	DxTransactWriteCommandOutput
 } from '../command/TransactWrite';
 
-export interface DxTransactWriteInput extends Omit<DxTransactWriteCommandInput, 'transactItems'> {}
+export interface DxTransactWriteInput extends Omit<DxTransactWriteCommandInput, 'requests'> {}
 
 export type DxTransactWriteOutput = DxTransactWriteCommandOutput;
 
@@ -27,7 +27,7 @@ export const dxTableTransactWrite = async <T extends Table = Table>(
 	Table.dxClient.send(
 		new DxTransactWriteCommand<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']]>({
 			...input,
-			transactItems: requests.map(request => ({ ...request, tableName: Table.tableName }))
+			requests: requests.map(request => ({ ...request, tableName: Table.tableName }))
 		})
 	);
 

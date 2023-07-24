@@ -23,7 +23,7 @@ const TRANSACT_GET_COMMAND_OUTPUT_HOOK = [
 
 export interface DxTransactGetCommandInput<Key extends GenericAttributes = GenericAttributes>
 	extends LowerCaseObjectKeys<Omit<TransactGetCommandInput, 'TransactItems'>> {
-	transactItems: (LowerCaseObjectKeys<Omit<Get, 'Key'>> & {
+	requests: (LowerCaseObjectKeys<Omit<Get, 'Key'>> & {
 		key: Key;
 	})[];
 }
@@ -65,10 +65,10 @@ export class DxTransactGetCommand<
 			middleware
 		);
 
-		const { transactItems, ...rest } = postMiddlewareInput;
+		const { requests, ...rest } = postMiddlewareInput;
 
 		const formattedInput = {
-			transactItems: transactItems.map(request => ({ Get: upperCaseKeys(request) })),
+			transactItems: requests.map(request => ({ Get: upperCaseKeys(request) })),
 			...rest
 		};
 

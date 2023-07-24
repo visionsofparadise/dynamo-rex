@@ -16,7 +16,7 @@ export interface DxBatchGetOutput<
 	Key extends GenericAttributes = GenericAttributes
 > {
 	items: Array<Attributes>;
-	unprocessedKeys: LowerCaseObjectKeys<Omit<KeysAndAttributes, 'Keys' | 'AttributesToGet'>> & { keys: Array<Key> };
+	unprocessedRequests: LowerCaseObjectKeys<Omit<KeysAndAttributes, 'Keys' | 'AttributesToGet'>> & { keys: Array<Key> };
 }
 
 export const dxTableBatchGet = async <T extends Table = Table>(
@@ -29,7 +29,7 @@ export const dxTableBatchGet = async <T extends Table = Table>(
 	if (keys.length === 0)
 		return {
 			items: [],
-			unprocessedKeys: {
+			unprocessedRequests: {
 				keys: [],
 				...rest
 			}
@@ -44,7 +44,7 @@ export const dxTableBatchGet = async <T extends Table = Table>(
 
 		const output = await Table.dxClient.send(
 			new DxBatchGetCommand<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']]>({
-				requestItems: {
+				requests: {
 					[Table.tableName]: {
 						keys: currentKeys,
 						...rest
@@ -57,12 +57,12 @@ export const dxTableBatchGet = async <T extends Table = Table>(
 		const nextRemainingKeys = remainingKeys.slice(limitedPageLimit);
 
 		const items = output.items[Table.tableName];
-		const unprocessedKeys = output.unprocessedKeys[Table.tableName] || { keys: [] };
+		const unprocessedRequests = output.unprocessedRequests[Table.tableName] || { keys: [] };
 
 		if (nextRemainingKeys.length === 0) {
 			return {
 				items,
-				unprocessedKeys
+				unprocessedRequests
 			};
 		}
 
@@ -70,8 +70,8 @@ export const dxTableBatchGet = async <T extends Table = Table>(
 
 		return {
 			items: [...items, ...nextPage.items],
-			unprocessedKeys: {
-				keys: [...unprocessedKeys.keys, ...nextPage.unprocessedKeys.keys],
+			unprocessedRequests: {
+				keys: [...unprocessedRequests.keys, ...nextPage.unprocessedRequests.keys],
 				...rest
 			}
 		};

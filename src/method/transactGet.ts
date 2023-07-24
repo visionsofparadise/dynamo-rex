@@ -3,7 +3,7 @@ import { DxTransactGetCommand, DxTransactGetCommandInput } from '../command/Tran
 import { GenericAttributes } from '../Dx';
 import { PrimaryIndex, Table } from '../Table';
 
-export interface DxTransactGetInput extends Omit<DxTransactGetCommandInput, 'transactItems'> {}
+export interface DxTransactGetInput extends Omit<DxTransactGetCommandInput, 'requests'> {}
 
 export type DxTransactGetOutput<Attributes extends GenericAttributes = GenericAttributes> = Array<Attributes>;
 
@@ -15,7 +15,7 @@ export const dxTableTransactGet = async <T extends Table = Table>(
 	const output = await Table.dxClient.send(
 		new DxTransactGetCommand<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']]>({
 			...input,
-			transactItems: keys.map(key => ({ tableName: Table.tableName, key }))
+			requests: keys.map(key => ({ tableName: Table.tableName, key }))
 		})
 	);
 
