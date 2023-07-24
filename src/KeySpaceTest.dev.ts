@@ -22,6 +22,7 @@ export const TestItem1KeySpace = new TestTable1.KeySpace<ITestItem1, 'gsi0'>().c
 export interface ITestItem2 extends IBaseItem {
 	testString: string;
 	testNumber: number;
+	list?: Array<string>;
 	deep: {
 		deep: {
 			deep: {

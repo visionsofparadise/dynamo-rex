@@ -14,9 +14,13 @@ it('deletes an existing item', async () => {
 	const testString = randomString();
 	const testNumber = randomNumber();
 
-	const item = {
+	const key = {
 		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
+		sk: `test-${testString}`
+	};
+
+	const item = {
+		...key,
 		testString,
 		testNumber
 	};
@@ -28,12 +32,10 @@ it('deletes an existing item', async () => {
 		})
 	);
 
-	const { pk, sk } = item;
-
 	const result = await TestClient.send(
 		new DxDeleteCommand({
 			tableName: TABLE_NAME,
-			key: { pk, sk }
+			key
 		})
 	);
 
@@ -65,9 +67,13 @@ it('returns old values', async () => {
 	const testString = randomString();
 	const testNumber = randomNumber();
 
-	const item = {
+	const key = {
 		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
+		sk: `test-${testString}`
+	};
+
+	const item = {
+		...key,
 		testString,
 		testNumber
 	};
@@ -79,12 +85,10 @@ it('returns old values', async () => {
 		})
 	);
 
-	const { pk, sk } = item;
-
 	const result = await TestClient.send(
 		new DxDeleteCommand({
 			tableName: TABLE_NAME,
-			key: { pk, sk },
+			key,
 			returnValues: ReturnValue.ALL_OLD
 		})
 	);

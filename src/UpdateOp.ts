@@ -13,7 +13,11 @@ export class DxOp {
 }
 
 const attributePath = ({ alias, precedingKeys }: Pick<Params, 'alias' | 'precedingKeys'>) =>
-	`${precedingKeys ? `${precedingKeys.map(precedingKey => `#${precedingKey}`).join('.')}.` : ''}#${alias}`;
+	`${
+		precedingKeys && precedingKeys.length > 0
+			? `${precedingKeys.map(precedingKey => `#${precedingKey}`).join('.')}.`
+			: ''
+	}#${alias}`;
 
 export const dxOp = {
 	Value: <T = any>(value: T) => {
@@ -21,7 +25,7 @@ export const dxOp = {
 			return {
 				updateExpression: `${attributePath({ alias, precedingKeys })} = :${alias}, `,
 				expressionAttributeNames: {
-					[`#${alias}`]: String(key)
+					[`#${alias}`]: key
 				},
 				expressionAttributeValues: {
 					[`:${alias}`]: value
@@ -39,7 +43,7 @@ export const dxOp = {
 			return {
 				updateExpression: `${path} = ${path} + :${alias}, `,
 				expressionAttributeNames: {
-					[`#${alias}`]: String(key)
+					[`#${alias}`]: key
 				},
 				expressionAttributeValues: {
 					[`:${alias}`]: value
@@ -57,7 +61,7 @@ export const dxOp = {
 			return {
 				updateExpression: `${path} = ${path} - :${alias}, `,
 				expressionAttributeNames: {
-					[`#${alias}`]: String(key)
+					[`#${alias}`]: key
 				},
 				expressionAttributeValues: {
 					[`:${alias}`]: value
@@ -73,9 +77,9 @@ export const dxOp = {
 			const path = attributePath({ alias, precedingKeys });
 
 			return {
-				updateExpression: `${path} = list_append(${end === 'head' ? `${alias}, ${path}` : `${path}, ${alias}`}), `,
+				updateExpression: `${path} = list_append(${end === 'head' ? `:${alias}, ${path}` : `${path}, :${alias}`}), `,
 				expressionAttributeNames: {
-					[`#${alias}`]: String(key)
+					[`#${alias}`]: key
 				},
 				expressionAttributeValues: {
 					[`:${alias}`]: value
@@ -93,7 +97,7 @@ export const dxOp = {
 			return {
 				updateExpression: `${path} = if_not_exists(${path}, :${alias}), `,
 				expressionAttributeNames: {
-					[`#${alias}`]: String(key)
+					[`#${alias}`]: key
 				},
 				expressionAttributeValues: {
 					[`:${alias}`]: value

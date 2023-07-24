@@ -93,8 +93,6 @@ export class DxBatchGetCommand<
 	): Promise<DxBatchGetCommandOutput<Attributes, Key>> => {
 		const lowerCaseOutput = lowerCaseKeys(output);
 
-		console.log({ lowerCaseOutput });
-
 		const { responses, unprocessedKeys, ...rest } = lowerCaseOutput;
 
 		const items = Object.fromEntries(
