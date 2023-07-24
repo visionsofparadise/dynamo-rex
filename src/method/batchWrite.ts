@@ -10,8 +10,8 @@ export interface DxBatchWriteInput extends Omit<DxBatchWriteCommandInput, 'reque
 export interface DxBatchWriteOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
-> extends Omit<DxBatchWriteCommandOutput, 'unprocessedItems'> {
-	unprocessedItems?: NonNullable<DxBatchWriteCommandOutput<Attributes, Key>['unprocessedItems']>[string];
+> extends Partial<Omit<DxBatchWriteCommandOutput, 'unprocessedItems'>> {
+	unprocessedItems: NonNullable<DxBatchWriteCommandOutput<Attributes, Key>['unprocessedItems']>[string];
 }
 
 export const dxTableBatchWrite = async <T extends Table = Table>(
@@ -19,6 +19,12 @@ export const dxTableBatchWrite = async <T extends Table = Table>(
 	requests: Array<{ put: T['AttributesAndIndexKeys'] } | { delete: T['IndexKeyMap'][T['PrimaryIndex']] }>,
 	input?: DxBatchWriteInput
 ): Promise<DxBatchWriteOutput<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']]>> => {
+	if (requests.length === 0) {
+		return {
+			unprocessedItems: []
+		};
+	}
+
 	const pageLimit = input?.pageLimit ? Math.min(input.pageLimit, 25) : 25;
 
 	const recurse = async (

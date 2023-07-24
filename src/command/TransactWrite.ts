@@ -48,7 +48,7 @@ export interface DxTransactWriteCommandInputUpdate<Key extends GenericAttributes
 export interface DxTransactWriteCommandInput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
-> extends LowerCaseObjectKeys<Omit<TransactWriteCommandInput, 'RequestItems'>> {
+> extends LowerCaseObjectKeys<Omit<TransactWriteCommandInput, 'TransactItems'>> {
 	transactItems: Array<
 		| DxTransactWriteCommandInputConditionCheck<Key>
 		| DxTransactWriteCommandInputPut<Attributes>

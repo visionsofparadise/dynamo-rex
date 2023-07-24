@@ -26,6 +26,15 @@ export const dxTableBatchGet = async <T extends Table = Table>(
 ): Promise<DxBatchGetOutput<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']]>> => {
 	const { pageLimit = 100, returnConsumedCapacity, ...rest } = input || ({} as DxBatchGetInput);
 
+	if (keys.length === 0)
+		return {
+			items: [],
+			unprocessedKeys: {
+				keys: [],
+				...rest
+			}
+		};
+
 	const limitedPageLimit = Math.min(pageLimit, 100);
 
 	const recurse = async (

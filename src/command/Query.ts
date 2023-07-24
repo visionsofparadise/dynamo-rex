@@ -69,7 +69,7 @@ export class DxQueryCommand<
 			middleware
 		);
 
-		const { cursorKey, index, sort, ...rest } = postMiddlewareInput;
+		const { cursorKey, index, sort = DxQueryItemsSort.ASCENDING, ...rest } = postMiddlewareInput;
 
 		const formattedInput = {
 			exclusiveStartKey: cursorKey,

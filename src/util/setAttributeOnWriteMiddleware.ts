@@ -1,10 +1,11 @@
 import { DxMiddlewareHandler } from '../Middleware';
 import { GenericAttributes } from '../Dx';
 import { DxCommandGenericData } from '../command/Command';
+import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 
 export const dxSetAttributeOnWriteMiddleware = <Attributes extends GenericAttributes = GenericAttributes>(
 	key: string & keyof Attributes,
-	setter: () => number
+	setter: () => NativeAttributeValue
 ): Array<DxMiddlewareHandler> => {
 	const batchWriteHandler: DxMiddlewareHandler<
 		'BatchWriteCommandInput',
@@ -56,38 +57,32 @@ export const dxSetAttributeOnWriteMiddleware = <Attributes extends GenericAttrib
 		handler: ({ data: transactWriteCommandInput }) => {
 			return {
 				...transactWriteCommandInput,
-				transactItems: Object.fromEntries(
-					Object.entries(transactWriteCommandInput.transactItems).map(([tableName, transaction]) => {
-						if (transaction.type === 'put') {
-							return [
-								tableName,
-								{
-									...transaction,
-									item: {
-										...transaction.item,
-										[key]: setter()
-									}
-								}
-							];
-						}
+				transactItems: transactWriteCommandInput.transactItems.map(request => {
+					if (request.type === 'put') {
+						return {
+							...request,
+							item: {
+								...request.item,
+								[key]: setter()
+							}
+						};
+					}
 
-						if (transaction.type === 'update') {
-							return [
-								tableName,
-								{
-									...transaction,
-									updateExpression: transaction.updateExpression + `, ${key} = :${key}`,
-									expressionAttributeValues: {
-										...transaction.expressionAttributeValues,
-										[`:${key}`]: setter()
-									}
-								}
-							];
-						}
+					if (request.type === 'update') {
+						if (!request.updateExpression!.startsWith('SET')) return request;
 
-						return [tableName, transaction];
-					})
-				)
+						return {
+							...request,
+							updateExpression: request.updateExpression + `, ${key} = :${key}`,
+							expressionAttributeValues: {
+								...request.expressionAttributeValues,
+								[`:${key}`]: setter()
+							}
+						};
+					}
+
+					return request;
+				})
 			};
 		}
 	};
