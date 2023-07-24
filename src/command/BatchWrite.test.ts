@@ -1,4 +1,4 @@
-import { TestTable1 } from '../TableTest.dev';
+import { TABLE_NAME, TestTable1 } from '../TableTest.dev';
 import { setTimeout } from 'timers/promises';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { DxBatchWriteCommand } from './BatchWrite';
@@ -26,7 +26,7 @@ it('it puts 50 items', async () => {
 	for (const item of items) {
 		await TestTable1.client.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
+				TableName: TABLE_NAME,
 				Item: item
 			})
 		);
@@ -42,12 +42,12 @@ it('it puts 50 items', async () => {
 	const result = await TestClient.send(
 		new DxBatchWriteCommand({
 			requests: {
-				['test']: updatedItems.map(i => ({ put: i }))
+				[TABLE_NAME]: updatedItems.map(i => ({ put: i }))
 			}
 		})
 	);
 
-	expect(result.unprocessedRequests['test']).toBeUndefined();
+	expect(result.unprocessedRequests[TABLE_NAME]).toBeUndefined();
 });
 
 it('it deletes 50 items', async () => {
@@ -68,7 +68,7 @@ it('it deletes 50 items', async () => {
 	for (const item of items) {
 		await TestTable1.client.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
+				TableName: TABLE_NAME,
 				Item: item
 			})
 		);
@@ -79,10 +79,10 @@ it('it deletes 50 items', async () => {
 	const result = await TestClient.send(
 		new DxBatchWriteCommand({
 			requests: {
-				['test']: items.map(({ pk, sk }) => ({ delete: { pk, sk } }))
+				[TABLE_NAME]: items.map(({ pk, sk }) => ({ delete: { pk, sk } }))
 			}
 		})
 	);
 
-	expect(result.unprocessedRequests['test']).toBeUndefined();
+	expect(result.unprocessedRequests[TABLE_NAME]).toBeUndefined();
 });

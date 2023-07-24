@@ -1,4 +1,4 @@
-import { TestTable1 } from '../TableTest.dev';
+import { TABLE_NAME, TestTable1 } from '../TableTest.dev';
 import { randomNumber, randomString } from '../util/utils';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { A } from 'ts-toolbelt';
@@ -23,7 +23,7 @@ it('deletes an existing item', async () => {
 
 	await TestTable1.client.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
+			TableName: TABLE_NAME,
 			Item: item
 		})
 	);
@@ -32,7 +32,7 @@ it('deletes an existing item', async () => {
 
 	const result = await TestClient.send(
 		new DxDeleteCommand({
-			tableName: 'test',
+			tableName: TABLE_NAME,
 			key: { pk, sk }
 		})
 	);
@@ -55,7 +55,7 @@ it('throws on deleting not existing item', async () => {
 
 	await TestClient.send(
 		new DxDeleteCommand({
-			tableName: 'test',
+			tableName: TABLE_NAME,
 			key
 		})
 	).catch(error => expect(error).toBeDefined());
@@ -74,7 +74,7 @@ it('returns old values', async () => {
 
 	await TestTable1.client.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
+			TableName: TABLE_NAME,
 			Item: item
 		})
 	);
@@ -83,7 +83,7 @@ it('returns old values', async () => {
 
 	const result = await TestClient.send(
 		new DxDeleteCommand({
-			tableName: 'test',
+			tableName: TABLE_NAME,
 			key: { pk, sk },
 			returnValues: ReturnValue.ALL_OLD
 		})

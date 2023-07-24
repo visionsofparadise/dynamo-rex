@@ -2,6 +2,8 @@ import { DynamoDB } from '@aws-sdk/client-dynamodb';
 import { DxBase } from './Dx';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 
+export const TABLE_NAME = process.env.DYNAMODB_TABLE || 'test';
+
 export interface IBaseItem {
 	createdAt?: number;
 	updatedAt?: number;
@@ -26,7 +28,7 @@ export const Dx = new DxBase({
 });
 
 export const TestTable1 = new Dx.Table<IBaseItem>().configure({
-	name: process.env.DYNAMODB_TABLE || 'test',
+	name: TABLE_NAME,
 	indexes: {
 		primaryIndex: {
 			hash: {
@@ -97,7 +99,7 @@ export const TestTable1 = new Dx.Table<IBaseItem>().configure({
 
 export const TestTable2 = new Dx.Table<IBaseItem>().configure({
 	client: DocumentClient,
-	name: process.env.DYNAMODB_TABLE || 'test',
+	name: TABLE_NAME,
 	indexes: {
 		primaryIndex: {
 			hash: {

@@ -1,4 +1,4 @@
-import { TestTable1 } from '../TableTest.dev';
+import { TABLE_NAME, TestTable1 } from '../TableTest.dev';
 import { setTimeout } from 'timers/promises';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { dxTableReset } from '../method/reset';
@@ -26,7 +26,7 @@ it('it gets 10 items', async () => {
 	for (const item of items) {
 		await TestTable1.client.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
+				TableName: TABLE_NAME,
 				Item: item
 			})
 		);
@@ -37,12 +37,12 @@ it('it gets 10 items', async () => {
 	const result = await TestClient.send(
 		new DxBatchGetCommand({
 			requests: {
-				['test']: {
+				[TABLE_NAME]: {
 					keys: items.map(({ pk, sk }) => ({ pk, sk }))
 				}
 			}
 		})
 	);
 
-	expect(result.items['test'].length).toBe(10);
+	expect(result.items[TABLE_NAME].length).toBe(10);
 });
