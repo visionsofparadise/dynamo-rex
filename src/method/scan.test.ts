@@ -4,6 +4,7 @@ import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { scanTableItems } from './scan';
 import { A } from 'ts-toolbelt';
 import { Table } from '../Table';
+import { resetTableItems } from './reset';
 
 const SCAN_TABLE_NAME = process.env.DYNAMODB_SCAN_TABLE || 'scanTest';
 
@@ -35,6 +36,8 @@ export const ScanTable = new Table({
 });
 
 beforeAll(async () => {
+	await resetTableItems(ScanTable);
+
 	for (let i = 0; i < 10; i++) {
 		const string = randomString();
 
