@@ -1,51 +1,51 @@
 import { ConsumedCapacity, ItemCollectionMetrics } from '@aws-sdk/client-dynamodb';
-import { DxCommandGenericData, DxCommandMiddlewareData } from './command/Command';
+import { DkCommandGenericData, DkCommandMiddlewareData } from './command/Command';
 
-export type DxMiddlewareHandlerDataType<DataType extends string, Data> = {
+export type DkMiddlewareHandlerDataType<DataType extends string, Data> = {
 	dataType: DataType;
 	data: Data;
 };
 
-export type DxMiddlewareConfigType<DataType extends string, Hook extends string, Data> = {
+export type DkMiddlewareConfigType<DataType extends string, Hook extends string, Data> = {
 	hook: Hook;
-	handlerData: DxMiddlewareHandlerDataType<DataType, Data>;
+	handlerData: DkMiddlewareHandlerDataType<DataType, Data>;
 };
 
-export type DxMiddlewareConfig<Data extends DxCommandGenericData = DxCommandGenericData> =
-	| DxCommandMiddlewareData<Data>
-	| DxMiddlewareConfigType<'ConsumedCapacity', 'ConsumedCapacity', ConsumedCapacity>
-	| DxMiddlewareConfigType<'ItemCollectionMetrics', 'ItemCollectionMetrics', ItemCollectionMetrics>;
+export type DkMiddlewareConfig<Data extends DkCommandGenericData = DkCommandGenericData> =
+	| DkCommandMiddlewareData<Data>
+	| DkMiddlewareConfigType<'ConsumedCapacity', 'ConsumedCapacity', ConsumedCapacity>
+	| DkMiddlewareConfigType<'ItemCollectionMetrics', 'ItemCollectionMetrics', ItemCollectionMetrics>;
 
-export type DxMiddlewareHook = DxMiddlewareConfig['hook'];
-export type DxMiddlewareDataType = DxMiddlewareConfig['handlerData']['dataType'];
+export type DkMiddlewareHook = DkMiddlewareConfig['hook'];
+export type DkMiddlewareDataType = DkMiddlewareConfig['handlerData']['dataType'];
 
-export type GetDxMiddlewareConfig<
-	Hook extends DxMiddlewareHook = DxMiddlewareHook,
-	Data extends DxCommandGenericData = DxCommandGenericData
-> = Extract<DxMiddlewareConfig<Data>, { hook: Hook }>;
+export type GetDkMiddlewareConfig<
+	Hook extends DkMiddlewareHook = DkMiddlewareHook,
+	Data extends DkCommandGenericData = DkCommandGenericData
+> = Extract<DkMiddlewareConfig<Data>, { hook: Hook }>;
 
-export type DxMiddlewareHandler<
-	Hook extends DxMiddlewareHook = DxMiddlewareHook,
-	Data extends DxCommandGenericData = DxCommandGenericData
+export type DkMiddlewareHandler<
+	Hook extends DkMiddlewareHook = DkMiddlewareHook,
+	Data extends DkCommandGenericData = DkCommandGenericData
 > = {
 	hook: Hook;
 	handler: (
-		params: GetDxMiddlewareConfig<Hook, Data>['handlerData']
+		params: GetDkMiddlewareConfig<Hook, Data>['handlerData']
 	) =>
-		| GetDxMiddlewareConfig<Hook, Data>['handlerData']['data']
-		| Promise<GetDxMiddlewareConfig<Hook, Data>['handlerData']['data']>
+		| GetDkMiddlewareConfig<Hook, Data>['handlerData']['data']
+		| Promise<GetDkMiddlewareConfig<Hook, Data>['handlerData']['data']>
 		| undefined;
 };
 
 export const executeMiddleware = async <
-	Hook extends DxMiddlewareHook,
-	Params extends GetDxMiddlewareConfig<Hook>['handlerData']
+	Hook extends DkMiddlewareHook,
+	Params extends GetDkMiddlewareConfig<Hook>['handlerData']
 >(
 	hook: Hook,
 	params: Params,
-	middleware: Array<DxMiddlewareHandler>
+	middleware: Array<DkMiddlewareHandler>
 ) => {
-	const recurse = async (currentParams: Params, remainingMiddleware: Array<DxMiddlewareHandler>): Promise<Params> => {
+	const recurse = async (currentParams: Params, remainingMiddleware: Array<DkMiddlewareHandler>): Promise<Params> => {
 		if (remainingMiddleware.length === 0) return currentParams;
 
 		const middleware = remainingMiddleware[0];
@@ -67,12 +67,12 @@ export const executeMiddleware = async <
 };
 
 export const executeMiddlewares = async <
-	Hook extends DxMiddlewareHook,
-	Params extends GetDxMiddlewareConfig<Hook>['handlerData']
+	Hook extends DkMiddlewareHook,
+	Params extends GetDkMiddlewareConfig<Hook>['handlerData']
 >(
 	hooks: Array<Hook>,
 	params: Params,
-	middleware: Array<DxMiddlewareHandler>
+	middleware: Array<DkMiddlewareHandler>
 ) => {
 	const recurse = async (currentParams: Params, remainingHooks: Array<Hook>): Promise<Params> => {
 		if (remainingHooks.length === 0) return currentParams;
@@ -89,6 +89,6 @@ export const executeMiddlewares = async <
 };
 
 export const appendMiddleware = (
-	middlewares1: Array<DxMiddlewareHandler<DxMiddlewareHook, any>>,
-	middlewares2: Array<DxMiddlewareHandler<DxMiddlewareHook, any>>
+	middlewares1: Array<DkMiddlewareHandler<DkMiddlewareHook, any>>,
+	middlewares2: Array<DkMiddlewareHandler<DkMiddlewareHook, any>>
 ) => [...middlewares1, ...middlewares2];

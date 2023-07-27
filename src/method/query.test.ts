@@ -1,47 +1,37 @@
-import { TestTable1 } from '../TableTest.dev';
-import { setTimeout } from 'timers/promises';
+import { DocumentClient, TABLE_NAME } from '../TableTest.dev';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { dxQuery } from './query';
-import { dxTableReset } from './reset';
-import { ITestItem1, TestItem1KeySpace } from '../KeySpaceTest.dev';
+import { queryItems } from './query';
+import { TestItem, NoGsiKeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
-import { randomString } from '../util/utils';
-
-beforeEach(() => dxTableReset(TestTable1));
+import { randomNumber, randomString } from '../util/utils';
 
 it('query returns list of items', async () => {
-	jest.useRealTimers();
-
-	const testNumber = 1;
+	const string = randomString();
 
 	for (let i = 0; i < 10; i++) {
-		const testString = randomString();
+		const number = randomNumber();
 
 		const item = {
-			pk: `test-${testNumber}`,
-			sk: `test-${testString}`,
-			testString,
-			testNumber
+			string,
+			number
 		};
 
-		await TestTable1.client.send(
+		await DocumentClient.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
-				Item: item
+				TableName: TABLE_NAME,
+				Item: NoGsiKeySpace.withIndexKeys(item)
 			})
 		);
 	}
 
-	await setTimeout(1000);
-
-	const result = await dxQuery(TestItem1KeySpace, {
+	const result = await queryItems(NoGsiKeySpace, {
 		keyConditionExpression: 'pk = :pk',
 		expressionAttributeValues: {
-			':pk': 'test-1'
+			':pk': string
 		}
 	});
 
-	const itemsTypeCheck: A.Equals<(typeof result)['items'], Array<ITestItem1>> = 1;
+	const itemsTypeCheck: A.Equals<(typeof result)['items'], Array<TestItem>> = 1;
 
 	expect(itemsTypeCheck).toBe(1);
 
@@ -49,33 +39,28 @@ it('query returns list of items', async () => {
 });
 
 it('auto pages to total limit', async () => {
-	jest.useRealTimers();
+	const string = randomString();
 
 	for (let i = 0; i < 10; i++) {
-		const testString = randomString();
-		const testNumber = 1;
+		const number = randomNumber();
 
 		const item = {
-			pk: `test-${testNumber}`,
-			sk: `test-${testString}`,
-			testString,
-			testNumber
+			string,
+			number
 		};
 
-		await TestTable1.client.send(
+		await DocumentClient.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
-				Item: item
+				TableName: TABLE_NAME,
+				Item: NoGsiKeySpace.withIndexKeys(item)
 			})
 		);
 	}
 
-	await setTimeout(1000);
-
-	const result = await dxQuery(TestItem1KeySpace, {
+	const result = await queryItems(NoGsiKeySpace, {
 		keyConditionExpression: 'pk = :pk',
 		expressionAttributeValues: {
-			':pk': 'test-1'
+			':pk': string
 		},
 		pageLimit: 3,
 		totalLimit: 6,
@@ -88,33 +73,28 @@ it('auto pages to total limit', async () => {
 });
 
 it('auto pages all items', async () => {
-	jest.useRealTimers();
+	const string = randomString();
 
 	for (let i = 0; i < 10; i++) {
-		const testString = randomString();
-		const testNumber = 1;
+		const number = randomNumber();
 
 		const item = {
-			pk: `test-${testNumber}`,
-			sk: `test-${testString}`,
-			testString,
-			testNumber
+			string,
+			number
 		};
 
-		await TestTable1.client.send(
+		await DocumentClient.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
-				Item: item
+				TableName: TABLE_NAME,
+				Item: NoGsiKeySpace.withIndexKeys(item)
 			})
 		);
 	}
 
-	await setTimeout(1000);
-
-	const result = await dxQuery(TestItem1KeySpace, {
+	const result = await queryItems(NoGsiKeySpace, {
 		keyConditionExpression: 'pk = :pk',
 		expressionAttributeValues: {
-			':pk': 'test-1'
+			':pk': string
 		},
 		pageLimit: 3,
 		autoPage: true

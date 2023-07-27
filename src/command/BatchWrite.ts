@@ -1,9 +1,9 @@
 import { BatchWriteCommand, BatchWriteCommandInput, BatchWriteCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { DxCommand } from './Command';
-import { GenericAttributes } from '../Dx';
+import { DkCommand } from './Command';
+import { GenericAttributes } from '../util/utils';
 import { LowerCaseObjectKeys, lowerCaseKeys, upperCaseKeys } from '../util/keyCapitalize';
 import { applyDefaults } from '../util/defaults';
-import { DxClientConfig } from '../Client';
+import { DkClientConfig } from '../Client';
 import { executeMiddlewares, executeMiddleware } from '../Middleware';
 
 const BATCH_WRITE_COMMAND_INPUT_DATA_TYPE = 'BatchWriteCommandInput' as const;
@@ -20,41 +20,41 @@ const BATCH_WRITE_COMMAND_OUTPUT_HOOK = [
 	BATCH_WRITE_COMMAND_OUTPUT_DATA_TYPE
 ] as const;
 
-export interface DxBatchWriteCommandInput<
+export interface DkBatchWriteCommandInput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
 > extends LowerCaseObjectKeys<Omit<BatchWriteCommandInput, 'RequestItems'>> {
 	requests: Record<string, Array<{ put: Attributes } | { delete: Key }>>;
 }
 
-export interface DxBatchWriteCommandOutput<
+export interface DkBatchWriteCommandOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
 > extends LowerCaseObjectKeys<Omit<BatchWriteCommandOutput, 'UnprocessedItems'>> {
 	unprocessedRequests: Record<string, Array<{ put: Attributes } | { delete: Key }>>;
 }
 
-export class DxBatchWriteCommand<
+export class DkBatchWriteCommand<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
-> extends DxCommand<
+> extends DkCommand<
 	typeof BATCH_WRITE_COMMAND_INPUT_DATA_TYPE,
 	(typeof BATCH_WRITE_COMMAND_INPUT_HOOK)[number],
-	DxBatchWriteCommandInput<Attributes, Key>,
+	DkBatchWriteCommandInput<Attributes, Key>,
 	BatchWriteCommandInput,
 	typeof BATCH_WRITE_COMMAND_OUTPUT_DATA_TYPE,
 	(typeof BATCH_WRITE_COMMAND_OUTPUT_HOOK)[number],
-	DxBatchWriteCommandOutput<Attributes, Key>,
+	DkBatchWriteCommandOutput<Attributes, Key>,
 	BatchWriteCommandOutput
 > {
-	constructor(input: DxBatchWriteCommandInput<Attributes, Key>) {
+	constructor(input: DkBatchWriteCommandInput<Attributes, Key>) {
 		super(input);
 	}
 
 	inputMiddlewareConfig = { dataType: BATCH_WRITE_COMMAND_INPUT_DATA_TYPE, hooks: BATCH_WRITE_COMMAND_INPUT_HOOK };
 	outputMiddlewareConfig = { dataType: BATCH_WRITE_COMMAND_OUTPUT_DATA_TYPE, hooks: BATCH_WRITE_COMMAND_OUTPUT_HOOK };
 
-	handleInput = async ({ defaults, middleware }: DxClientConfig): Promise<BatchWriteCommandInput> => {
+	handleInput = async ({ defaults, middleware }: DkClientConfig): Promise<BatchWriteCommandInput> => {
 		const postDefaultsInput = applyDefaults(this.input, defaults, [
 			'returnConsumedCapacity',
 			'returnItemCollectionMetrics'
@@ -103,8 +103,8 @@ export class DxBatchWriteCommand<
 
 	handleOutput = async (
 		output: BatchWriteCommandOutput,
-		{ middleware }: DxClientConfig
-	): Promise<DxBatchWriteCommandOutput<Attributes, Key>> => {
+		{ middleware }: DkClientConfig
+	): Promise<DkBatchWriteCommandOutput<Attributes, Key>> => {
 		const lowerCaseOutput = lowerCaseKeys(output);
 
 		const { unprocessedItems, ...rest } = lowerCaseOutput;
@@ -131,7 +131,7 @@ export class DxBatchWriteCommand<
 			})
 		);
 
-		const formattedOutput: DxBatchWriteCommandOutput<Attributes, Key> = {
+		const formattedOutput: DkBatchWriteCommandOutput<Attributes, Key> = {
 			...rest,
 			unprocessedRequests: formattedUnprocessedRequests
 		};
@@ -166,7 +166,7 @@ export class DxBatchWriteCommand<
 		return postMiddlewareOutput;
 	};
 
-	send = async (clientConfig: DxClientConfig) => {
+	send = async (clientConfig: DkClientConfig) => {
 		const input = await this.handleInput(clientConfig);
 
 		const output = await clientConfig.client.send(new BatchWriteCommand(input));

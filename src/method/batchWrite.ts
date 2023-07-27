@@ -1,24 +1,26 @@
 import { AnyKeySpace } from '../KeySpace';
-import { GenericAttributes } from '../Dx';
+import { GenericAttributes } from '../util/utils';
 import { Table } from '../Table';
-import { DxBatchWriteCommand, DxBatchWriteCommandInput, DxBatchWriteCommandOutput } from '../command/BatchWrite';
+import { DkBatchWriteCommand, DkBatchWriteCommandInput, DkBatchWriteCommandOutput } from '../command/BatchWrite';
+import { DkClient } from '../Client';
 
-export interface DxBatchWriteInput extends Omit<DxBatchWriteCommandInput, 'requests'> {
+export interface BatchWriteItemsInput extends Omit<DkBatchWriteCommandInput, 'requests'> {
 	pageLimit?: number;
 }
 
-export interface DxBatchWriteOutput<
+export interface BatchWriteItemsOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
-> extends Partial<Omit<DxBatchWriteCommandOutput, 'unprocessedRequests'>> {
-	unprocessedRequests: NonNullable<DxBatchWriteCommandOutput<Attributes, Key>['unprocessedRequests']>[string];
+> extends Partial<Omit<DkBatchWriteCommandOutput, 'unprocessedRequests'>> {
+	unprocessedRequests: NonNullable<DkBatchWriteCommandOutput<Attributes, Key>['unprocessedRequests']>[string];
 }
 
-export const dxTableBatchWrite = async <T extends Table = Table>(
+export const batchWriteTableItems = async <T extends Table = Table>(
 	Table: T,
-	requests: Array<{ put: T['AttributesAndIndexKeys'] } | { delete: T['IndexKeyMap'][T['PrimaryIndex']] }>,
-	input?: DxBatchWriteInput
-): Promise<DxBatchWriteOutput<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']]>> => {
+	requests: Array<{ put: T['Attributes'] } | { delete: T['IndexKeyMap'][T['PrimaryIndex']] }>,
+	input?: BatchWriteItemsInput,
+	dkClient: DkClient = Table.dkClient
+): Promise<BatchWriteItemsOutput<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']]>> => {
 	if (requests.length === 0) {
 		return {
 			unprocessedRequests: []
@@ -28,15 +30,15 @@ export const dxTableBatchWrite = async <T extends Table = Table>(
 	const pageLimit = input?.pageLimit ? Math.min(input.pageLimit, 25) : 25;
 
 	const recurse = async (
-		remainingRequests: DxBatchWriteCommandInput<
-			T['AttributesAndIndexKeys'],
+		remainingRequests: DkBatchWriteCommandInput<
+			T['Attributes'],
 			T['IndexKeyMap'][T['PrimaryIndex']]
 		>['requests'][string]
-	): Promise<DxBatchWriteOutput<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']]>> => {
+	): Promise<BatchWriteItemsOutput<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']]>> => {
 		const currentRequests = remainingRequests.slice(0, pageLimit);
 
-		const output = await Table.dxClient.send(
-			new DxBatchWriteCommand<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']]>({
+		const output = await dkClient.send(
+			new DkBatchWriteCommand<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']]>({
 				...input,
 				requests: {
 					[Table.tableName]: currentRequests
@@ -66,12 +68,12 @@ export const dxTableBatchWrite = async <T extends Table = Table>(
 	return recurse(requests);
 };
 
-export const dxBatchWrite = async <K extends AnyKeySpace = AnyKeySpace>(
+export const batchWriteItems = async <K extends AnyKeySpace = AnyKeySpace>(
 	KeySpace: K,
 	requests: Array<{ put: K['Attributes'] } | { delete: Parameters<K['keyOf']>[0] }>,
-	input?: DxBatchWriteInput
-): Promise<DxBatchWriteOutput<K['AttributesAndIndexKeys'], K['IndexKeyMap'][K['PrimaryIndex']]>> =>
-	dxTableBatchWrite(
+	input?: BatchWriteItemsInput
+): Promise<BatchWriteItemsOutput<K['AttributesAndIndexKeys'], K['IndexKeyMap'][K['PrimaryIndex']]>> =>
+	batchWriteTableItems(
 		KeySpace.Table,
 		requests.map(request => {
 			if ('put' in request) {
@@ -80,5 +82,6 @@ export const dxBatchWrite = async <K extends AnyKeySpace = AnyKeySpace>(
 
 			return { delete: KeySpace.keyOf(request.delete as any) };
 		}),
-		input
+		input,
+		KeySpace.dkClient
 	);

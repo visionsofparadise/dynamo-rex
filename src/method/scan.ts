@@ -1,32 +1,32 @@
 import { Table } from '../Table';
-import { GenericAttributes } from '../Dx';
-import { DxScanCommand, DxScanCommandInput, DxScanCommandOutput } from '../command/Scan';
-import { DxListParams } from './query';
+import { GenericAttributes } from '../util/utils';
+import { DkScanCommand, DkScanCommandInput, DkScanCommandOutput } from '../command/Scan';
+import { ListParams } from './query';
 
-export interface DxScanInput<
+export interface ScanItemsInput<
 	Index extends string | never = never,
 	CursorKey extends GenericAttributes = GenericAttributes
-> extends Omit<DxScanCommandInput<CursorKey>, 'tableName' | 'index' | 'limit' | 'scanIndexForward'>,
-		DxListParams<Index> {}
+> extends Omit<DkScanCommandInput<CursorKey>, 'tableName' | 'index' | 'limit' | 'scanIndexForward'>,
+		ListParams<Index> {}
 
-export type DxScanOutput<
+export type ScanItemsOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	CursorKey extends GenericAttributes = GenericAttributes
-> = DxScanCommandOutput<Attributes, CursorKey>;
+> = DkScanCommandOutput<Attributes, CursorKey>;
 
-export const dxTableScan = async <T extends Table = Table, Index extends T['SecondaryIndex'] | never = never>(
+export const scanTableItems = async <T extends Table = Table, Index extends T['SecondaryIndex'] | never = never>(
 	Table: T,
-	input?: DxScanInput<Index, Table.GetIndexCursorKey<T, Index & string>>
-): Promise<DxScanOutput<T['AttributesAndIndexKeys'], Table.GetIndexCursorKey<T, Index & string>>> => {
+	input?: ScanItemsInput<Index, Table.GetIndexCursorKey<T, Index & string>>
+): Promise<ScanItemsOutput<T['Attributes'], Table.GetIndexCursorKey<T, Index & string>>> => {
 	const recurse = async (
 		totalCount: number,
 		pageCursorKey?: Table.GetIndexCursorKey<T, Index & string>
-	): Promise<DxScanOutput<T['AttributesAndIndexKeys'], Table.GetIndexCursorKey<T, Index & string>>> => {
+	): Promise<ScanItemsOutput<T['Attributes'], Table.GetIndexCursorKey<T, Index & string>>> => {
 		const { autoPage, pageLimit, totalLimit, ...inputRest } =
-			input || ({} as DxScanInput<Index, Table.GetIndexCursorKey<T, Index & string>>);
+			input || ({} as ScanItemsInput<Index, Table.GetIndexCursorKey<T, Index & string>>);
 
-		const output = await Table.dxClient.send(
-			new DxScanCommand<T['AttributesAndIndexKeys'], Table.GetIndexCursorKey<T, Index & string>>({
+		const output = await Table.dkClient.send(
+			new DkScanCommand<T['Attributes'], Table.GetIndexCursorKey<T, Index & string>>({
 				...inputRest,
 				tableName: Table.tableName,
 				cursorKey: pageCursorKey,

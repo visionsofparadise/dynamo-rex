@@ -1,24 +1,26 @@
 import { AnyKeySpace } from '../KeySpace';
 import { ReturnValuesAttributes } from '../util/returnValuesAttributes';
-import { GenericAttributes } from '../Dx';
-import { DxPutCommand, DxPutCommandInput, DxPutReturnValues } from '../command/Put';
+import { GenericAttributes } from '../util/utils';
+import { DkPutCommand, DkPutCommandInput, DkPutReturnValues } from '../command/Put';
 import { Table } from '../Table';
+import { DkClient } from '../Client';
 
-export interface DxPutInput<RV extends DxPutReturnValues = undefined>
-	extends Omit<DxPutCommandInput<any, RV>, 'tableName' | 'item'> {}
+export interface PutItemInput<RV extends DkPutReturnValues = undefined>
+	extends Omit<DkPutCommandInput<any, RV>, 'tableName' | 'item'> {}
 
-export type DxPutOutput<
+export type PutItemsOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
-	RV extends DxPutReturnValues = undefined
+	RV extends DkPutReturnValues = undefined
 > = ReturnValuesAttributes<Attributes, RV>;
 
-export const dxTablePut = async <T extends Table = Table, RV extends DxPutReturnValues = undefined>(
+export const putTableItem = async <T extends Table = Table, RV extends DkPutReturnValues = undefined>(
 	Table: T,
-	item: T['AttributesAndIndexKeys'],
-	input?: DxPutInput<RV>
-): Promise<DxPutOutput<T['AttributesAndIndexKeys'], RV>> => {
-	const output = await Table.dxClient.send(
-		new DxPutCommand<T['AttributesAndIndexKeys'], RV>({
+	item: T['Attributes'],
+	input?: PutItemInput<RV>,
+	dkClient: DkClient = Table.dkClient
+): Promise<PutItemsOutput<T['Attributes'], RV>> => {
+	const output = await dkClient.send(
+		new DkPutCommand<T['Attributes'], RV>({
 			...input,
 			tableName: Table.tableName,
 			item
@@ -28,12 +30,12 @@ export const dxTablePut = async <T extends Table = Table, RV extends DxPutReturn
 	return output.attributes;
 };
 
-export const dxPut = async <K extends AnyKeySpace = AnyKeySpace, RV extends DxPutReturnValues = undefined>(
+export const putItem = async <K extends AnyKeySpace = AnyKeySpace, RV extends DkPutReturnValues = undefined>(
 	KeySpace: K,
 	item: K['Attributes'],
-	input?: DxPutInput<RV>
-): Promise<DxPutOutput<K['Attributes'], RV>> => {
-	const attributes = await dxTablePut(KeySpace.Table, KeySpace.withIndexKeys(item), input);
+	input?: PutItemInput<RV>
+): Promise<PutItemsOutput<K['Attributes'], RV>> => {
+	const attributes = await putTableItem(KeySpace.Table, KeySpace.withIndexKeys(item), input, KeySpace.dkClient);
 
 	const strippedAttributes = (attributes ? KeySpace.omitIndexKeys(attributes) : undefined) as ReturnValuesAttributes<
 		K['Attributes'],

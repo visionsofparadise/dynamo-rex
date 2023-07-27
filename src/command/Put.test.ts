@@ -1,27 +1,21 @@
 import { A } from 'ts-toolbelt';
-import { randomNumber, randomString } from '../util/utils';
-import { dxTableReset } from '../method/reset';
-import { TABLE_NAME, TestTable1 } from '../TableTest.dev';
+import { randomString } from '../util/utils';
+import { TABLE_NAME, DocumentClient } from '../TableTest.dev';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { TestClient } from '../ClientTest.dev';
-import { DxPutCommand } from './Put';
-
-beforeEach(() => dxTableReset(TestTable1));
+import { DkPutCommand } from './Put';
 
 it('puts new item', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
 
 	const item = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
-		testString,
-		testNumber
+		pk: string,
+		sk: string
 	};
 
 	const result = await TestClient.send(
-		new DxPutCommand({
+		new DkPutCommand({
 			tableName: TABLE_NAME,
 			item
 		})
@@ -35,17 +29,14 @@ it('puts new item', async () => {
 });
 
 it('puts over existing item', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
 
 	const item = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
-		testString,
-		testNumber
+		pk: string,
+		sk: string
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
 			TableName: TABLE_NAME,
 			Item: item
@@ -53,7 +44,7 @@ it('puts over existing item', async () => {
 	);
 
 	const result = await TestClient.send(
-		new DxPutCommand({
+		new DkPutCommand({
 			tableName: TABLE_NAME,
 			item
 		})
@@ -67,17 +58,14 @@ it('puts over existing item', async () => {
 });
 
 it('returns old values', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
 
 	const item = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
-		testString,
-		testNumber
+		pk: string,
+		sk: string
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
 			TableName: TABLE_NAME,
 			Item: item
@@ -86,11 +74,11 @@ it('returns old values', async () => {
 
 	const updatedItem = {
 		...item,
-		optionalString: randomString()
+		string: randomString()
 	};
 
 	const result = await TestClient.send(
-		new DxPutCommand({
+		new DkPutCommand({
 			tableName: TABLE_NAME,
 			item: updatedItem,
 			returnValues: ReturnValue.ALL_OLD

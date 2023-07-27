@@ -1,69 +1,57 @@
-import { Dx } from './TableTest.dev';
 import dayjs from 'dayjs';
 import { randomNumber, randomString } from './util/utils';
-import { dxCreate } from './method/create';
-import { dxGet } from './method/get';
-import { dxUpdateQuick } from './method/updateQuick';
-import { dxSetAttributeOnWriteMiddleware } from './util/setAttributeOnWriteMiddleware';
+import { createItem } from './method/create';
+import { getItem } from './method/get';
+import { updateQuickItem } from './method/updateQuick';
+import { dkSetAttributeOnWriteMiddleware } from './util/setAttributeOnWriteMiddleware';
+import { DocumentClient, TABLE_NAME } from './TableTest.dev';
+import { Table } from './Table';
+import { TestItem } from './KeySpaceTest.dev';
 
-interface IBaseItem {
-	updatedAt?: number;
-}
-
-interface ITestItem extends IBaseItem {
-	testString: string;
-	testNumber: number;
-	updateableString: string;
-}
+const MiddlewareTable = new Table({
+	client: DocumentClient,
+	name: TABLE_NAME,
+	indexes: {
+		primaryIndex: {
+			hash: {
+				key: 'pk',
+				value: 'string'
+			},
+			sort: {
+				key: 'sk',
+				value: 'string'
+			}
+		}
+	},
+	middleware: dkSetAttributeOnWriteMiddleware('updatedAt', () => dayjs().valueOf())
+});
 
 it('implements updatedAt attribute with middleware', async () => {
-	jest.useRealTimers();
-
-	const TestTable = new Dx.Table<IBaseItem>().configure(
-		{
-			name: process.env.DYNAMODB_TABLE || 'test',
-			indexes: {
-				primaryIndex: {
-					hash: {
-						key: 'pk',
-						value: 'string'
-					},
-					sort: {
-						key: 'sk',
-						value: 'string'
-					}
-				}
-			}
-		},
-		dxSetAttributeOnWriteMiddleware('updatedAt', () => dayjs().valueOf())
-	);
-
-	const TestKeySpace = new TestTable.KeySpace<ITestItem>().configure({
+	const MiddlewareKeySpace = new MiddlewareTable.KeySpace<TestItem>().configure({
 		indexValueHandlers: {
 			primaryIndex: {
-				pk: (params: Pick<ITestItem, 'testNumber'>) => `test-${params.testNumber}`,
-				sk: (params: Pick<ITestItem, 'testString'>) => `test-${params.testString}`
+				pk: (params: Pick<TestItem, 'string'>) => params.string,
+				sk: (params: Pick<TestItem, 'number'>) => `${params.number}`
 			}
 		}
 	});
 
-	const testItem: ITestItem = {
-		testNumber: randomNumber(),
-		testString: randomString(),
-		updateableString: randomString()
+	const testItem: TestItem = {
+		number: randomNumber(),
+		string: randomString()
 	};
 
-	await dxCreate(TestKeySpace, testItem);
+	await createItem(MiddlewareKeySpace, testItem);
 
-	const getItem = await dxGet(TestKeySpace, testItem);
+	const item = await getItem(MiddlewareKeySpace, testItem);
 
-	expect(getItem.updatedAt).toBeDefined();
+	expect(item.updatedAt).toBeDefined();
 
-	await dxUpdateQuick(TestKeySpace, testItem, {
+	await updateQuickItem(MiddlewareKeySpace, testItem, {
 		updateableString: randomString()
 	});
 
-	const getItem2 = await dxGet(TestKeySpace, testItem);
+	const item2 = await getItem(MiddlewareKeySpace, testItem);
 
-	expect(getItem2.updatedAt! > getItem.updatedAt!).toBe(true);
+	expect(item2.updatedAt! > item.updatedAt!).toBe(true);
 });

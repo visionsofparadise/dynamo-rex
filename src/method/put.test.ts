@@ -1,20 +1,16 @@
-import { dxPut } from './put';
-import { TestItem1KeySpace } from '../KeySpaceTest.dev';
+import { putItem } from './put';
+import { NoGsiKeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
 import { randomNumber, randomString } from '../util/utils';
-import { dxTableReset } from './reset';
-import { TestTable1 } from '../TableTest.dev';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
-
-beforeEach(() => dxTableReset(TestTable1));
 
 it('puts new item', async () => {
 	const item = {
-		testString: randomString(),
-		testNumber: randomNumber()
+		string: randomString(),
+		number: randomNumber()
 	};
 
-	const result = await dxPut(TestItem1KeySpace, item);
+	const result = await putItem(NoGsiKeySpace, item);
 
 	const resultTypeCheck: A.Equals<typeof result, undefined> = 1;
 
@@ -25,13 +21,13 @@ it('puts new item', async () => {
 
 it('puts over existing item', async () => {
 	const item = {
-		testString: randomString(),
-		testNumber: randomNumber()
+		string: randomString(),
+		number: randomNumber()
 	};
 
-	await dxPut(TestItem1KeySpace, item);
+	await putItem(NoGsiKeySpace, item);
 
-	const result = await dxPut(TestItem1KeySpace, item);
+	const result = await putItem(NoGsiKeySpace, item);
 
 	const resultTypeCheck: A.Equals<typeof result, undefined> = 1;
 
@@ -42,22 +38,22 @@ it('puts over existing item', async () => {
 
 it('returns old values', async () => {
 	const item = {
-		testString: randomString(),
-		testNumber: randomNumber()
+		string: randomString(),
+		number: randomNumber()
 	};
 
-	await dxPut(TestItem1KeySpace, item);
+	await putItem(NoGsiKeySpace, item);
 
 	const updatedItem = {
 		...item,
 		optionalString: randomString()
 	};
 
-	const result = await dxPut(TestItem1KeySpace, updatedItem, {
+	const result = await putItem(NoGsiKeySpace, updatedItem, {
 		returnValues: ReturnValue.ALL_OLD
 	});
 
-	const resultTypeCheck: A.Equals<typeof result, (typeof TestItem1KeySpace)['Attributes']> = 1;
+	const resultTypeCheck: A.Equals<typeof result, (typeof NoGsiKeySpace)['Attributes']> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 

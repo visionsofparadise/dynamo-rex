@@ -1,47 +1,34 @@
-import { TestTable1 } from '../TableTest.dev';
-import { setTimeout } from 'timers/promises';
+import { DocumentClient, TABLE_NAME } from '../TableTest.dev';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { dxQueryQuick } from './queryQuick';
-import { dxTableReset } from './reset';
-import { ITestItem1, TestItem1KeySpace } from '../KeySpaceTest.dev';
+import { queryQuickItems } from './queryQuick';
+import { TestItem, ManyGsiKeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
-import { randomString } from '../util/utils';
-
-beforeEach(() => dxTableReset(TestTable1));
+import { randomNumber, randomString } from '../util/utils';
 
 it('query returns list of items', async () => {
-	jest.useRealTimers();
-
-	const testNumber = 1;
+	const string = randomString();
 
 	for (let i = 0; i < 10; i++) {
-		const testString = randomString();
+		const number = randomNumber();
 
 		const item = {
-			pk: `test-${testNumber}`,
-			sk: `test-${testString}`,
-			gsi0Pk: `test-${testNumber}`,
-			gsi0Sk: `test-${testString}`,
-			testString,
-			testNumber
+			string,
+			number
 		};
 
-		await TestTable1.client.send(
+		await DocumentClient.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
-				Item: item
+				TableName: TABLE_NAME,
+				Item: ManyGsiKeySpace.withIndexKeys(item)
 			})
 		);
 	}
 
-	await setTimeout(1000);
-	TestItem1KeySpace.IndexHashKeyValueParamsMap;
-
-	const result = await dxQueryQuick(TestItem1KeySpace, {
-		hashKeyParams: { testNumber }
+	const result = await queryQuickItems(ManyGsiKeySpace, {
+		hashKeyParams: { string }
 	});
 
-	const itemsTypeCheck: A.Equals<(typeof result)['items'], Array<ITestItem1>> = 1;
+	const itemsTypeCheck: A.Equals<(typeof result)['items'], Array<TestItem>> = 1;
 
 	expect(itemsTypeCheck).toBe(1);
 
@@ -49,73 +36,57 @@ it('query returns list of items', async () => {
 });
 
 it('queries items with beginsWith on index key', async () => {
-	jest.useRealTimers();
-
-	const testNumber = 1;
+	const string = randomString();
 
 	for (let i = 195; i < 205; i++) {
-		const testString = String(i);
+		const number = i;
 
 		const item = {
-			pk: `test-${testNumber}`,
-			sk: `test-${testString}`,
-			gsi0Pk: `test-${testNumber}`,
-			gsi0Sk: `test-${testString}`,
-			testString,
-			testNumber
+			string,
+			number
 		};
 
-		await TestTable1.client.send(
+		await DocumentClient.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
-				Item: item
+				TableName: TABLE_NAME,
+				Item: ManyGsiKeySpace.withIndexKeys(item)
 			})
 		);
 	}
 
-	await setTimeout(1000);
-
-	const result = await dxQueryQuick(TestItem1KeySpace, {
+	const result = await queryQuickItems(ManyGsiKeySpace, {
 		index: 'gsi0',
-		hashKeyParams: { testNumber },
-		beginsWith: 'test-1'
+		hashKeyParams: { number: 200 },
+		beginsWith: string
 	});
 
-	expect(result.items.length).toBe(5);
+	expect(result.items.length).toBe(1);
 });
 
 it('queries items with between on index key', async () => {
-	jest.useRealTimers();
-
-	const testNumber = 1;
+	const string = randomString();
 
 	for (let i = 195; i < 205; i++) {
-		const testString = String(i);
+		const number = i;
 
 		const item = {
-			pk: `test-${testNumber}`,
-			sk: `test-${testString}`,
-			gsi0Pk: `test-${testNumber}`,
-			gsi0Sk: `test-${testString}`,
-			testString,
-			testNumber
+			string,
+			number
 		};
 
-		await TestTable1.client.send(
+		await DocumentClient.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
-				Item: item
+				TableName: TABLE_NAME,
+				Item: ManyGsiKeySpace.withIndexKeys(item)
 			})
 		);
 	}
 
-	await setTimeout(1000);
-
-	const result = await dxQueryQuick(TestItem1KeySpace, {
-		index: 'gsi0',
-		hashKeyParams: { testNumber },
-		greaterThan: 'test-198',
-		lessThan: 'test-204'
+	const result = await queryQuickItems(ManyGsiKeySpace, {
+		index: 'gsi2',
+		hashKeyParams: { string },
+		greaterThan: 198,
+		lessThan: 204
 	});
 
 	expect(result.items.length).toBe(7);

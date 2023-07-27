@@ -1,40 +1,30 @@
-import { TABLE_NAME, TestTable1 } from '../TableTest.dev';
+import { TABLE_NAME, ManyGsiTable, DocumentClient } from '../TableTest.dev';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { randomNumber, randomString } from '../util/utils';
-import { dxTableReset } from '../method/reset';
+import { randomString } from '../util/utils';
 import { A } from 'ts-toolbelt';
 import { TestClient } from '../ClientTest.dev';
-import { GenericAttributes } from '../Dx';
-import { DxGetCommand } from './Get';
-
-beforeEach(() => dxTableReset(TestTable1));
+import { GenericAttributes } from '../util/utils';
+import { DkGetCommand } from './Get';
 
 it('gets a put item', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
-
-	const key = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`
-	};
+	const string = randomString();
 
 	const item = {
-		...key,
-		testString,
-		testNumber
+		pk: string,
+		sk: string
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
+			TableName: ManyGsiTable.tableName,
 			Item: item
 		})
 	);
 
 	const result = await TestClient.send(
-		new DxGetCommand({
+		new DkGetCommand({
 			tableName: TABLE_NAME,
-			key
+			key: item
 		})
 	);
 
@@ -46,18 +36,17 @@ it('gets a put item', async () => {
 });
 
 it('throws on not found', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
 
-	const key = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`
+	const item = {
+		pk: string,
+		sk: string
 	};
 
 	await TestClient.send(
-		new DxGetCommand({
+		new DkGetCommand({
 			tableName: TABLE_NAME,
-			key
+			key: item
 		})
 	).catch(error => expect(error).toBeDefined());
 });

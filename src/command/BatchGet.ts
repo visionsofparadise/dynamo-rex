@@ -1,11 +1,11 @@
 import { BatchGetCommand, BatchGetCommandInput, BatchGetCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { DxCommand } from './Command';
-import { GenericAttributes } from '../Dx';
+import { DkCommand } from './Command';
 import { LowerCaseObjectKeys, lowerCaseKeys, upperCaseKeys } from '../util/keyCapitalize';
 import { applyDefaults } from '../util/defaults';
-import { DxClientConfig } from '../Client';
+import { DkClientConfig } from '../Client';
 import { executeMiddlewares, executeMiddleware } from '../Middleware';
 import { KeysAndAttributes } from '@aws-sdk/client-dynamodb';
+import { GenericAttributes } from '../util/utils';
 
 const BATCH_GET_COMMAND_INPUT_DATA_TYPE = 'BatchGetCommandInput' as const;
 const BATCH_GET_COMMAND_INPUT_HOOK = ['CommandInput', 'ReadCommandInput', BATCH_GET_COMMAND_INPUT_DATA_TYPE] as const;
@@ -17,7 +17,7 @@ const BATCH_GET_COMMAND_OUTPUT_HOOK = [
 	BATCH_GET_COMMAND_OUTPUT_DATA_TYPE
 ] as const;
 
-export interface DxBatchGetCommandInput<Key extends GenericAttributes = GenericAttributes>
+export interface DkBatchGetCommandInput<Key extends GenericAttributes = GenericAttributes>
 	extends LowerCaseObjectKeys<Omit<BatchGetCommandInput, 'RequestItems'>> {
 	requests: Record<
 		string,
@@ -27,7 +27,7 @@ export interface DxBatchGetCommandInput<Key extends GenericAttributes = GenericA
 	>;
 }
 
-export interface DxBatchGetCommandOutput<
+export interface DkBatchGetCommandOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
 > extends LowerCaseObjectKeys<Omit<BatchGetCommandOutput, 'Responses' | 'UnprocessedKeys'>> {
@@ -41,27 +41,27 @@ export interface DxBatchGetCommandOutput<
 	>;
 }
 
-export class DxBatchGetCommand<
+export class DkBatchGetCommand<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
-> extends DxCommand<
+> extends DkCommand<
 	typeof BATCH_GET_COMMAND_INPUT_DATA_TYPE,
 	(typeof BATCH_GET_COMMAND_INPUT_HOOK)[number],
-	DxBatchGetCommandInput<Key>,
+	DkBatchGetCommandInput<Key>,
 	BatchGetCommandInput,
 	typeof BATCH_GET_COMMAND_OUTPUT_DATA_TYPE,
 	(typeof BATCH_GET_COMMAND_OUTPUT_HOOK)[number],
-	DxBatchGetCommandOutput<Attributes, Key>,
+	DkBatchGetCommandOutput<Attributes, Key>,
 	BatchGetCommandOutput
 > {
-	constructor(input: DxBatchGetCommandInput<Key>) {
+	constructor(input: DkBatchGetCommandInput<Key>) {
 		super(input);
 	}
 
 	inputMiddlewareConfig = { dataType: BATCH_GET_COMMAND_INPUT_DATA_TYPE, hooks: BATCH_GET_COMMAND_INPUT_HOOK };
 	outputMiddlewareConfig = { dataType: BATCH_GET_COMMAND_OUTPUT_DATA_TYPE, hooks: BATCH_GET_COMMAND_OUTPUT_HOOK };
 
-	handleInput = async ({ defaults, middleware }: DxClientConfig): Promise<BatchGetCommandInput> => {
+	handleInput = async ({ defaults, middleware }: DkClientConfig): Promise<BatchGetCommandInput> => {
 		const postDefaultsInput = applyDefaults(this.input, defaults, ['returnConsumedCapacity']);
 
 		const { data: postMiddlewareInput } = await executeMiddlewares(
@@ -89,8 +89,8 @@ export class DxBatchGetCommand<
 
 	handleOutput = async (
 		output: BatchGetCommandOutput,
-		{ middleware }: DxClientConfig
-	): Promise<DxBatchGetCommandOutput<Attributes, Key>> => {
+		{ middleware }: DkClientConfig
+	): Promise<DkBatchGetCommandOutput<Attributes, Key>> => {
 		const lowerCaseOutput = lowerCaseKeys(output);
 
 		const { responses, unprocessedKeys, ...rest } = lowerCaseOutput;
@@ -115,10 +115,10 @@ export class DxBatchGetCommand<
 			})
 		);
 
-		const formattedOutput: DxBatchGetCommandOutput<Attributes, Key> = {
+		const formattedOutput: DkBatchGetCommandOutput<Attributes, Key> = {
 			...rest,
 			items,
-			unprocessedRequests: formattedUnprocessedRequests as DxBatchGetCommandOutput<
+			unprocessedRequests: formattedUnprocessedRequests as DkBatchGetCommandOutput<
 				Attributes,
 				Key
 			>['unprocessedRequests']
@@ -146,7 +146,7 @@ export class DxBatchGetCommand<
 		return postMiddlewareOutput;
 	};
 
-	send = async (clientConfig: DxClientConfig) => {
+	send = async (clientConfig: DkClientConfig) => {
 		const input = await this.handleInput(clientConfig);
 
 		const output = await clientConfig.client.send(new BatchGetCommand(input));

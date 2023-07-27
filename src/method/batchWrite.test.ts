@@ -1,47 +1,38 @@
-import { TestTable1 } from '../TableTest.dev';
-import { setTimeout } from 'timers/promises';
+import { DocumentClient, NoGsiTable, TABLE_NAME } from '../TableTest.dev';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { dxTableBatchWrite } from './batchWrite';
-import { dxTableReset } from './reset';
-import { arrayOfLength, randomString } from '../util/utils';
-
-beforeEach(() => dxTableReset(TestTable1));
+import { batchWriteTableItems } from './batchWrite';
+import { arrayOfLength, randomNumber, randomString } from '../util/utils';
+import { NoGsiKeySpace } from '../KeySpaceTest.dev';
 
 it('it puts 50 items', async () => {
-	jest.useRealTimers();
-
-	const items: Array<{ pk: string; sk: string; testString: string; testNumber: number }> = arrayOfLength(50).map(() => {
-		const testString = randomString();
-		const testNumber = 1;
+	const items: Array<{ string: string; number: number }> = arrayOfLength(50).map(() => {
+		const string = randomString();
+		const number = randomNumber();
 
 		return {
-			pk: `test-${testNumber}`,
-			sk: `test-${testString}`,
-			testString,
-			testNumber
+			string,
+			number
 		};
 	});
 
 	for (const item of items) {
-		await TestTable1.client.send(
+		await DocumentClient.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
-				Item: item
+				TableName: TABLE_NAME,
+				Item: NoGsiKeySpace.withIndexKeys(item)
 			})
 		);
 	}
 
-	await setTimeout(1000);
-
 	const updatedItems = items.map(item => ({
 		...item,
-		testString: randomString()
+		updateableString: randomString()
 	}));
 
-	const result = await dxTableBatchWrite(
-		TestTable1,
+	const result = await batchWriteTableItems(
+		NoGsiTable,
 		updatedItems.map(item => {
-			return { put: item };
+			return { put: NoGsiKeySpace.withIndexKeys(item) };
 		})
 	);
 
@@ -49,35 +40,29 @@ it('it puts 50 items', async () => {
 });
 
 it('it deletes 50 items', async () => {
-	jest.useRealTimers();
-
-	const items: Array<{ pk: string; sk: string; testString: string; testNumber: number }> = arrayOfLength(50).map(() => {
-		const testString = randomString();
-		const testNumber = 1;
+	const items: Array<{ string: string; number: number }> = arrayOfLength(50).map(() => {
+		const string = randomString();
+		const number = randomNumber();
 
 		return {
-			pk: `test-${testNumber}`,
-			sk: `test-${testString}`,
-			testString,
-			testNumber
+			string,
+			number
 		};
 	});
 
 	for (const item of items) {
-		await TestTable1.client.send(
+		await DocumentClient.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
-				Item: item
+				TableName: TABLE_NAME,
+				Item: NoGsiKeySpace.withIndexKeys(item)
 			})
 		);
 	}
 
-	await setTimeout(1000);
-
-	const result = await dxTableBatchWrite(
-		TestTable1,
-		items.map(({ pk, sk }) => {
-			return { delete: { pk, sk } };
+	const result = await batchWriteTableItems(
+		NoGsiTable,
+		items.map(item => {
+			return { delete: NoGsiKeySpace.keyOf(item) };
 		})
 	);
 

@@ -5,6 +5,8 @@ import { DynamoXStack } from './Stack';
 
 export class DynamoXStage extends Stage {
 	public readonly tableName: CfnOutput;
+	public readonly scanTableName: CfnOutput;
+	public readonly resetTableName: CfnOutput;
 
 	constructor(scope: Construct, id: string, props: StageProps & { stage: string }) {
 		super(scope, id, props);
@@ -21,5 +23,7 @@ export class DynamoXStage extends Stage {
 		});
 
 		this.tableName = stack.tableName;
+		this.scanTableName = stack.scanTableName;
+		this.resetTableName = stack.resetTableName;
 	}
 }

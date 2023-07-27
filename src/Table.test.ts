@@ -1,19 +1,19 @@
 import { PrimaryIndex, Table } from './Table';
-import { IBaseItem, TestTable1, TestTable2 } from './TableTest.dev';
+import { ManyGsiTable, NoGsiTable } from './TableTest.dev';
 import { A, U } from 'ts-toolbelt';
 
 export const primaryIndexKeyCheck: A.Equals<
-	(typeof TestTable1)['IndexKeyMap'][PrimaryIndex],
+	(typeof ManyGsiTable)['IndexKeyMap'][PrimaryIndex],
 	{ pk: string } & { sk: string }
 > = 1;
 
 export const secondaryIndexCheck: A.Equals<
-	(typeof TestTable1)['SecondaryIndex'],
+	(typeof ManyGsiTable)['SecondaryIndex'],
 	'gsi0' | 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4' | 'gsi5'
 > = 1;
 
 export const secondaryIndexKeyCheck: A.Equals<
-	U.IntersectOf<(typeof TestTable1)['IndexKeyMap'][(typeof TestTable1)['SecondaryIndex']]>,
+	U.IntersectOf<(typeof ManyGsiTable)['IndexKeyMap'][(typeof ManyGsiTable)['SecondaryIndex']]>,
 	{
 		gsi0Pk: string;
 	} & {
@@ -38,22 +38,22 @@ export const secondaryIndexKeyCheck: A.Equals<
 > = 1;
 
 export const primaryIndexKeyCheck2: A.Equals<
-	(typeof TestTable2)['IndexKeyMap'][PrimaryIndex],
+	(typeof NoGsiTable)['IndexKeyMap'][PrimaryIndex],
 	{ pk: string } & { sk: string }
 > = 1;
 
-export const secondaryIndexCheck2: A.Equals<(typeof TestTable2)['SecondaryIndex'], never> = 1;
+export const secondaryIndexCheck2: A.Equals<(typeof NoGsiTable)['SecondaryIndex'], never> = 1;
 
-export const neverSecondaryIndexCheck2: A.Equals<Table.GetIndexKey<typeof TestTable2, never>, never> = 1;
+export const neverSecondaryIndexCheck2: A.Equals<Table.GetIndexKey<typeof NoGsiTable, never>, never> = 1;
 
 export const secondaryIndexKeyCheck2: A.Equals<
-	Table.GetIndexKey<typeof TestTable2, (typeof TestTable2)['Index']>,
+	Table.GetIndexKey<typeof NoGsiTable, (typeof NoGsiTable)['Index']>,
 	{ pk: string } & { sk: string }
 > = 1;
 
 export const AttributesAndIndexKeysCheck2: A.Equals<
-	(typeof TestTable2)['AttributesAndIndexKeys'],
-	IBaseItem & { pk: string } & { sk: string } & Partial<{}>
+	(typeof NoGsiTable)['Attributes'],
+	{ pk: string } & { sk: string } & Partial<{}>
 > = 1;
 
 it('type checks are valid', () => {

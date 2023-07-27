@@ -4,7 +4,7 @@ import {
 	ReturnValuesOnConditionCheckFailure
 } from '@aws-sdk/client-dynamodb';
 
-export interface DxReturnParams {
+export interface DkReturnParams {
 	returnConsumedCapacity?: ReturnConsumedCapacity;
 	returnItemCollectionMetrics?: ReturnItemCollectionMetrics;
 	returnValuesOnConditionCheckFailure?: ReturnValuesOnConditionCheckFailure;
@@ -12,7 +12,7 @@ export interface DxReturnParams {
 
 export interface Defaults
 	extends Pick<
-		DxReturnParams,
+		DkReturnParams,
 		'returnConsumedCapacity' | 'returnItemCollectionMetrics' | 'returnValuesOnConditionCheckFailure'
 	> {}
 

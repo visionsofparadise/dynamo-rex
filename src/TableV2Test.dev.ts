@@ -1,6 +1,6 @@
 import { DynamoDB } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { Table } from './Table';
+import { Table } from './TableV2.dev';
 
 export const TABLE_NAME = process.env.DYNAMODB_TABLE || 'test';
 
@@ -17,6 +17,23 @@ export const Client =
 		  });
 
 export const DocumentClient = DynamoDBDocumentClient.from(Client);
+
+export const NoGsiTable = new Table({
+	client: DocumentClient,
+	name: TABLE_NAME,
+	indexes: {
+		primaryIndex: {
+			hash: {
+				key: 'pk',
+				value: 'string'
+			},
+			sort: {
+				key: 'sk',
+				value: 'string'
+			}
+		}
+	}
+});
 
 export const ManyGsiTable = new Table({
 	client: DocumentClient,
@@ -62,7 +79,7 @@ export const ManyGsiTable = new Table({
 				key: 'gsi2Sk',
 				value: 'number'
 			},
-			projection: ['testString']
+			projection: ['string']
 		},
 		gsi3: {
 			hash: {
@@ -84,23 +101,6 @@ export const ManyGsiTable = new Table({
 			hash: {
 				key: 'gsi5Pk',
 				value: 'number'
-			}
-		}
-	}
-});
-
-export const NoGsiTable = new Table({
-	client: DocumentClient,
-	name: TABLE_NAME,
-	indexes: {
-		primaryIndex: {
-			hash: {
-				key: 'pk',
-				value: 'string'
-			},
-			sort: {
-				key: 'sk',
-				value: 'string'
 			}
 		}
 	}

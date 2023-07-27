@@ -1,11 +1,8 @@
-import { DxOp } from '../UpdateOp';
+import { DkOp } from '../UpdateOp';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
-import { GenericAttributes } from '../Dx';
-import { customAlphabet } from 'nanoid';
+import { GenericAttributes, randomString } from './utils';
 
-const aliasGenerator = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 10);
-
-export interface DxUpdateExpressionParams {
+export interface DkUpdateExpressionParams {
 	updateExpression?: string;
 	expressionAttributeNames?: Record<string, string>;
 	expressionAttributeValues?: GenericAttributes;
@@ -16,7 +13,7 @@ const createUpdateExpressionPart = (
 	key: string,
 	value: NativeAttributeValue,
 	precedingKeys?: Array<string>
-): DxUpdateExpressionParams => ({
+): DkUpdateExpressionParams => ({
 	updateExpression: `${
 		precedingKeys ? `${precedingKeys.map(key => `#${key}`).join('.')}.` : ''
 	}#${alias} = :${alias}, `,
@@ -31,13 +28,13 @@ const createUpdateExpressionPart = (
 const createUpdateExpressionParts = <Attributes extends GenericAttributes>(
 	attributes: Attributes,
 	precedingKeys?: Array<string>
-): Array<DxUpdateExpressionParams> => {
+): Array<DkUpdateExpressionParams> => {
 	return Object.entries(attributes).flatMap(entry => {
 		const [key, value] = entry;
 
-		const alias = aliasGenerator();
+		const alias = randomString(10);
 
-		if (value instanceof DxOp) {
+		if (value instanceof DkOp) {
 			const updateExpressionPart = value.createUpdateExpressionPart({ key, alias, precedingKeys });
 
 			return [updateExpressionPart];
@@ -65,7 +62,7 @@ const createUpdateExpressionParts = <Attributes extends GenericAttributes>(
 };
 
 export const convertObjectToUpdateExpression = <Attributes extends GenericAttributes>(attributes: Attributes) => {
-	const base: Required<DxUpdateExpressionParams> = {
+	const base: Required<DkUpdateExpressionParams> = {
 		updateExpression: 'SET ',
 		expressionAttributeNames: {},
 		expressionAttributeValues: {}

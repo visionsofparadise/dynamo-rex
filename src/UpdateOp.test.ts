@@ -1,194 +1,167 @@
 import { PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
-import { TestItem2KeySpace } from './KeySpaceTest.dev';
-import { TestTable1 } from './TableTest.dev';
-import { dxOp, DxOp } from './UpdateOp';
-import { dxTableReset } from './method/reset';
-import { dxUpdateQuick } from './method/updateQuick';
+import { ManyGsiKeySpace, NoGsiKeySpace, TestItem } from './KeySpaceTest.dev';
+import { DocumentClient, TABLE_NAME } from './TableTest.dev';
+import { dkOp, DkOp } from './UpdateOp';
+import { updateQuickItem } from './method/updateQuick';
 import { randomString, randomNumber } from './util/utils';
 
-beforeEach(() => dxTableReset(TestTable1));
-
 it('instanceof works with abstract', () => {
-	const o1 = dxOp.Value('x');
+	const o1 = dkOp.Value('x');
 
-	expect((o1 as any) instanceof DxOp).toBe(true);
+	expect((o1 as any) instanceof DkOp).toBe(true);
 });
 
 it('updates a value as a whole', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
+	const number = randomNumber();
 
-	const keyParams = {
-		testString,
-		testNumber
-	};
-
-	const item = {
-		...keyParams,
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
+	const item: TestItem = {
+		string,
+		number,
 		deep: {
 			deep: {
 				deep: {
-					testString
+					string
 				}
 			}
 		}
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: NoGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
 	const updatedTestString = randomString();
 
-	await dxUpdateQuick(TestItem2KeySpace, keyParams, {
+	await updateQuickItem(ManyGsiKeySpace, item, {
 		deep: {
-			deep: dxOp.Value({
+			deep: dkOp.Value({
 				deep: {
-					testString: updatedTestString
+					string: updatedTestString
 				}
 			})
 		}
 	});
 
-	const { Item } = await TestTable1.client.send(
+	const { Item } = await DocumentClient.send(
 		new GetCommand({
-			TableName: TestTable1.tableName,
-			Key: TestItem2KeySpace.keyOf(keyParams)
+			TableName: TABLE_NAME,
+			Key: ManyGsiKeySpace.keyOf(item)
 		})
 	);
 
-	expect(Item!.deep.deep.deep.testString).toBe(updatedTestString);
+	expect(Item!.deep.deep.deep.string).toBe(updatedTestString);
 });
 
 it('increments a value', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
+	const number = randomNumber();
 
-	const keyParams = {
-		testString,
-		testNumber
-	};
-
-	const item = {
-		...keyParams,
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
+	const item: TestItem = {
+		string,
+		number,
 		deep: {
 			deep: {
 				deep: {
-					testString
+					string
 				}
 			}
 		}
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: NoGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
-	await dxUpdateQuick(TestItem2KeySpace, keyParams, {
-		testNumber: dxOp.Add(1)
+	await updateQuickItem(ManyGsiKeySpace, item, {
+		number: dkOp.Add(1)
 	});
 
-	const { Item } = await TestTable1.client.send(
+	const { Item } = await DocumentClient.send(
 		new GetCommand({
-			TableName: TestTable1.tableName,
-			Key: TestItem2KeySpace.keyOf(keyParams)
+			TableName: TABLE_NAME,
+			Key: ManyGsiKeySpace.keyOf(item)
 		})
 	);
 
-	expect(Item!.testNumber).toBe(item.testNumber + 1);
+	expect(Item!.number).toBe(item.number + 1);
 });
 
 it('drecrements a value', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
-
-	const keyParams = {
-		testString,
-		testNumber
-	};
+	const string = randomString();
+	const number = randomNumber();
 
 	const item = {
-		...keyParams,
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
+		string,
+		number,
 		deep: {
 			deep: {
 				deep: {
-					testString
+					string
 				}
 			}
 		}
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: NoGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
-	await dxUpdateQuick(TestItem2KeySpace, keyParams, {
-		testNumber: dxOp.Minus(1)
+	await updateQuickItem(ManyGsiKeySpace, item, {
+		number: dkOp.Minus(1)
 	});
 
-	const { Item } = await TestTable1.client.send(
+	const { Item } = await DocumentClient.send(
 		new GetCommand({
-			TableName: TestTable1.tableName,
-			Key: TestItem2KeySpace.keyOf(keyParams)
+			TableName: TABLE_NAME,
+			Key: ManyGsiKeySpace.keyOf(item)
 		})
 	);
 
-	expect(Item!.testNumber).toBe(item.testNumber - 1);
+	expect(Item!.number).toBe(item.number - 1);
 });
 
 it('appends list at head', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
-
-	const keyParams = {
-		testString,
-		testNumber
-	};
+	const string = randomString();
+	const number = randomNumber();
 
 	const item = {
-		...keyParams,
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
+		string,
+		number,
 		list: ['test'],
 		deep: {
 			deep: {
 				deep: {
-					testString
+					string
 				}
 			}
 		}
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: NoGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
-	await dxUpdateQuick(TestItem2KeySpace, keyParams, {
-		list: dxOp.ListAppend(['test2'], 'head')
+	await updateQuickItem(ManyGsiKeySpace, item, {
+		list: dkOp.ListAppend(['test2'], 'head')
 	});
 
-	const { Item } = await TestTable1.client.send(
+	const { Item } = await DocumentClient.send(
 		new GetCommand({
-			TableName: TestTable1.tableName,
-			Key: TestItem2KeySpace.keyOf(keyParams)
+			TableName: TABLE_NAME,
+			Key: ManyGsiKeySpace.keyOf(item)
 		})
 	);
 
@@ -197,43 +170,37 @@ it('appends list at head', async () => {
 });
 
 it('appends list at tail', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
-
-	const keyParams = {
-		testString,
-		testNumber
-	};
+	const string = randomString();
+	const number = randomNumber();
 
 	const item = {
-		...keyParams,
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
+		string,
+		number,
 		list: ['test'],
 		deep: {
 			deep: {
 				deep: {
-					testString
+					string
 				}
 			}
 		}
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: NoGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
-	await dxUpdateQuick(TestItem2KeySpace, keyParams, {
-		list: dxOp.ListAppend(['test2'], 'tail')
+	await updateQuickItem(ManyGsiKeySpace, item, {
+		list: dkOp.ListAppend(['test2'], 'tail')
 	});
 
-	const { Item } = await TestTable1.client.send(
+	const { Item } = await DocumentClient.send(
 		new GetCommand({
-			TableName: TestTable1.tableName,
-			Key: TestItem2KeySpace.keyOf(keyParams)
+			TableName: TABLE_NAME,
+			Key: ManyGsiKeySpace.keyOf(item)
 		})
 	);
 

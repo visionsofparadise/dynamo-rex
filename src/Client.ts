@@ -1,19 +1,19 @@
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { DxCommand } from './command/Command';
+import { DkCommand } from './command/Command';
 import { Defaults } from './util/defaults';
-import { DxMiddlewareHandler } from './Middleware';
+import { DkMiddlewareHandler } from './Middleware';
 import { ILogger } from './util/utils';
 
-export interface DxClientConfig {
+export interface DkClientConfig {
 	client: DynamoDBDocumentClient;
 	defaults: Defaults;
-	middleware: Array<DxMiddlewareHandler>;
+	middleware: Array<DkMiddlewareHandler>;
 	logger?: ILogger;
 }
 
-export class DxClient implements DxClientConfig {
+export class DkClient implements DkClientConfig {
 	defaults: Defaults = {};
-	middleware: Array<DxMiddlewareHandler> = [];
+	middleware: Array<DkMiddlewareHandler> = [];
 	logger?: ILogger;
 
 	constructor(public client: DynamoDBDocumentClient) {}
@@ -26,7 +26,7 @@ export class DxClient implements DxClientConfig {
 		if (defaults) this.defaults = defaults;
 	};
 
-	setMiddleware = (middleware?: Array<DxMiddlewareHandler>) => {
+	setMiddleware = (middleware?: Array<DkMiddlewareHandler>) => {
 		if (middleware) this.middleware = middleware;
 	};
 
@@ -34,7 +34,7 @@ export class DxClient implements DxClientConfig {
 		if (logger) this.logger = logger;
 	};
 
-	send = async <Command extends DxCommand<any, any, any, any, any, any, any, any>>(
+	send = async <Command extends DkCommand<any, any, any, any, any, any, any, any>>(
 		command: Command
 	): Promise<ReturnType<Command['send']>> => {
 		return command.send({

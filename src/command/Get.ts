@@ -1,9 +1,9 @@
 import { GetCommand, GetCommandInput, GetCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { DxCommand } from './Command';
-import { GenericAttributes } from '../Dx';
+import { DkCommand } from './Command';
+import { GenericAttributes } from '../util/utils';
 import { LowerCaseObjectKeys, lowerCaseKeys, upperCaseKeys } from '../util/keyCapitalize';
 import { applyDefaults } from '../util/defaults';
-import { DxClientConfig } from '../Client';
+import { DkClientConfig } from '../Client';
 import { executeMiddlewares, executeMiddleware } from '../Middleware';
 
 const GET_COMMAND_INPUT_DATA_TYPE = 'GetCommandInput' as const;
@@ -12,37 +12,37 @@ const GET_COMMAND_INPUT_HOOK = ['CommandInput', 'ReadCommandInput', GET_COMMAND_
 const GET_COMMAND_OUTPUT_DATA_TYPE = 'GetCommandOutput' as const;
 const GET_COMMAND_OUTPUT_HOOK = ['CommandOutput', 'ReadCommandOutput', GET_COMMAND_OUTPUT_DATA_TYPE] as const;
 
-export interface DxGetCommandInput<Key extends GenericAttributes = GenericAttributes>
+export interface DkGetCommandInput<Key extends GenericAttributes = GenericAttributes>
 	extends LowerCaseObjectKeys<Omit<GetCommandInput, 'Key'>> {
 	key: Key;
 }
 
-export interface DxGetCommandOutput<Attributes extends GenericAttributes = GenericAttributes>
+export interface DkGetCommandOutput<Attributes extends GenericAttributes = GenericAttributes>
 	extends LowerCaseObjectKeys<Omit<GetCommandOutput, 'Item'>> {
 	item: Attributes;
 }
 
-export class DxGetCommand<
+export class DkGetCommand<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
-> extends DxCommand<
+> extends DkCommand<
 	typeof GET_COMMAND_INPUT_DATA_TYPE,
 	(typeof GET_COMMAND_INPUT_HOOK)[number],
-	DxGetCommandInput<Key>,
+	DkGetCommandInput<Key>,
 	GetCommandInput,
 	typeof GET_COMMAND_OUTPUT_DATA_TYPE,
 	(typeof GET_COMMAND_OUTPUT_HOOK)[number],
-	DxGetCommandOutput<Attributes>,
+	DkGetCommandOutput<Attributes>,
 	GetCommandOutput
 > {
-	constructor(input: DxGetCommandInput<Key>) {
+	constructor(input: DkGetCommandInput<Key>) {
 		super(input);
 	}
 
 	inputMiddlewareConfig = { dataType: GET_COMMAND_INPUT_DATA_TYPE, hooks: GET_COMMAND_INPUT_HOOK };
 	outputMiddlewareConfig = { dataType: GET_COMMAND_OUTPUT_DATA_TYPE, hooks: GET_COMMAND_OUTPUT_HOOK };
 
-	handleInput = async ({ defaults, middleware }: DxClientConfig): Promise<GetCommandInput> => {
+	handleInput = async ({ defaults, middleware }: DkClientConfig): Promise<GetCommandInput> => {
 		const postDefaultsInput = applyDefaults(this.input, defaults, ['returnConsumedCapacity']);
 
 		const { data: postMiddlewareInput } = await executeMiddlewares(
@@ -61,15 +61,15 @@ export class DxGetCommand<
 
 	handleOutput = async (
 		output: GetCommandOutput,
-		{ middleware }: DxClientConfig
-	): Promise<DxGetCommandOutput<Attributes>> => {
+		{ middleware }: DkClientConfig
+	): Promise<DkGetCommandOutput<Attributes>> => {
 		const lowerCaseOutput = lowerCaseKeys(output);
 
 		const item = output.Item as Attributes | undefined;
 
 		if (!item) throw new Error('Item Not Found');
 
-		const formattedOutput: DxGetCommandOutput<Attributes> = {
+		const formattedOutput: DkGetCommandOutput<Attributes> = {
 			...lowerCaseOutput,
 			item
 		};
@@ -93,7 +93,7 @@ export class DxGetCommand<
 		return postMiddlewareOutput;
 	};
 
-	send = async (clientConfig: DxClientConfig) => {
+	send = async (clientConfig: DkClientConfig) => {
 		const input = await this.handleInput(clientConfig);
 
 		const output = await clientConfig.client.send(new GetCommand(input));

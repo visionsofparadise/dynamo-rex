@@ -1,11 +1,11 @@
 import { PutCommand, PutCommandInput, PutCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { DxCommand } from './Command';
+import { DkCommand } from './Command';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
-import { GenericAttributes } from '../Dx';
+import { GenericAttributes } from '../util/utils';
 import { ReturnValuesAttributes, assertReturnValuesAttributes } from '../util/returnValuesAttributes';
 import { LowerCaseObjectKeys, lowerCaseKeys, upperCaseKeys } from '../util/keyCapitalize';
 import { executeMiddleware, executeMiddlewares } from '../Middleware';
-import { DxClientConfig } from '../Client';
+import { DkClientConfig } from '../Client';
 import { applyDefaults } from '../util/defaults';
 
 const PUT_COMMAND_INPUT_DATA_TYPE = 'PutCommandInput' as const;
@@ -14,44 +14,44 @@ const PUT_COMMAND_INPUT_HOOK = ['CommandInput', 'WriteCommandInput', PUT_COMMAND
 const PUT_COMMAND_OUTPUT_DATA_TYPE = 'PutCommandOutput' as const;
 const PUT_COMMAND_OUTPUT_HOOK = ['CommandOutput', 'WriteCommandOutput', PUT_COMMAND_OUTPUT_DATA_TYPE] as const;
 
-export type DxPutReturnValues = Extract<ReturnValue, 'ALL_OLD' | 'NONE'> | undefined;
+export type DkPutReturnValues = Extract<ReturnValue, 'ALL_OLD' | 'NONE'> | undefined;
 
-export interface DxPutCommandInput<
+export interface DkPutCommandInput<
 	Attributes extends GenericAttributes = GenericAttributes,
-	ReturnValues extends DxPutReturnValues = undefined
+	ReturnValues extends DkPutReturnValues = undefined
 > extends LowerCaseObjectKeys<Omit<PutCommandInput, 'Item' | 'ReturnValues' | 'Expected' | 'ConditionalOperator'>> {
 	item: Attributes;
 	returnValues?: ReturnValues;
 }
 
-export interface DxPutCommandOutput<
+export interface DkPutCommandOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
-	ReturnValues extends DxPutReturnValues = undefined
+	ReturnValues extends DkPutReturnValues = undefined
 > extends LowerCaseObjectKeys<Omit<PutCommandOutput, 'Attributes'>> {
 	attributes: ReturnValuesAttributes<Attributes, ReturnValues>;
 }
 
-export class DxPutCommand<
+export class DkPutCommand<
 	Attributes extends GenericAttributes = GenericAttributes,
-	ReturnValues extends DxPutReturnValues = undefined
-> extends DxCommand<
+	ReturnValues extends DkPutReturnValues = undefined
+> extends DkCommand<
 	typeof PUT_COMMAND_INPUT_DATA_TYPE,
 	(typeof PUT_COMMAND_INPUT_HOOK)[number],
-	DxPutCommandInput<Attributes, ReturnValues>,
+	DkPutCommandInput<Attributes, ReturnValues>,
 	PutCommandInput,
 	typeof PUT_COMMAND_OUTPUT_DATA_TYPE,
 	(typeof PUT_COMMAND_OUTPUT_HOOK)[number],
-	DxPutCommandOutput<Attributes, ReturnValues>,
+	DkPutCommandOutput<Attributes, ReturnValues>,
 	PutCommandOutput
 > {
-	constructor(input: DxPutCommandInput<Attributes, ReturnValues>) {
+	constructor(input: DkPutCommandInput<Attributes, ReturnValues>) {
 		super(input);
 	}
 
 	inputMiddlewareConfig = { dataType: PUT_COMMAND_INPUT_DATA_TYPE, hooks: PUT_COMMAND_INPUT_HOOK };
 	outputMiddlewareConfig = { dataType: PUT_COMMAND_OUTPUT_DATA_TYPE, hooks: PUT_COMMAND_OUTPUT_HOOK };
 
-	handleInput = async ({ defaults, middleware }: DxClientConfig): Promise<PutCommandInput> => {
+	handleInput = async ({ defaults, middleware }: DkClientConfig): Promise<PutCommandInput> => {
 		const postDefaultsInput = applyDefaults(this.input, defaults, [
 			'returnConsumedCapacity',
 			'returnItemCollectionMetrics',
@@ -74,15 +74,15 @@ export class DxPutCommand<
 
 	handleOutput = async (
 		output: PutCommandOutput,
-		{ middleware }: DxClientConfig
-	): Promise<DxPutCommandOutput<Attributes, ReturnValues>> => {
+		{ middleware }: DkClientConfig
+	): Promise<DkPutCommandOutput<Attributes, ReturnValues>> => {
 		const lowerCaseOutput = lowerCaseKeys(output);
 
 		const attributes = output.Attributes as Attributes | undefined;
 
 		assertReturnValuesAttributes(attributes, this.input.returnValues);
 
-		const formattedOutput: DxPutCommandOutput<Attributes, ReturnValues> = {
+		const formattedOutput: DkPutCommandOutput<Attributes, ReturnValues> = {
 			...lowerCaseOutput,
 			attributes
 		};
@@ -113,7 +113,7 @@ export class DxPutCommand<
 		return postMiddlewareOutput;
 	};
 
-	send = async (clientConfig: DxClientConfig) => {
+	send = async (clientConfig: DkClientConfig) => {
 		const input = await this.handleInput(clientConfig);
 
 		const output = await clientConfig.client.send(new PutCommand(input));

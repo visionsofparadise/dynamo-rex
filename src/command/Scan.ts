@@ -1,9 +1,9 @@
 import { ScanCommand, ScanCommandInput, ScanCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { DxCommand } from './Command';
-import { GenericAttributes } from '../Dx';
+import { DkCommand } from './Command';
+import { GenericAttributes } from '../util/utils';
 import { LowerCaseObjectKeys, lowerCaseKeys, upperCaseKeys } from '../util/keyCapitalize';
 import { applyDefaults } from '../util/defaults';
-import { DxClientConfig } from '../Client';
+import { DkClientConfig } from '../Client';
 import { executeMiddlewares, executeMiddleware } from '../Middleware';
 
 const SCAN_COMMAND_INPUT_DATA_TYPE = 'ScanCommandInput' as const;
@@ -12,12 +12,12 @@ const SCAN_COMMAND_INPUT_HOOK = ['CommandInput', 'ReadCommandInput', SCAN_COMMAN
 const SCAN_COMMAND_OUTPUT_DATA_TYPE = 'ScanCommandOutput' as const;
 const SCAN_COMMAND_OUTPUT_HOOK = ['CommandOutput', 'ReadCommandOutput', SCAN_COMMAND_OUTPUT_DATA_TYPE] as const;
 
-export interface DxScanCommandInput<CursorKey extends GenericAttributes = GenericAttributes>
+export interface DkScanCommandInput<CursorKey extends GenericAttributes = GenericAttributes>
 	extends LowerCaseObjectKeys<Omit<ScanCommandInput, 'ExclusiveStartKey' | 'AttributesToGet' | 'ConditionalOperator'>> {
 	cursorKey?: CursorKey;
 }
 
-export interface DxScanCommandOutput<
+export interface DkScanCommandOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	CursorKey extends GenericAttributes = GenericAttributes
 > extends LowerCaseObjectKeys<Omit<ScanCommandOutput, 'Items' | 'LastEvaluatedKey'>> {
@@ -25,27 +25,27 @@ export interface DxScanCommandOutput<
 	cursorKey?: CursorKey;
 }
 
-export class DxScanCommand<
+export class DkScanCommand<
 	Attributes extends GenericAttributes = GenericAttributes,
 	CursorKey extends GenericAttributes = GenericAttributes
-> extends DxCommand<
+> extends DkCommand<
 	typeof SCAN_COMMAND_INPUT_DATA_TYPE,
 	(typeof SCAN_COMMAND_INPUT_HOOK)[number],
-	DxScanCommandInput<CursorKey>,
+	DkScanCommandInput<CursorKey>,
 	ScanCommandInput,
 	typeof SCAN_COMMAND_OUTPUT_DATA_TYPE,
 	(typeof SCAN_COMMAND_OUTPUT_HOOK)[number],
-	DxScanCommandOutput<Attributes, CursorKey>,
+	DkScanCommandOutput<Attributes, CursorKey>,
 	ScanCommandOutput
 > {
-	constructor(input: DxScanCommandInput<CursorKey>) {
+	constructor(input: DkScanCommandInput<CursorKey>) {
 		super(input);
 	}
 
 	inputMiddlewareConfig = { dataType: SCAN_COMMAND_INPUT_DATA_TYPE, hooks: SCAN_COMMAND_INPUT_HOOK };
 	outputMiddlewareConfig = { dataType: SCAN_COMMAND_OUTPUT_DATA_TYPE, hooks: SCAN_COMMAND_OUTPUT_HOOK };
 
-	handleInput = async ({ defaults, middleware }: DxClientConfig): Promise<ScanCommandInput> => {
+	handleInput = async ({ defaults, middleware }: DkClientConfig): Promise<ScanCommandInput> => {
 		const postDefaultsInput = applyDefaults(this.input, defaults, ['returnConsumedCapacity']);
 
 		const { data: postMiddlewareInput } = await executeMiddlewares(
@@ -71,14 +71,14 @@ export class DxScanCommand<
 
 	handleOutput = async (
 		output: ScanCommandOutput,
-		{ middleware }: DxClientConfig
-	): Promise<DxScanCommandOutput<Attributes, CursorKey>> => {
+		{ middleware }: DkClientConfig
+	): Promise<DkScanCommandOutput<Attributes, CursorKey>> => {
 		const lowerCaseOutput = lowerCaseKeys(output);
 
 		const items = (output.Items || []) as Array<Attributes>;
 		const cursorKey = output.LastEvaluatedKey as CursorKey | undefined;
 
-		const formattedOutput: DxScanCommandOutput<Attributes, CursorKey> = {
+		const formattedOutput: DkScanCommandOutput<Attributes, CursorKey> = {
 			...lowerCaseOutput,
 			items,
 			cursorKey
@@ -103,7 +103,7 @@ export class DxScanCommand<
 		return postMiddlewareOutput;
 	};
 
-	send = async (clientConfig: DxClientConfig) => {
+	send = async (clientConfig: DkClientConfig) => {
 		const input = await this.handleInput(clientConfig);
 
 		const output = await clientConfig.client.send(new ScanCommand(input));

@@ -1,45 +1,32 @@
-import { TestTable1 } from '../TableTest.dev';
-import { setTimeout } from 'timers/promises';
+import { DocumentClient, NoGsiTable, TABLE_NAME } from '../TableTest.dev';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { dxTableBatchGet } from './batchGet';
-import { dxTableReset } from './reset';
+import { batchGetTableItems } from './batchGet';
 import { arrayOfLength, randomString } from '../util/utils';
-
-beforeEach(() => dxTableReset(TestTable1));
+import { NoGsiKeySpace } from '../KeySpaceTest.dev';
 
 it('it gets 120 items', async () => {
-	jest.useRealTimers();
+	const items: Array<{ string: string; number: number }> = arrayOfLength(120).map(() => {
+		const string = randomString();
+		const number = 1;
 
-	const items: Array<{ pk: string; sk: string; testString: string; testNumber: number }> = arrayOfLength(120).map(
-		() => {
-			const testString = randomString();
-			const testNumber = 1;
-
-			return {
-				pk: `test-${testNumber}`,
-				sk: `test-${testString}`,
-				testString,
-				testNumber
-			};
-		}
-	);
+		return {
+			string,
+			number
+		};
+	});
 
 	for (const item of items) {
-		await TestTable1.client.send(
+		await DocumentClient.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
-				Item: item
+				TableName: TABLE_NAME,
+				Item: NoGsiKeySpace.withIndexKeys(item)
 			})
 		);
 	}
 
-	await setTimeout(1000);
-
-	const result = await dxTableBatchGet(
-		TestTable1,
-		items.map(({ pk, sk }) => {
-			return { pk, sk };
-		})
+	const result = await batchGetTableItems(
+		NoGsiTable,
+		items.map(item => NoGsiKeySpace.keyOf(item))
 	);
 
 	expect(result.items.length).toBe(120);

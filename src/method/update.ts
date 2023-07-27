@@ -1,28 +1,30 @@
 import { AnyKeySpace } from '../KeySpace';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
 import { ReturnValuesAttributes } from '../util/returnValuesAttributes';
-import { GenericAttributes } from '../Dx';
-import { DxUpdateCommand, DxUpdateCommandInput } from '../command/Update';
+import { GenericAttributes } from '../util/utils';
+import { DkUpdateCommand, DkUpdateCommandInput } from '../command/Update';
 import { Table } from '../Table';
+import { DkClient } from '../Client';
 
-export interface DxUpdateInput<RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW>
-	extends Omit<DxUpdateCommandInput<any, RV>, 'tableName' | 'key'> {}
+export interface UpdateItemInput<RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW>
+	extends Omit<DkUpdateCommandInput<any, RV>, 'tableName' | 'key'> {}
 
-export type DxUpdateOutput<
+export type UpdateItemOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
 > = ReturnValuesAttributes<Attributes, RV>;
 
-export const dxTableUpdate = async <
+export const updateTableItem = async <
 	T extends Table = Table,
 	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
 >(
 	Table: T,
 	key: T['IndexKeyMap'][T['PrimaryIndex']],
-	input: DxUpdateInput<RV>
-): Promise<DxUpdateOutput<T['AttributesAndIndexKeys'], RV>> => {
-	const output = await Table.dxClient.send(
-		new DxUpdateCommand<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']], RV>({
+	input: UpdateItemInput<RV>,
+	dkClient: DkClient = Table.dkClient
+): Promise<UpdateItemOutput<T['Attributes'], RV>> => {
+	const output = await dkClient.send(
+		new DkUpdateCommand<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']], RV>({
 			...input,
 			tableName: Table.tableName,
 			key,
@@ -33,15 +35,15 @@ export const dxTableUpdate = async <
 	return output.attributes;
 };
 
-export const dxUpdate = async <
+export const updateItem = async <
 	K extends AnyKeySpace = AnyKeySpace,
 	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
 >(
 	KeySpace: K,
 	keyParams: Parameters<K['keyOf']>[0],
-	input: DxUpdateInput<RV>
-): Promise<DxUpdateOutput<K['Attributes'], RV>> => {
-	const attributes = await dxTableUpdate(KeySpace.Table, KeySpace.keyOf(keyParams as any), input);
+	input: UpdateItemInput<RV>
+): Promise<UpdateItemOutput<K['Attributes'], RV>> => {
+	const attributes = await updateTableItem(KeySpace.Table, KeySpace.keyOf(keyParams as any), input, KeySpace.dkClient);
 
 	const strippedAttributes = (attributes ? KeySpace.omitIndexKeys(attributes) : undefined) as ReturnValuesAttributes<
 		K['Attributes'],

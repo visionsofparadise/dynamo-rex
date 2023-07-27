@@ -1,9 +1,9 @@
 import { TransactWriteCommand, TransactWriteCommandInput, TransactWriteCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { DxCommand } from './Command';
-import { GenericAttributes } from '../Dx';
+import { DkCommand } from './Command';
+import { GenericAttributes } from '../util/utils';
 import { LowerCaseObjectKeys, lowerCaseKeys, upperCaseKeys } from '../util/keyCapitalize';
 import { applyDefaults } from '../util/defaults';
-import { DxClientConfig } from '../Client';
+import { DkClientConfig } from '../Client';
 import { executeMiddlewares, executeMiddleware } from '../Middleware';
 import { ConditionCheck, Delete, Put, Update } from '@aws-sdk/client-dynamodb';
 
@@ -21,58 +21,58 @@ const TRANSACT_WRITE_COMMAND_OUTPUT_HOOK = [
 	TRANSACT_WRITE_COMMAND_OUTPUT_DATA_TYPE
 ] as const;
 
-export interface DxTransactWriteCommandInputConditionCheck<Key extends GenericAttributes = GenericAttributes>
+export interface DkTransactWriteCommandInputConditionCheck<Key extends GenericAttributes = GenericAttributes>
 	extends LowerCaseObjectKeys<Omit<ConditionCheck, 'Key'>> {
 	type: 'conditionCheck';
 	key: Key;
 }
 
-export interface DxTransactWriteCommandInputPut<Attributes extends GenericAttributes = GenericAttributes>
+export interface DkTransactWriteCommandInputPut<Attributes extends GenericAttributes = GenericAttributes>
 	extends LowerCaseObjectKeys<Omit<Put, 'Item'>> {
 	type: 'put';
 	item: Attributes;
 }
 
-export interface DxTransactWriteCommandInputDelete<Key extends GenericAttributes = GenericAttributes>
+export interface DkTransactWriteCommandInputDelete<Key extends GenericAttributes = GenericAttributes>
 	extends LowerCaseObjectKeys<Omit<Delete, 'Key'>> {
 	type: 'delete';
 	key: Key;
 }
 
-export interface DxTransactWriteCommandInputUpdate<Key extends GenericAttributes = GenericAttributes>
+export interface DkTransactWriteCommandInputUpdate<Key extends GenericAttributes = GenericAttributes>
 	extends LowerCaseObjectKeys<Omit<Update, 'Key'>> {
 	type: 'update';
 	key: Key;
 }
 
-export interface DxTransactWriteCommandInput<
+export interface DkTransactWriteCommandInput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
 > extends LowerCaseObjectKeys<Omit<TransactWriteCommandInput, 'TransactItems'>> {
 	requests: Array<
-		| DxTransactWriteCommandInputConditionCheck<Key>
-		| DxTransactWriteCommandInputPut<Attributes>
-		| DxTransactWriteCommandInputDelete<Key>
-		| DxTransactWriteCommandInputUpdate<Key>
+		| DkTransactWriteCommandInputConditionCheck<Key>
+		| DkTransactWriteCommandInputPut<Attributes>
+		| DkTransactWriteCommandInputDelete<Key>
+		| DkTransactWriteCommandInputUpdate<Key>
 	>;
 }
 
-export interface DxTransactWriteCommandOutput extends LowerCaseObjectKeys<TransactWriteCommandOutput> {}
+export interface DkTransactWriteCommandOutput extends LowerCaseObjectKeys<TransactWriteCommandOutput> {}
 
-export class DxTransactWriteCommand<
+export class DkTransactWriteCommand<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
-> extends DxCommand<
+> extends DkCommand<
 	typeof TRANSACT_WRITE_COMMAND_INPUT_DATA_TYPE,
 	(typeof TRANSACT_WRITE_COMMAND_INPUT_HOOK)[number],
-	DxTransactWriteCommandInput<Attributes, Key>,
+	DkTransactWriteCommandInput<Attributes, Key>,
 	TransactWriteCommandInput,
 	typeof TRANSACT_WRITE_COMMAND_OUTPUT_DATA_TYPE,
 	(typeof TRANSACT_WRITE_COMMAND_OUTPUT_HOOK)[number],
-	DxTransactWriteCommandOutput,
+	DkTransactWriteCommandOutput,
 	TransactWriteCommandOutput
 > {
-	constructor(input: DxTransactWriteCommandInput<Attributes, Key>) {
+	constructor(input: DkTransactWriteCommandInput<Attributes, Key>) {
 		super(input);
 	}
 
@@ -85,7 +85,7 @@ export class DxTransactWriteCommand<
 		hooks: TRANSACT_WRITE_COMMAND_OUTPUT_HOOK
 	};
 
-	handleInput = async ({ defaults, middleware }: DxClientConfig): Promise<TransactWriteCommandInput> => {
+	handleInput = async ({ defaults, middleware }: DkClientConfig): Promise<TransactWriteCommandInput> => {
 		const postDefaultsInput = applyDefaults(this.input, defaults, [
 			'returnConsumedCapacity',
 			'returnItemCollectionMetrics'
@@ -140,8 +140,8 @@ export class DxTransactWriteCommand<
 
 	handleOutput = async (
 		output: TransactWriteCommandOutput,
-		{ middleware }: DxClientConfig
-	): Promise<DxTransactWriteCommandOutput> => {
+		{ middleware }: DkClientConfig
+	): Promise<DkTransactWriteCommandOutput> => {
 		const lowerCaseOutput = lowerCaseKeys(output);
 
 		const { data: postMiddlewareOutput } = await executeMiddlewares(
@@ -174,7 +174,7 @@ export class DxTransactWriteCommand<
 		return postMiddlewareOutput;
 	};
 
-	send = async (clientConfig: DxClientConfig) => {
+	send = async (clientConfig: DkClientConfig) => {
 		const input = await this.handleInput(clientConfig);
 
 		const output = await clientConfig.client.send(new TransactWriteCommand(input));

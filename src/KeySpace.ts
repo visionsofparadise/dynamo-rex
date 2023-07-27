@@ -1,10 +1,9 @@
 import { PrimaryIndex, Table, primaryIndex } from './Table';
-import { zipObject } from './util/utils';
+import { GenericAttributes, zipObject } from './util/utils';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { DxConfig } from './Dx';
 import { A, U } from 'ts-toolbelt';
-import { DxMiddlewareHandler, appendMiddleware } from './Middleware';
-import { DxClient } from './Client';
+import { appendMiddleware } from './Middleware';
+import { DkClient, DkClientConfig } from './Client';
 
 export namespace KeySpace {
 	export type GetKeyParams<K extends AnyKeySpace, Index extends K['Index']> = U.IntersectOf<
@@ -16,31 +15,31 @@ export type AnyKeySpace = KeySpace<any, any, any, any>;
 
 export type IndexValueHandlersType<
 	ParentTable extends Table = Table,
-	Attributes extends ParentTable['Attributes'] = ParentTable['Attributes'],
+	Attributes extends GenericAttributes = GenericAttributes,
 	SecondaryIndex extends ParentTable['SecondaryIndex'] | never = never
 > = {
 	[x in Exclude<PrimaryIndex | SecondaryIndex, never>]: {
-		[y in keyof ParentTable['IndexKeyMap'][x]]: (params: Attributes) => ParentTable['IndexKeyMap'][x][y];
+		[y in keyof Table.GetIndexKey<ParentTable, x>]: (params: Attributes) => Table.GetIndexKey<ParentTable, x>[y];
 	};
 };
 
 export interface KeySpaceConfig<
 	ParentTable extends Table = Table,
-	Attributes extends ParentTable['Attributes'] = ParentTable['Attributes'],
+	Attributes extends GenericAttributes = GenericAttributes,
 	SecondaryIndex extends ParentTable['SecondaryIndex'] | never = never,
 	IndexValueHandlers extends IndexValueHandlersType<ParentTable, Attributes, SecondaryIndex> = any
-> extends Partial<DxConfig> {
+> extends Partial<DkClientConfig> {
 	indexValueHandlers: IndexValueHandlers;
 }
 
 export class KeySpace<
 	ParentTable extends Table = Table,
-	Attributes extends ParentTable['Attributes'] = ParentTable['Attributes'],
+	Attributes extends GenericAttributes = GenericAttributes,
 	SecondaryIndex extends ParentTable['SecondaryIndex'] | never = never,
 	IndexValueHandlers extends IndexValueHandlersType<ParentTable, Attributes, SecondaryIndex> = any
 > {
 	client: DynamoDBDocumentClient;
-	dxClient: DxClient;
+	dkClient: DkClient;
 
 	tableName: string;
 
@@ -48,30 +47,24 @@ export class KeySpace<
 
 	constructor(
 		public Table: ParentTable,
-		public config: KeySpaceConfig<ParentTable, Attributes, SecondaryIndex, IndexValueHandlers>,
-		middleware: Array<DxMiddlewareHandler> = []
+		public config: KeySpaceConfig<ParentTable, Attributes, SecondaryIndex, IndexValueHandlers>
 	) {
 		this.client = config.client || Table.client;
-		this.dxClient = Table.dxClient;
+		this.dkClient = Table.dkClient;
 
-		this.dxClient.setClient(config.client);
-		this.dxClient.setDefaults({ ...this.dxClient.defaults, ...config.defaults });
-		this.dxClient.setMiddleware(appendMiddleware(this.dxClient.middleware, middleware));
-		this.dxClient.setLogger(config.logger);
+		this.dkClient.setClient(config.client);
+		this.dkClient.setDefaults({ ...this.dkClient.defaults, ...config.defaults });
+		this.dkClient.setMiddleware(appendMiddleware(this.dkClient.middleware, config.middleware || []));
+		this.dkClient.setLogger(config.logger);
 
 		this.tableName = Table.config.name;
 		this.indexValueHandlers = config.indexValueHandlers;
 	}
 
 	configure<ConfigIndexValueHandlers extends IndexValueHandlersType<ParentTable, Attributes, SecondaryIndex> = any>(
-		config: KeySpaceConfig<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers>,
-		middleware: Array<DxMiddlewareHandler> = []
+		config: KeySpaceConfig<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers>
 	): KeySpace<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers> {
-		return new KeySpace<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers>(
-			this.Table,
-			config,
-			middleware
-		);
+		return new KeySpace<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers>(this.Table, config);
 	}
 
 	Attributes!: Attributes;
@@ -81,7 +74,7 @@ export class KeySpace<
 	SecondaryIndex!: SecondaryIndex;
 
 	IndexKeyMap!: {
-		[x in this['Index']]: this['Table']['IndexKeyMap'][x];
+		[x in this['Index']]: ParentTable['IndexKeyMap'][x];
 	};
 
 	AttributesAndIndexKeys!: Attributes & U.IntersectOf<this['IndexKeyMap'][this['Index']]>;
@@ -121,7 +114,9 @@ export class KeySpace<
 		key: Key,
 		params: this['IndexValueParamsMap'][Index][Key]
 	): ReturnType<this['config']['indexValueHandlers'][Index][Key]> {
-		return this.indexValueHandlers[index][key](params) as ReturnType<this['config']['indexValueHandlers'][Index][Key]>;
+		return this.indexValueHandlers[index][key](params as any) as ReturnType<
+			this['config']['indexValueHandlers'][Index][Key]
+		>;
 	}
 
 	keyOf(params: this['IndexKeyValueParamsMap'][PrimaryIndex]): this['IndexKeyMap'][PrimaryIndex] {

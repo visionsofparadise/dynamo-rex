@@ -1,35 +1,28 @@
-import { TestTable1 } from '../TableTest.dev';
-import { dxDelete } from './delete';
+import { DocumentClient, TABLE_NAME } from '../TableTest.dev';
+import { deleteItem } from './delete';
 import { randomNumber, randomString } from '../util/utils';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { TestItem1KeySpace } from '../KeySpaceTest.dev';
+import { NoGsiKeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
-import { dxTableReset } from './reset';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
 
-beforeEach(() => dxTableReset(TestTable1));
-
 it('deletes an existing item', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
+	const number = randomNumber();
 
 	const item = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
-		testString,
-		testNumber
+		string,
+		number
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: NoGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
-	const itemWithoutKeys = { testString, testNumber };
-
-	const result = await dxDelete(TestItem1KeySpace, itemWithoutKeys);
+	const result = await deleteItem(NoGsiKeySpace, item);
 
 	const resultTypeCheck: A.Equals<typeof result, undefined> = 1;
 
@@ -39,44 +32,40 @@ it('deletes an existing item', async () => {
 });
 
 it('throws on deleting not existing item', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
+	const number = randomNumber();
 
 	const item = {
-		testString,
-		testNumber
+		string,
+		number
 	};
 
-	await dxDelete(TestItem1KeySpace, item).catch(error => expect(error).toBeDefined());
+	await deleteItem(NoGsiKeySpace, item).catch(error => expect(error).toBeDefined());
 });
 
 it('returns old values', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
+	const number = randomNumber();
 
 	const item = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
-		testString,
-		testNumber
+		string,
+		number
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: NoGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
-	const itemWithoutKeys = { testString, testNumber };
-
-	const result = await dxDelete(TestItem1KeySpace, itemWithoutKeys, {
+	const result = await deleteItem(NoGsiKeySpace, item, {
 		returnValues: ReturnValue.ALL_OLD
 	});
 
-	const resultTypeCheck: A.Equals<typeof result, (typeof TestItem1KeySpace)['Attributes']> = 1;
+	const resultTypeCheck: A.Equals<typeof result, (typeof NoGsiKeySpace)['Attributes']> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 
-	expect(result).toStrictEqual(itemWithoutKeys);
+	expect(result).toStrictEqual(item);
 });

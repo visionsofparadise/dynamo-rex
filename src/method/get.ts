@@ -1,19 +1,21 @@
 import { Table } from '../Table';
-import { DxGetCommand, DxGetCommandInput } from '../command/Get';
-import { GenericAttributes } from '../Dx';
+import { DkGetCommand, DkGetCommandInput } from '../command/Get';
+import { GenericAttributes } from '../util/utils';
 import { AnyKeySpace } from '../KeySpace';
+import { DkClient } from '../Client';
 
-export interface DxGetInput extends Omit<DxGetCommandInput, 'tableName' | 'key'> {}
+export interface GetItemInput extends Omit<DkGetCommandInput, 'tableName' | 'key'> {}
 
-export type DxGetOutput<Attributes extends GenericAttributes = GenericAttributes> = Attributes;
+export type GetItemOutput<Attributes extends GenericAttributes = GenericAttributes> = Attributes;
 
-export const dxTableGet = async <T extends Table>(
+export const getTableItem = async <T extends Table>(
 	Table: T,
 	keyParams: T['IndexKeyMap'][T['PrimaryIndex']],
-	input?: DxGetInput
-): Promise<DxGetOutput<T['AttributesAndIndexKeys']>> => {
-	const output = await Table.dxClient.send(
-		new DxGetCommand<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']]>({
+	input?: GetItemInput,
+	dkClient: DkClient = Table.dkClient
+): Promise<GetItemOutput<T['Attributes']>> => {
+	const output = await dkClient.send(
+		new DkGetCommand<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']]>({
 			...input,
 			tableName: Table.tableName,
 			key: keyParams
@@ -23,12 +25,12 @@ export const dxTableGet = async <T extends Table>(
 	return output.item;
 };
 
-export const dxGet = async <K extends AnyKeySpace>(
+export const getItem = async <K extends AnyKeySpace>(
 	KeySpace: K,
 	keyParams: Parameters<K['keyOf']>[0],
-	input?: DxGetInput
-): Promise<DxGetOutput<K['Attributes']>> => {
-	const item = await dxTableGet(KeySpace.Table, KeySpace.keyOf(keyParams as any), input);
+	input?: GetItemInput
+): Promise<GetItemOutput<K['Attributes']>> => {
+	const item = await getTableItem(KeySpace.Table, KeySpace.keyOf(keyParams as any), input, KeySpace.dkClient);
 
 	return KeySpace.omitIndexKeys(item);
 };

@@ -1,10 +1,10 @@
-export type DxQuickQueryOperators = {
+export type DkQuickQueryOperators = {
 	beginsWith?: string | number;
 	greaterThan?: string | number;
 	lessThan?: string | number;
 };
 
-export const createQueryQuickSort = (sortKey?: string | undefined, operators?: DxQuickQueryOperators) => {
+export const createQueryQuickSort = (sortKey?: string | undefined, operators?: DkQuickQueryOperators) => {
 	if (operators && sortKey) {
 		if (operators.greaterThan && operators.lessThan) {
 			return {

@@ -1,19 +1,24 @@
 import { AnyKeySpace, KeySpace } from '../KeySpace';
-import { DxListParams, DxQueryInput, dxTableQuery } from './query';
+import { ListParams, QueryItemsInput, queryTableItems } from './query';
 import { run } from '../util/utils';
 import { Table, primaryIndex } from '../Table';
-import { GenericAttributes } from '../Dx';
+import { GenericAttributes } from '../util/utils';
+import { DkClient } from '../Client';
 
-export type DxQueryGetInput = Omit<DxQueryInput<any, any>, 'keyConditionExpression' | keyof DxListParams<any> | 'sort'>;
+export type QueryGetItemInput = Omit<
+	QueryItemsInput<any, any>,
+	'keyConditionExpression' | keyof ListParams<any> | 'sort'
+>;
 
-export type DxQueryGetOutput<Attributes extends GenericAttributes = GenericAttributes> = Attributes;
+export type QueryGetItemOutput<Attributes extends GenericAttributes = GenericAttributes> = Attributes;
 
-export const dxTableQueryGet = async <T extends Table = Table, Index extends T['Index'] | never = never>(
+export const queryGetTableItem = async <T extends Table = Table, Index extends T['Index'] | never = never>(
 	Table: T,
 	index: Index,
 	key: T['IndexKeyMap'][Index],
-	input?: DxQueryGetInput
-): Promise<DxQueryGetOutput<T['AttributesAndIndexKeys']>> => {
+	input?: QueryGetItemInput,
+	dkClient: DkClient = Table.dkClient
+): Promise<QueryGetItemOutput<T['Attributes']>> => {
 	const setIndex = index !== primaryIndex ? index : undefined;
 
 	const hashKey = Table.config.indexes[index].hash.key;
@@ -21,29 +26,37 @@ export const dxTableQueryGet = async <T extends Table = Table, Index extends T['
 
 	const output = await run(async () => {
 		if (sortKey) {
-			return dxTableQuery(Table, {
+			return queryTableItems(
+				Table,
+				{
+					...input,
+					index: setIndex,
+					pageLimit: 1,
+					keyConditionExpression: `${hashKey} = :hashValue AND ${sortKey} = :sortValue`,
+					expressionAttributeValues: {
+						[`:hashValue`]: key[hashKey],
+						[`:sortValue`]: key[sortKey],
+						...input?.expressionAttributeValues
+					}
+				},
+				dkClient
+			);
+		}
+
+		return queryTableItems(
+			Table,
+			{
 				...input,
 				index: setIndex,
 				pageLimit: 1,
-				keyConditionExpression: `${hashKey} = :hashValue AND ${sortKey} = :sortValue`,
+				keyConditionExpression: `${hashKey} = :hashValue`,
 				expressionAttributeValues: {
 					[`:hashValue`]: key[hashKey],
-					[`:sortValue`]: key[sortKey],
 					...input?.expressionAttributeValues
 				}
-			});
-		}
-
-		return dxTableQuery(Table, {
-			...input,
-			index: setIndex,
-			pageLimit: 1,
-			keyConditionExpression: `${hashKey} = :hashValue`,
-			expressionAttributeValues: {
-				[`:hashValue`]: key[hashKey],
-				...input?.expressionAttributeValues
-			}
-		});
+			},
+			dkClient
+		);
 	});
 
 	if (!output.items[0]) throw new Error('Not Found');
@@ -51,21 +64,22 @@ export const dxTableQueryGet = async <T extends Table = Table, Index extends T['
 	return output.items[0];
 };
 
-export const dxQueryGet = async <
+export const queryGetItem = async <
 	K extends AnyKeySpace = AnyKeySpace,
 	Index extends K['SecondaryIndex'] | never = never
 >(
 	KeySpace: K,
 	index: Index,
 	keyParams: KeySpace.GetKeyParams<K, Index>,
-	input?: DxQueryGetInput
-): Promise<DxQueryGetOutput<K['Attributes']>> => {
-	const item = (await dxTableQueryGet(
+	input?: QueryGetItemInput
+): Promise<QueryGetItemOutput<K['Attributes']>> => {
+	const item = (await queryGetTableItem(
 		KeySpace.Table,
 		index,
 		KeySpace.indexKeyOf(index, keyParams as any),
-		input
-	)) as DxQueryGetOutput<K['AttributesAndIndexKeys']>;
+		input,
+		KeySpace.dkClient
+	)) as QueryGetItemOutput<K['AttributesAndIndexKeys']>;
 
 	return KeySpace.omitIndexKeys(item);
 };

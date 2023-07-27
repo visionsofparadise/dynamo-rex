@@ -1,16 +1,16 @@
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
-import { GenericAttributes } from '../Dx';
+import { GenericAttributes } from '../util/utils';
 
-export type DxFullReturnValues = Extract<ReturnValue, 'ALL_NEW' | 'ALL_OLD'>;
-export type DxPartialReturnValues = Extract<ReturnValue, 'UPDATED_NEW' | 'UPDATED_OLD'>;
+export type DkFullReturnValues = Extract<ReturnValue, 'ALL_NEW' | 'ALL_OLD'>;
+export type DkPartialReturnValues = Extract<ReturnValue, 'UPDATED_NEW' | 'UPDATED_OLD'>;
 
 export type ReturnValuesAttributes<
 	Attributes extends GenericAttributes | Partial<GenericAttributes> | undefined,
 	ReturnValues extends ReturnValue | undefined
-> = ReturnValues extends DxFullReturnValues
+> = ReturnValues extends DkFullReturnValues
 	? Attributes
-	: ReturnValues extends DxPartialReturnValues
-	? Partial<Attributes>
+	: ReturnValues extends DkPartialReturnValues
+	? Partial<Attributes> | undefined
 	: undefined;
 
 export const assertReturnValuesAttributes: <
@@ -20,13 +20,6 @@ export const assertReturnValuesAttributes: <
 	attributes?: Attributes | Partial<Attributes> | undefined,
 	returnValues?: ReturnValues
 ) => asserts attributes is ReturnValuesAttributes<Attributes, ReturnValues> = (attributes, returnValues) => {
-	if (
-		(returnValues === ReturnValue.ALL_NEW ||
-			returnValues === ReturnValue.ALL_OLD ||
-			returnValues === ReturnValue.UPDATED_NEW ||
-			returnValues === ReturnValue.UPDATED_OLD) &&
-		!attributes
-	)
-		throw new Error();
+	if ((returnValues === ReturnValue.ALL_NEW || returnValues === ReturnValue.ALL_OLD) && !attributes) throw new Error();
 	if ((!returnValues || returnValues === ReturnValue.NONE) && attributes) throw new Error();
 };

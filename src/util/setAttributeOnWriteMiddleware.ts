@@ -1,15 +1,15 @@
-import { DxMiddlewareHandler } from '../Middleware';
-import { GenericAttributes } from '../Dx';
-import { DxCommandGenericData } from '../command/Command';
+import { DkMiddlewareHandler } from '../Middleware';
+import { GenericAttributes } from '../util/utils';
+import { DkCommandGenericData } from '../command/Command';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 
-export const dxSetAttributeOnWriteMiddleware = <Attributes extends GenericAttributes = GenericAttributes>(
+export const dkSetAttributeOnWriteMiddleware = <Attributes extends GenericAttributes = GenericAttributes>(
 	key: string & keyof Attributes,
 	setter: () => NativeAttributeValue
-): Array<DxMiddlewareHandler> => {
-	const batchWriteHandler: DxMiddlewareHandler<
+): Array<DkMiddlewareHandler> => {
+	const batchWriteHandler: DkMiddlewareHandler<
 		'BatchWriteCommandInput',
-		DxCommandGenericData & { Attributes: Attributes }
+		DkCommandGenericData & { Attributes: Attributes }
 	> = {
 		hook: 'BatchWriteCommandInput',
 		handler: ({ data: batchWriteCommandInput }) => {
@@ -36,7 +36,7 @@ export const dxSetAttributeOnWriteMiddleware = <Attributes extends GenericAttrib
 		}
 	};
 
-	const putHandler: DxMiddlewareHandler<'PutCommandInput', DxCommandGenericData & { Attributes: Attributes }> = {
+	const putHandler: DkMiddlewareHandler<'PutCommandInput', DkCommandGenericData & { Attributes: Attributes }> = {
 		hook: 'PutCommandInput',
 		handler: ({ data: putCommandInput }) => {
 			return {
@@ -49,9 +49,9 @@ export const dxSetAttributeOnWriteMiddleware = <Attributes extends GenericAttrib
 		}
 	};
 
-	const transactWriteHandler: DxMiddlewareHandler<
+	const transactWriteHandler: DkMiddlewareHandler<
 		'TransactWriteCommandInput',
-		DxCommandGenericData & { Attributes: Attributes }
+		DkCommandGenericData & { Attributes: Attributes }
 	> = {
 		hook: 'TransactWriteCommandInput',
 		handler: ({ data: transactWriteCommandInput }) => {
@@ -87,7 +87,7 @@ export const dxSetAttributeOnWriteMiddleware = <Attributes extends GenericAttrib
 		}
 	};
 
-	const updateHandler: DxMiddlewareHandler<'UpdateCommandInput', DxCommandGenericData & { Attributes: Attributes }> = {
+	const updateHandler: DkMiddlewareHandler<'UpdateCommandInput', DkCommandGenericData & { Attributes: Attributes }> = {
 		hook: 'UpdateCommandInput',
 		handler: ({ data: updateCommandInput }) => {
 			if (!updateCommandInput.updateExpression!.startsWith('SET')) return;

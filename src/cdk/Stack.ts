@@ -1,8 +1,11 @@
 import { CfnOutput, RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
 import { Table, BillingMode, AttributeType, ProjectionType } from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
+
 export class DynamoXStack extends Stack {
 	public readonly tableName: CfnOutput;
+	public readonly scanTableName: CfnOutput;
+	public readonly resetTableName: CfnOutput;
 
 	constructor(scope: Construct, id: string, props: StackProps & { stage: string; deploymentName: string }) {
 		super(scope, id, props);
@@ -58,6 +61,32 @@ export class DynamoXStack extends Stack {
 		this.tableName = new CfnOutput(this, `${props.deploymentName}-tableName`, {
 			value: database.tableName,
 			exportName: `${props.deploymentName}-tableName`
+		});
+
+		const scanDatabase = new Table(this, 'scanDatabase', {
+			tableName: `${props.deploymentName}-scan-database`,
+			billingMode: BillingMode.PAY_PER_REQUEST,
+			removalPolicy: RemovalPolicy.DESTROY,
+			partitionKey: { name: 'pk', type: AttributeType.STRING },
+			sortKey: { name: 'sk', type: AttributeType.STRING }
+		});
+
+		this.scanTableName = new CfnOutput(this, `${props.deploymentName}-scanTableName`, {
+			value: scanDatabase.tableName,
+			exportName: `${props.deploymentName}-scanTableName`
+		});
+
+		const resetDatabase = new Table(this, 'resetDatabase', {
+			tableName: `${props.deploymentName}-reset-database`,
+			billingMode: BillingMode.PAY_PER_REQUEST,
+			removalPolicy: RemovalPolicy.DESTROY,
+			partitionKey: { name: 'pk', type: AttributeType.STRING },
+			sortKey: { name: 'sk', type: AttributeType.STRING }
+		});
+
+		this.resetTableName = new CfnOutput(this, `${props.deploymentName}-resetTableName`, {
+			value: resetDatabase.tableName,
+			exportName: `${props.deploymentName}-resetTableName`
 		});
 	}
 }

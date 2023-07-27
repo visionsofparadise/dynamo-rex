@@ -35,7 +35,7 @@ export class DynamoXPipelineStack extends Stack {
 		const unitTestStep = new ShellStep('unitTest', {
 			input: source,
 			installCommands: ['npm ci'],
-			commands: ['npm run compile', 'npm run test']
+			commands: ['npm run check', 'npm run test']
 		});
 
 		testStage.addPre(unitTestStep);
@@ -59,17 +59,20 @@ export class DynamoXPipelineStack extends Stack {
 			commands: ['npm ci', 'export INTEGRATION_TEST=true', 'npm run test'],
 			rolePolicyStatements: [testingPolicyStatement],
 			envFromCfnOutputs: {
-				DYNAMODB_TABLE: testApp.tableName
+				DYNAMODB_TABLE: testApp.tableName,
+				DYNAMODB_SCAN_TABLE: testApp.scanTableName,
+				DYNAMODB_RESET_TABLE: testApp.resetTableName
 			}
 		});
 
-		const patchStep = new CodeBuildStep('patch', {
+		const publishStep = new CodeBuildStep('publish', {
 			input: source,
 			commands: [
 				'npm ci',
-				'npm run compile',
+				'npm run clean',
+				'npm run build',
 				'npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}',
-				'npm run patch'
+				'npm run publish'
 			],
 			buildEnvironment: {
 				environmentVariables: {
@@ -81,8 +84,8 @@ export class DynamoXPipelineStack extends Stack {
 			}
 		});
 
-		patchStep.addStepDependency(integrationTestStep);
+		publishStep.addStepDependency(integrationTestStep);
 
-		testStage.addPost(integrationTestStep, patchStep);
+		testStage.addPost(integrationTestStep, publishStep);
 	}
 }

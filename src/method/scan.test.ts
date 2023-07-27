@@ -1,38 +1,61 @@
-import { IBaseItem, TestTable1 } from '../TableTest.dev';
-import { setTimeout } from 'timers/promises';
-import { randomNumber, randomString } from '../util/utils';
+import { DocumentClient } from '../TableTest.dev';
+import { randomString } from '../util/utils';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { dxTableScan } from './scan';
-import { dxTableReset } from './reset';
+import { scanTableItems } from './scan';
 import { A } from 'ts-toolbelt';
+import { Table } from '../Table';
 
-beforeEach(() => dxTableReset(TestTable1));
+const SCAN_TABLE_NAME = process.env.DYNAMODB_SCAN_TABLE || 'scanTest';
 
-it('scan returns list of items', async () => {
-	jest.useRealTimers();
+export const ScanTable = new Table({
+	client: DocumentClient,
+	name: SCAN_TABLE_NAME,
+	indexes: {
+		primaryIndex: {
+			hash: {
+				key: 'pk',
+				value: 'string'
+			},
+			sort: {
+				key: 'sk',
+				value: 'string'
+			}
+		},
+		gsi0: {
+			hash: {
+				key: 'gsi0Pk',
+				value: 'string'
+			},
+			sort: {
+				key: 'gsi0Sk',
+				value: 'string'
+			}
+		}
+	}
+});
 
+beforeAll(async () => {
 	for (let i = 0; i < 10; i++) {
-		const testString = randomString();
-		const testNumber = randomNumber();
+		const string = randomString();
 
 		const item = {
-			pk: `test-${testNumber}`,
-			sk: `test-${testString}`,
-			testString,
-			testNumber
+			pk: string,
+			sk: string,
+			gsi0Pk: string,
+			gsi0Sk: string
 		};
 
-		await TestTable1.client.send(
+		await DocumentClient.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
+				TableName: SCAN_TABLE_NAME,
 				Item: item
 			})
 		);
 	}
+});
 
-	await setTimeout(1000);
-
-	const result = await dxTableScan(TestTable1);
+it('scan returns list of items', async () => {
+	const result = await scanTableItems(ScanTable);
 
 	const cursorTypeCheck: A.Equals<(typeof result)['cursorKey'], ({ pk: string } & { sk: string }) | undefined> = 1;
 
@@ -40,15 +63,7 @@ it('scan returns list of items', async () => {
 
 	const itemsTypeCheck: A.Equals<
 		(typeof result)['items'],
-		Array<
-			IBaseItem & { pk: string } & { sk: string } & Partial<
-					{ gsi0Pk: string } & { gsi0Sk: string } & { gsi1Pk: number } & { gsi1Sk: number | undefined } & {
-						gsi2Pk: string;
-					} & { gsi2Sk: number } & { gsi3Pk: number } & { gsi3Sk: string | undefined } & { gsi4Pk: string } & {
-						gsi5Pk: number;
-					}
-				>
-		>
+		Array<{ pk: string } & { sk: string } & Partial<{ gsi0Pk: string } & { gsi0Sk: string }>>
 	> = 1;
 
 	expect(itemsTypeCheck).toBe(1);
@@ -57,32 +72,7 @@ it('scan returns list of items', async () => {
 });
 
 it('scan on index returns list of items', async () => {
-	jest.useRealTimers();
-
-	for (let i = 0; i < 10; i++) {
-		const testString = randomString();
-		const testNumber = randomNumber();
-
-		const item = {
-			pk: `test-${testNumber}`,
-			sk: `test-${testString}`,
-			gsi0Pk: `test-${testNumber}`,
-			gsi0Sk: `test-${testString}`,
-			testString,
-			testNumber
-		};
-
-		await TestTable1.client.send(
-			new PutCommand({
-				TableName: TestTable1.tableName,
-				Item: item
-			})
-		);
-	}
-
-	await setTimeout(1000);
-
-	const result = await dxTableScan(TestTable1, {
+	const result = await scanTableItems(ScanTable, {
 		index: 'gsi0'
 	});
 
@@ -97,37 +87,14 @@ it('scan on index returns list of items', async () => {
 });
 
 it('limits and pages correctly', async () => {
-	jest.useRealTimers();
-
-	for (let i = 0; i < 10; i++) {
-		const testString = randomString();
-		const testNumber = randomNumber();
-
-		const item = {
-			pk: `test-${testNumber}`,
-			sk: `test-${testString}`,
-			testString,
-			testNumber
-		};
-
-		await TestTable1.client.send(
-			new PutCommand({
-				TableName: TestTable1.tableName,
-				Item: item
-			})
-		);
-	}
-
-	await setTimeout(1000);
-
-	const result = await dxTableScan(TestTable1, {
+	const result = await scanTableItems(ScanTable, {
 		pageLimit: 5
 	});
 
 	expect(result.items.length).toBe(5);
 	expect(result.cursorKey).toBeDefined();
 
-	const result2 = await dxTableScan(TestTable1, {
+	const result2 = await scanTableItems(ScanTable, {
 		cursorKey: result.cursorKey
 	});
 

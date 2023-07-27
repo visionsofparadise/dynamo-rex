@@ -1,38 +1,31 @@
-import { TestItem1KeySpace } from '../KeySpaceTest.dev';
-import { dxGet } from './get';
-import { TestTable1 } from '../TableTest.dev';
+import { NoGsiKeySpace } from '../KeySpaceTest.dev';
+import { getItem } from './get';
+import { DocumentClient, TABLE_NAME } from '../TableTest.dev';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { randomNumber, randomString } from '../util/utils';
-import { dxTableReset } from './reset';
 import { A } from 'ts-toolbelt';
 
-beforeEach(() => dxTableReset(TestTable1));
-
 it('gets a put item', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
+	const number = randomNumber();
 
 	const item = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
-		testString,
-		testNumber
+		string,
+		number
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: NoGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
-	const itemWithoutKeys = { testString, testNumber };
+	const result = await getItem(NoGsiKeySpace, item);
 
-	const result = await dxGet(TestItem1KeySpace, itemWithoutKeys);
-
-	const resultTypeCheck: A.Equals<typeof result, (typeof TestItem1KeySpace)['Attributes']> = 1;
+	const resultTypeCheck: A.Equals<typeof result, (typeof NoGsiKeySpace)['Attributes']> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 
-	expect(result).toStrictEqual(itemWithoutKeys);
+	expect(result).toStrictEqual(item);
 });

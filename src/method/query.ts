@@ -1,41 +1,43 @@
 import { Table } from '../Table';
 import { AnyKeySpace } from '../KeySpace';
-import { GenericAttributes } from '../Dx';
-import { DxQueryCommand, DxQueryCommandInput, DxQueryCommandOutput } from '../command/Query';
+import { GenericAttributes } from '../util/utils';
+import { DkQueryCommand, DkQueryCommandInput, DkQueryCommandOutput } from '../command/Query';
+import { DkClient } from '../Client';
 
-export interface DxListParams<Index extends string | never | undefined> {
+export interface ListParams<Index extends string | never | undefined> {
 	index?: Index;
 	pageLimit?: number;
 	totalLimit?: number;
 	autoPage?: boolean;
 }
 
-export interface DxQueryInput<
+export interface QueryItemsInput<
 	Index extends string | never | undefined = undefined,
 	CursorKey extends GenericAttributes = GenericAttributes
-> extends Omit<DxQueryCommandInput<CursorKey>, 'tableName' | 'index' | 'limit'>,
-		DxListParams<Index> {}
+> extends Omit<DkQueryCommandInput<CursorKey>, 'tableName' | 'index' | 'limit'>,
+		ListParams<Index> {}
 
-export type DxQueryOutput<
+export type QueryItemsOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	CursorKey extends GenericAttributes = GenericAttributes
-> = DxQueryCommandOutput<Attributes, CursorKey>;
+> = DkQueryCommandOutput<Attributes, CursorKey>;
 
-export const dxTableQuery = async <
+export const queryTableItems = async <
 	T extends Table = Table,
 	Index extends T['SecondaryIndex'] | never | undefined = never | undefined
 >(
 	Table: T,
-	input: DxQueryInput<Index, Table.GetIndexCursorKey<T, Index & string>>
-): Promise<DxQueryOutput<T['AttributesAndIndexKeys'], Table.GetIndexCursorKey<T, Index & string>>> => {
+	input: QueryItemsInput<Index, Table.GetIndexCursorKey<T, Index & string>>,
+	dkClient: DkClient = Table.dkClient
+): Promise<QueryItemsOutput<T['Attributes'], Table.GetIndexCursorKey<T, Index & string>>> => {
 	const recurse = async (
 		totalCount: number,
 		pageCursorKey?: Table.GetIndexCursorKey<T, Index & string>
-	): Promise<DxQueryOutput<T['AttributesAndIndexKeys'], Table.GetIndexCursorKey<T, Index & string>>> => {
+	): Promise<QueryItemsOutput<T['Attributes'], Table.GetIndexCursorKey<T, Index & string>>> => {
 		const { autoPage, pageLimit, totalLimit, ...inputRest } = input;
 
-		const output = await Table.dxClient.send(
-			new DxQueryCommand<T['AttributesAndIndexKeys'], Table.GetIndexCursorKey<T, Index & string>>({
+		const output = await dkClient.send(
+			new DkQueryCommand<T['Attributes'], Table.GetIndexCursorKey<T, Index & string>>({
 				...inputRest,
 				tableName: Table.tableName,
 				cursorKey: pageCursorKey,
@@ -69,14 +71,14 @@ export const dxTableQuery = async <
 	return recurse(0, input?.cursorKey);
 };
 
-export const dxQuery = async <
+export const queryItems = async <
 	K extends AnyKeySpace = AnyKeySpace,
 	Index extends K['SecondaryIndex'] | never | undefined = never | undefined
 >(
 	KeySpace: K,
-	input: DxQueryInput<Index, Table.GetIndexCursorKey<K['Table'], Index>>
-): Promise<DxQueryOutput<K['Attributes'], Table.GetIndexCursorKey<K['Table'], Index>>> => {
-	const output = await dxTableQuery(KeySpace.Table, input);
+	input: QueryItemsInput<Index, Table.GetIndexCursorKey<K['Table'], Index>>
+): Promise<QueryItemsOutput<K['Attributes'], Table.GetIndexCursorKey<K['Table'], Index>>> => {
+	const output = await queryTableItems(KeySpace.Table, input, KeySpace.dkClient);
 
 	return {
 		...output,

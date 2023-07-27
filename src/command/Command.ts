@@ -1,55 +1,55 @@
-import { DxPutCommand } from './Put';
-import { DxGetCommand } from './Get';
-import { DxMiddlewareConfigType } from '../Middleware';
-import { DxUpdateCommand } from './Update';
-import { DxClientConfig } from '../Client';
-import { DxDeleteCommand } from './Delete';
-import { DxQueryCommand } from './Query';
-import { DxScanCommand } from './Scan';
-import { DxBatchGetCommand } from './BatchGet';
-import { DxBatchWriteCommand } from './BatchWrite';
-import { DxTransactGetCommand } from './TransactGet';
-import { DxTransactWriteCommand } from './TransactWrite';
-import { GenericAttributes } from '../Dx';
+import { DkPutCommand } from './Put';
+import { DkGetCommand } from './Get';
+import { DkMiddlewareConfigType } from '../Middleware';
+import { DkUpdateCommand } from './Update';
+import { DkClientConfig } from '../Client';
+import { DkDeleteCommand } from './Delete';
+import { DkQueryCommand } from './Query';
+import { DkScanCommand } from './Scan';
+import { DkBatchGetCommand } from './BatchGet';
+import { DkBatchWriteCommand } from './BatchWrite';
+import { DkTransactGetCommand } from './TransactGet';
+import { DkTransactWriteCommand } from './TransactWrite';
+import { GenericAttributes } from '../util/utils';
 
-export interface DxCommandGenericData {
+export interface DkCommandGenericData {
 	Attributes: GenericAttributes;
 	Key: GenericAttributes;
 	CursorKey: GenericAttributes;
 }
 
-export type DxCommandMap<Data extends DxCommandGenericData = DxCommandGenericData> = {
-	BatchGetCommand: DxBatchGetCommand<Data['Attributes'], Data['Key']>;
-	BatchWriteCommand: DxBatchWriteCommand<Data['Attributes'], Data['Key']>;
-	DeleteCommand: DxDeleteCommand<Data['Attributes'], Data['Key'], any>;
-	GetCommand: DxGetCommand<Data['Attributes'], Data['Key']>;
-	PutCommand: DxPutCommand<Data['Attributes'], any>;
-	QueryCommand: DxQueryCommand<Data['Attributes'], Data['CursorKey']>;
-	ScanCommand: DxScanCommand<Data['Attributes'], Data['CursorKey']>;
-	TransactGetCommand: DxTransactGetCommand<Data['Attributes'], Data['Key']>;
-	TransactWriteCommand: DxTransactWriteCommand<Data['Attributes'], Data['Key']>;
-	UpdateCommand: DxUpdateCommand<Data['Attributes'], Data['Key'], any>;
+export type DkCommandMap<Data extends DkCommandGenericData = DkCommandGenericData> = {
+	BatchGetCommand: DkBatchGetCommand<Data['Attributes'], Data['Key']>;
+	BatchWriteCommand: DkBatchWriteCommand<Data['Attributes'], Data['Key']>;
+	DeleteCommand: DkDeleteCommand<Data['Attributes'], Data['Key'], any>;
+	GetCommand: DkGetCommand<Data['Attributes'], Data['Key']>;
+	PutCommand: DkPutCommand<Data['Attributes'], any>;
+	QueryCommand: DkQueryCommand<Data['Attributes'], Data['CursorKey']>;
+	ScanCommand: DkScanCommand<Data['Attributes'], Data['CursorKey']>;
+	TransactGetCommand: DkTransactGetCommand<Data['Attributes'], Data['Key']>;
+	TransactWriteCommand: DkTransactWriteCommand<Data['Attributes'], Data['Key']>;
+	UpdateCommand: DkUpdateCommand<Data['Attributes'], Data['Key'], any>;
 };
 
-export type DxCommandMiddlewareData<Data extends DxCommandGenericData = DxCommandGenericData> = {
-	[x in keyof DxCommandMap]:
+export type DkCommandMiddlewareData<Data extends DkCommandGenericData = DkCommandGenericData> = {
+	[x in keyof DkCommandMap]:
 		| {
-				[y in DxCommandMap[x]['inputMiddlewareConfig']['hooks'][number]]: DxMiddlewareConfigType<
-					DxCommandMap[x]['inputMiddlewareConfig']['dataType'],
+				[y in DkCommandMap[x]['inputMiddlewareConfig']['hooks'][number]]: DkMiddlewareConfigType<
+					DkCommandMap[x]['inputMiddlewareConfig']['dataType'],
 					y,
-					DxCommandMap<Data>[x]['Input']
+					DkCommandMap<Data>[x]['Input']
 				>;
-		  }[DxCommandMap[x]['inputMiddlewareConfig']['hooks'][number]]
+		  }[DkCommandMap[x]['inputMiddlewareConfig']['hooks'][number]]
 		| {
-				[y in DxCommandMap[x]['outputMiddlewareConfig']['hooks'][number]]: DxMiddlewareConfigType<
-					DxCommandMap[x]['outputMiddlewareConfig']['dataType'],
+				[y in DkCommandMap[x]['outputMiddlewareConfig']['hooks'][number]]: DkMiddlewareConfigType<
+					DkCommandMap[x]['outputMiddlewareConfig']['dataType'],
 					y,
-					DxCommandMap<Data>[x]['Output']
+					DkCommandMap<Data>[x]['Output']
 				>;
-		  }[DxCommandMap[x]['outputMiddlewareConfig']['hooks'][number]];
-}[keyof DxCommandMap];
+		  }[DkCommandMap[x]['outputMiddlewareConfig']['hooks'][number]];
+}[keyof DkCommandMap];
 
-export abstract class DxCommand<
+export abstract class DkCommand<
 	InputDataType extends string,
 	InputHook extends string,
 	Input extends object,
@@ -67,8 +67,8 @@ export abstract class DxCommand<
 	abstract inputMiddlewareConfig: { dataType: InputDataType; hooks: Readonly<Array<InputHook>> };
 	abstract outputMiddlewareConfig: { dataType: OutputDataType; hooks: Readonly<Array<OutputHook>> };
 
-	abstract handleInput: (clientConfig: DxClientConfig) => Promise<BaseInput>;
-	abstract handleOutput: (output: BaseOutput, clientConfig: DxClientConfig) => Promise<Output>;
+	abstract handleInput: (clientConfig: DkClientConfig) => Promise<BaseInput>;
+	abstract handleOutput: (output: BaseOutput, clientConfig: DkClientConfig) => Promise<Output>;
 
-	abstract send: (clientConfig: DxClientConfig) => Promise<Output>;
+	abstract send: (clientConfig: DkClientConfig) => Promise<Output>;
 }

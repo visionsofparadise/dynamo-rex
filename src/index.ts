@@ -1,47 +1,65 @@
-export { DxBase } from './Dx';
+export { DkClient } from './Client';
 
-export { DxClient } from './Client';
-
-export { DxBatchGetCommand, DxBatchGetCommandInput, DxBatchGetCommandOutput } from './command/BatchGet';
-export { DxBatchWriteCommand, DxBatchWriteCommandInput, DxBatchWriteCommandOutput } from './command/BatchWrite';
-export { DxDeleteCommand, DxDeleteCommandInput, DxDeleteCommandOutput, DxDeleteReturnValues } from './command/Delete';
-export { DxGetCommand, DxGetCommandInput, DxGetCommandOutput } from './command/Get';
-export { DxPutCommand, DxPutCommandInput, DxPutCommandOutput, DxPutReturnValues } from './command/Put';
-export { DxQueryCommand, DxQueryCommandInput, DxQueryCommandOutput, DxQueryItemsSort } from './command/Query';
-export { DxScanCommand, DxScanCommandInput, DxScanCommandOutput } from './command/Scan';
-export { DxTransactGetCommand, DxTransactGetCommandInput, DxTransactGetCommandOutput } from './command/TransactGet';
+export { DkBatchGetCommand, DkBatchGetCommandInput, DkBatchGetCommandOutput } from './command/BatchGet';
+export { DkBatchWriteCommand, DkBatchWriteCommandInput, DkBatchWriteCommandOutput } from './command/BatchWrite';
+export { DkDeleteCommand, DkDeleteCommandInput, DkDeleteCommandOutput, DkDeleteReturnValues } from './command/Delete';
+export { DkGetCommand, DkGetCommandInput, DkGetCommandOutput } from './command/Get';
+export { DkPutCommand, DkPutCommandInput, DkPutCommandOutput, DkPutReturnValues } from './command/Put';
+export { DkQueryCommand, DkQueryCommandInput, DkQueryCommandOutput, DkQueryItemsSort } from './command/Query';
+export { DkScanCommand, DkScanCommandInput, DkScanCommandOutput } from './command/Scan';
+export { DkTransactGetCommand, DkTransactGetCommandInput, DkTransactGetCommandOutput } from './command/TransactGet';
 export {
-	DxTransactWriteCommand,
-	DxTransactWriteCommandInput,
-	DxTransactWriteCommandOutput,
-	DxTransactWriteCommandInputConditionCheck,
-	DxTransactWriteCommandInputDelete,
-	DxTransactWriteCommandInputPut,
-	DxTransactWriteCommandInputUpdate
+	DkTransactWriteCommand,
+	DkTransactWriteCommandInput,
+	DkTransactWriteCommandOutput,
+	DkTransactWriteCommandInputConditionCheck,
+	DkTransactWriteCommandInputDelete,
+	DkTransactWriteCommandInputPut,
+	DkTransactWriteCommandInputUpdate
 } from './command/TransactWrite';
-export { DxUpdateCommand, DxUpdateCommandInput, DxUpdateCommandOutput, DxUpdateReturnValues } from './command/Update';
+export { DkUpdateCommand, DkUpdateCommandInput, DkUpdateCommandOutput, DkUpdateReturnValues } from './command/Update';
 
-export { dxTableBatchGet, dxBatchGet, DxBatchGetInput, DxBatchGetOutput } from './method/batchGet';
-export { dxTableBatchWrite, dxBatchWrite, DxBatchWriteInput, DxBatchWriteOutput } from './method/batchWrite';
-export { dxTableCreate, dxCreate, DxCreateInput, DxCreateOutput } from './method/create';
-export { dxTableDelete, dxDelete, DxDeleteInput, DxDeleteOutput } from './method/delete';
-export { dxTableGet, dxGet, DxGetInput, DxGetOutput } from './method/get';
-export { dxTablePut, dxPut, DxPutInput, DxPutOutput } from './method/put';
-export { dxTableQueryGet, dxQueryGet, DxQueryGetInput, DxQueryGetOutput } from './method/queryGet';
-export { dxTableQuery, dxQuery, DxQueryInput, DxQueryOutput } from './method/query';
-export { dxTableQueryQuick, dxQueryQuick, DxQueryQuickInput, DxQueryQuickOutput } from './method/queryQuick';
-export { dxTableUpdateQuick, dxUpdateQuick, DxUpdateQuickInput, DxUpdateQuickOutput } from './method/updateQuick';
-export { dxTableReset } from './method/reset';
-export { dxTableScan, DxScanInput, DxScanOutput } from './method/scan';
-export { dxTableTransactGet, dxTransactGet, DxTransactGetInput, DxTransactGetOutput } from './method/transactGet';
+export { batchGetTableItems, batchGetItems, BatchGetItemsInput, BatchGetItemsOutput } from './method/batchGet';
 export {
-	dxTableTransactWrite,
-	dxTransactWrite,
-	DxTransactWriteInput,
-	DxTransactWriteOutput
+	batchWriteTableItems,
+	batchWriteItems,
+	BatchWriteItemsInput,
+	BatchWriteItemsOutput
+} from './method/batchWrite';
+export { createTableItem, createItem, CreateItemInput, CreateItemOutput } from './method/create';
+export { deleteTableItem, deleteItem, DeleteItemInput, DeleteItemOutput } from './method/delete';
+export { getTableItem, getItem, GetItemInput, GetItemOutput } from './method/get';
+export { putTableItem, putItem, PutItemInput, PutItemsOutput } from './method/put';
+export { queryGetTableItem, queryGetItem, QueryGetItemInput, QueryGetItemOutput } from './method/queryGet';
+export { queryTableItems, queryItems, QueryItemsInput, QueryItemsOutput } from './method/query';
+export {
+	queryQuickTableItems,
+	queryQuickItems,
+	QueryQuickItemsInput,
+	QueryQuickItemsOutput
+} from './method/queryQuick';
+export {
+	updateQuickTableItem,
+	updateQuickItem,
+	UpdateQuickItemInput,
+	UpdateQuickItemOutput
+} from './method/updateQuick';
+export { resetTableItems } from './method/reset';
+export { scanTableItems, ScanItemsInput, ScanItemsOutput } from './method/scan';
+export {
+	transactGetTableItems,
+	transactGetItems,
+	TransactGetItemsInput,
+	TransactGetItemsOutput
+} from './method/transactGet';
+export {
+	transactWriteTableItems,
+	transactWriteItems,
+	TransactWriteItemsInput,
+	TransactWriteItemsOutput
 } from './method/transactWrite';
-export { dxTableUpdate, dxUpdate, DxUpdateInput, DxUpdateOutput } from './method/update';
+export { updateTableItem, updateItem, UpdateItemInput, UpdateItemOutput } from './method/update';
 
-export { DxMiddlewareHandler, DxMiddlewareHook } from './Middleware';
-export { dxSetAttributeOnWriteMiddleware } from './util/setAttributeOnWriteMiddleware';
-export { dxOp } from './UpdateOp';
+export { DkMiddlewareHandler, DkMiddlewareHook } from './Middleware';
+export { dkSetAttributeOnWriteMiddleware } from './util/setAttributeOnWriteMiddleware';
+export { dkOp } from './UpdateOp';

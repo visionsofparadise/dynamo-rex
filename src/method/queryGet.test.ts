@@ -1,52 +1,43 @@
-import { TestItem1KeySpace } from '../KeySpaceTest.dev';
-import { dxQueryGet } from './queryGet';
-import { TestTable1 } from '../TableTest.dev';
+import { ManyGsiKeySpace } from '../KeySpaceTest.dev';
+import { queryGetItem } from './queryGet';
+import { DocumentClient, TABLE_NAME } from '../TableTest.dev';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { randomNumber, randomString } from '../util/utils';
-import { dxTableReset } from './reset';
 import { A } from 'ts-toolbelt';
-import { setTimeout } from 'timers/promises';
-
-beforeEach(() => dxTableReset(TestTable1));
 
 it('gets a put item', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
+	const number = randomNumber();
 
 	const item = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
-		gsi0Pk: `test-${testNumber}`,
-		gsi0Sk: `test-${testString}`,
-		testString,
-		testNumber
+		string,
+		number
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: ManyGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
-	await setTimeout(1000);
+	const result = await queryGetItem(ManyGsiKeySpace, 'gsi0', item);
 
-	const itemWithoutKeys = { testString, testNumber };
-
-	const result = await dxQueryGet(TestItem1KeySpace, 'gsi0', itemWithoutKeys);
-
-	const resultTypeCheck: A.Equals<typeof result, (typeof TestItem1KeySpace)['Attributes']> = 1;
+	const resultTypeCheck: A.Equals<typeof result, (typeof ManyGsiKeySpace)['Attributes']> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 
-	expect(result).toStrictEqual(itemWithoutKeys);
+	expect(result).toStrictEqual(item);
 });
 
 it('throws on not found', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
+	const number = randomNumber();
 
-	const itemWithoutKeys = { testString, testNumber };
+	const item = {
+		string,
+		number
+	};
 
-	await dxQueryGet(TestItem1KeySpace, 'gsi0', itemWithoutKeys).catch(error => expect(error).toBeDefined());
+	await queryGetItem(ManyGsiKeySpace, 'gsi0', item).catch(error => expect(error).toBeDefined());
 });

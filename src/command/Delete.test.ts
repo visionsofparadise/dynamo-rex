@@ -1,31 +1,21 @@
-import { TABLE_NAME, TestTable1 } from '../TableTest.dev';
-import { randomNumber, randomString } from '../util/utils';
+import { TABLE_NAME, DocumentClient } from '../TableTest.dev';
+import { randomString } from '../util/utils';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { A } from 'ts-toolbelt';
-import { dxTableReset } from '../method/reset';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
-import { DxDeleteCommand } from './Delete';
+import { DkDeleteCommand } from './Delete';
 import { TestClient } from '../ClientTest.dev';
-import { GenericAttributes } from '../Dx';
-
-beforeEach(() => dxTableReset(TestTable1));
+import { GenericAttributes } from '../util/utils';
 
 it('deletes an existing item', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
-
-	const key = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`
-	};
+	const string = randomString();
 
 	const item = {
-		...key,
-		testString,
-		testNumber
+		pk: string,
+		sk: string
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
 			TableName: TABLE_NAME,
 			Item: item
@@ -33,9 +23,9 @@ it('deletes an existing item', async () => {
 	);
 
 	const result = await TestClient.send(
-		new DxDeleteCommand({
+		new DkDeleteCommand({
 			tableName: TABLE_NAME,
-			key
+			key: item
 		})
 	);
 
@@ -47,38 +37,30 @@ it('deletes an existing item', async () => {
 });
 
 it('throws on deleting not existing item', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
 
-	const key = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`
+	const item = {
+		pk: string,
+		sk: string
 	};
 
 	await TestClient.send(
-		new DxDeleteCommand({
+		new DkDeleteCommand({
 			tableName: TABLE_NAME,
-			key
+			key: item
 		})
 	).catch(error => expect(error).toBeDefined());
 });
 
 it('returns old values', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
-
-	const key = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`
-	};
+	const string = randomString();
 
 	const item = {
-		...key,
-		testString,
-		testNumber
+		pk: string,
+		sk: string
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
 			TableName: TABLE_NAME,
 			Item: item
@@ -86,9 +68,9 @@ it('returns old values', async () => {
 	);
 
 	const result = await TestClient.send(
-		new DxDeleteCommand({
+		new DkDeleteCommand({
 			tableName: TABLE_NAME,
-			key,
+			key: item,
 			returnValues: ReturnValue.ALL_OLD
 		})
 	);

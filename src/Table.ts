@@ -1,9 +1,9 @@
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { DxBase, DxConfig, GenericAttributes } from './Dx';
 import { KeySpace } from './KeySpace';
 import { A, U } from 'ts-toolbelt';
-import { DxMiddlewareHandler, appendMiddleware } from './Middleware';
-import { DxClient } from './Client';
+import { appendMiddleware } from './Middleware';
+import { DkClient, DkClientConfig } from './Client';
+import { GenericAttributes } from './util/utils';
 
 export const primaryIndex = 'primaryIndex' as const;
 
@@ -77,7 +77,8 @@ export interface TableConfig<
 	AttributeValue extends IndexAttributeValue = IndexAttributeValue,
 	ProjectionKeys extends string = string,
 	Projection extends IndexProjection<ProjectionKeys> = IndexProjection<ProjectionKeys>
-> extends Partial<DxConfig> {
+> extends Partial<DkClientConfig> {
+	client: DynamoDBDocumentClient;
 	name: string;
 	indexes: Record<PrimaryIndex, PrimaryIndexConfig<AttributeKey, AttributeValue, AttributeKey, AttributeValue>> &
 		Record<
@@ -87,7 +88,6 @@ export interface TableConfig<
 }
 
 export class Table<
-	Attributes extends GenericAttributes = any,
 	AttributeKey extends string = any,
 	AttributeValue extends IndexAttributeValue = any,
 	ProjectionKeys extends string = any,
@@ -95,53 +95,29 @@ export class Table<
 	Config extends TableConfig<AttributeKey, AttributeValue, ProjectionKeys, Projection> = any
 > {
 	client: DynamoDBDocumentClient;
-	dxClient: DxClient;
+	dkClient: DkClient;
 
 	tableName: string;
 
-	constructor(public Dx: DxBase, public config: Config, middleware: Array<DxMiddlewareHandler> = []) {
-		this.client = config.client || Dx.client;
-		this.dxClient = Dx.dxClient;
+	constructor(public config: Config) {
+		this.client = config.client;
+		this.dkClient = new DkClient(config.client);
 
-		this.dxClient.setClient(config.client);
-		this.dxClient.setDefaults({ ...this.dxClient.defaults, ...config.defaults });
-		this.dxClient.setMiddleware(appendMiddleware(this.dxClient.middleware, middleware));
+		this.dkClient.setDefaults({ ...this.dkClient.defaults, ...config.defaults });
+		this.dkClient.setMiddleware(appendMiddleware(this.dkClient.middleware, config.middleware || []));
 
-		this.tableName = this.config.name;
-	}
-
-	configure<
-		ConfigAttributeKey extends string,
-		ConfigAttributeValue extends IndexAttributeValue,
-		ConfigProjectionKeys extends string,
-		ConfigProjection extends IndexProjection<ConfigProjectionKeys>,
-		ConfigConfig extends TableConfig<ConfigAttributeKey, ConfigAttributeValue, ConfigProjectionKeys, ConfigProjection>
-	>(
-		config: ConfigConfig,
-		middleware: Array<DxMiddlewareHandler> = []
-	): Table<Attributes, ConfigAttributeKey, ConfigAttributeValue, ConfigProjectionKeys, ConfigProjection, ConfigConfig> {
-		return new Table<
-			Attributes,
-			ConfigAttributeKey,
-			ConfigAttributeValue,
-			ConfigProjectionKeys,
-			ConfigProjection,
-			ConfigConfig
-		>(this.Dx, config, middleware);
+		this.tableName = config.name;
 	}
 
 	get KeySpace() {
-		const ParentTable = new Table<Attributes, AttributeKey, AttributeValue, ProjectionKeys, Projection, Config>(
-			this.Dx,
-			this.config
-		);
+		const ParentTable = new Table<AttributeKey, AttributeValue, ProjectionKeys, Projection, Config>(this.config);
 
 		return class TableKeySpace<
-			KeySpaceAttributes extends Attributes = Attributes,
+			Attributes extends GenericAttributes = GenericAttributes,
 			SecondaryIndex extends (typeof ParentTable)['SecondaryIndex'] | never = never
 		> extends KeySpace<
-			Table<Attributes, AttributeKey, AttributeValue, ProjectionKeys, Projection, Config>,
-			KeySpaceAttributes,
+			Table<AttributeKey, AttributeValue, ProjectionKeys, Projection, Config>,
+			Attributes,
 			SecondaryIndex
 		> {
 			constructor() {
@@ -150,7 +126,7 @@ export class Table<
 		};
 	}
 
-	Attributes!: Attributes;
+	Attributes!: this['IndexKeyMap'][PrimaryIndex] & Partial<U.IntersectOf<this['IndexKeyMap'][this['SecondaryIndex']]>>;
 
 	Index!: string & keyof Config['indexes'];
 	PrimaryIndex!: PrimaryIndex;
@@ -159,10 +135,6 @@ export class Table<
 	IndexKeyMap!: {
 		[x in this['Index']]: Table.GetIndexKeyFromConfig<Config['indexes'][x]>;
 	};
-
-	AttributesAndIndexKeys!: Attributes &
-		this['IndexKeyMap'][PrimaryIndex] &
-		Partial<U.IntersectOf<this['IndexKeyMap'][this['SecondaryIndex']]>>;
 
 	get indexes(): Array<this['Index']> {
 		return Object.keys(this.config.indexes) as Array<this['Index']>;
@@ -176,9 +148,7 @@ export class Table<
 		}) as Array<AttributeKey>;
 	}
 
-	omitIndexKeys<Item extends Partial<Attributes & U.IntersectOf<this['IndexKeyMap'][this['Index']]>>>(
-		itemWithIndexKeys: Item
-	): Omit<Item, AttributeKey> {
+	omitIndexKeys<Item extends Partial<this['Attributes']>>(itemWithIndexKeys: Item): Omit<Item, AttributeKey> {
 		const keyMap = new Map(this.attributeKeys.map(key => [key, true]));
 
 		return Object.fromEntries(Object.entries(itemWithIndexKeys).filter(([key]) => !keyMap.has(key as any))) as Omit<

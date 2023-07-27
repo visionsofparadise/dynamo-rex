@@ -1,41 +1,34 @@
-import { TestTable1 } from '../TableTest.dev';
-import { dxUpdate } from './update';
+import { DocumentClient, TABLE_NAME } from '../TableTest.dev';
+import { updateItem } from './update';
 import { randomNumber, randomString } from '../util/utils';
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { TestItem1KeySpace } from '../KeySpaceTest.dev';
+import { NoGsiKeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
-import { dxTableReset } from './reset';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
 
-beforeEach(() => dxTableReset(TestTable1));
-
 it('updates an existing item', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
+	const number = randomNumber();
 
 	const item = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
-		testString,
-		testNumber
+		string,
+		number
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: NoGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
-	const itemWithoutKeys = { testString, testNumber };
+	const updateableString = randomString();
 
-	const updatedTestNumber = randomNumber();
-
-	const result = await dxUpdate(TestItem1KeySpace, itemWithoutKeys, {
+	const result = await updateItem(NoGsiKeySpace, item, {
 		returnValues: ReturnValue.NONE,
-		updateExpression: 'SET testNumber = :updatedTestNumber',
+		updateExpression: 'SET updateableString = :string',
 		expressionAttributeValues: {
-			':updatedTestNumber': updatedTestNumber
+			':string': updateableString
 		}
 	});
 
@@ -43,173 +36,153 @@ it('updates an existing item', async () => {
 
 	expect(resultTypeCheck).toBe(1);
 
-	const { Item } = await TestTable1.client.send(
+	const { Item } = await DocumentClient.send(
 		new GetCommand({
-			TableName: TestTable1.tableName,
-			Key: TestItem1KeySpace.keyOf(itemWithoutKeys)
+			TableName: TABLE_NAME,
+			Key: NoGsiKeySpace.keyOf(item)
 		})
 	);
 
-	expect(Item!.testNumber).toBe(updatedTestNumber);
+	expect(Item!.updateableString).toBe(updateableString);
 });
 
 it('returns all new values', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
+	const number = randomNumber();
 
 	const item = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
-		testString,
-		testNumber
+		string,
+		number
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: NoGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
-	const itemWithoutKeys = { testString, testNumber };
+	const updateableString = randomString();
 
-	const updatedTestNumber = randomNumber();
-
-	const result = await dxUpdate(TestItem1KeySpace, itemWithoutKeys, {
+	const result = await updateItem(NoGsiKeySpace, item, {
 		returnValues: ReturnValue.ALL_NEW,
-		updateExpression: 'SET testNumber = :updatedTestNumber',
+		updateExpression: 'SET updateableString = :string',
 		expressionAttributeValues: {
-			':updatedTestNumber': updatedTestNumber
+			':string': updateableString
 		}
 	});
 
-	const resultTypeCheck: A.Equals<typeof result, (typeof TestItem1KeySpace)['Attributes']> = 1;
+	const resultTypeCheck: A.Equals<typeof result, (typeof NoGsiKeySpace)['Attributes']> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 
 	const updatedItem = {
-		...itemWithoutKeys,
-		testNumber: updatedTestNumber
+		...item,
+		updateableString
 	};
 
 	expect(result).toStrictEqual(updatedItem);
 });
 
 it('returns all old values', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
+	const number = randomNumber();
 
 	const item = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
-		testString,
-		testNumber
+		string,
+		number
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: NoGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
-	const itemWithoutKeys = { testString, testNumber };
+	const updateableString = randomString();
 
-	const updatedTestNumber = randomNumber();
-
-	const result = await dxUpdate(TestItem1KeySpace, itemWithoutKeys, {
+	const result = await updateItem(NoGsiKeySpace, item, {
 		returnValues: ReturnValue.ALL_OLD,
-		updateExpression: 'SET testNumber = :updatedTestNumber',
+		updateExpression: 'SET updateableString = :string',
 		expressionAttributeValues: {
-			':updatedTestNumber': updatedTestNumber
+			':string': updateableString
 		}
 	});
 
-	const resultTypeCheck: A.Equals<typeof result, (typeof TestItem1KeySpace)['Attributes']> = 1;
+	const resultTypeCheck: A.Equals<typeof result, (typeof NoGsiKeySpace)['Attributes']> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 
-	expect(result).toStrictEqual(itemWithoutKeys);
+	expect(result).toStrictEqual(item);
 });
 
 it('returns updated new values', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
+	const number = randomNumber();
 
 	const item = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
-		testString,
-		testNumber
+		string,
+		number
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: NoGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
-	const itemWithoutKeys = { testString, testNumber };
+	const updateableString = randomString();
 
-	const updatedTestNumber = randomNumber();
-
-	const result = await dxUpdate(TestItem1KeySpace, itemWithoutKeys, {
+	const result = await updateItem(NoGsiKeySpace, item, {
 		returnValues: ReturnValue.UPDATED_NEW,
-		updateExpression: 'SET testNumber = :updatedTestNumber',
+		updateExpression: 'SET updateableString = :string',
 		expressionAttributeValues: {
-			':updatedTestNumber': updatedTestNumber
+			':string': updateableString
 		}
 	});
 
-	const resultTypeCheck: A.Equals<typeof result, Partial<(typeof TestItem1KeySpace)['Attributes']>> = 1;
+	const resultTypeCheck: A.Equals<typeof result, Partial<(typeof NoGsiKeySpace)['Attributes']> | undefined> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 
 	const updatedItem = {
-		testNumber: updatedTestNumber
+		updateableString
 	};
 
 	expect(result).toStrictEqual(updatedItem);
 });
 
 it('returns updated old values', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
+	const number = randomNumber();
 
 	const item = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
-		testString,
-		testNumber
+		string,
+		number
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: NoGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
-	const itemWithoutKeys = { testString, testNumber };
+	const updateableString = randomString();
 
-	const updatedTestNumber = randomNumber();
-
-	const result = await dxUpdate(TestItem1KeySpace, itemWithoutKeys, {
+	const result = await updateItem(NoGsiKeySpace, item, {
 		returnValues: ReturnValue.UPDATED_OLD,
-		updateExpression: 'SET testNumber = :updatedTestNumber',
+		updateExpression: 'SET updateableString = :string',
 		expressionAttributeValues: {
-			':updatedTestNumber': updatedTestNumber
+			':string': updateableString
 		}
 	});
 
-	const resultTypeCheck: A.Equals<typeof result, Partial<(typeof TestItem1KeySpace)['Attributes']>> = 1;
+	const resultTypeCheck: A.Equals<typeof result, Partial<(typeof NoGsiKeySpace)['Attributes']> | undefined> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 
-	const updatedItem = {
-		testNumber
-	};
-
-	expect(result).toStrictEqual(updatedItem);
+	expect(result).toBeUndefined();
 });

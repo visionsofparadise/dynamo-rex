@@ -1,65 +1,63 @@
-import { TestTable1 } from '../TableTest.dev';
-import { dxUpdateQuick } from './updateQuick';
+import { DocumentClient, TABLE_NAME } from '../TableTest.dev';
+import { updateQuickItem } from './updateQuick';
 import { randomNumber, randomString } from '../util/utils';
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { ITestItem2, TestItem2KeySpace } from '../KeySpaceTest.dev';
+import { TestItem, NoGsiKeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
-import { dxTableReset } from './reset';
-import { dxOp } from '../UpdateOp';
-
-beforeEach(() => dxTableReset(TestTable1));
+import { dkOp } from '../UpdateOp';
 
 it('updates an existing item', async () => {
-	const testString = randomString();
-	const testNumber = randomNumber();
+	const string = randomString();
+	const number = randomNumber();
 
 	const item = {
-		pk: `test-${testNumber}`,
-		sk: `test-${testString}`,
-		testString,
-		testNumber,
+		string: string,
+		number: number,
 		deep: {
 			deep: {
 				deep: {
-					testString
+					string: string
 				}
 			}
-		}
+		},
+		list: []
 	};
 
-	await TestTable1.client.send(
+	await DocumentClient.send(
 		new PutCommand({
-			TableName: TestTable1.tableName,
-			Item: item
+			TableName: TABLE_NAME,
+			Item: NoGsiKeySpace.withIndexKeys(item)
 		})
 	);
 
-	const itemWithoutKeys = { testString, testNumber };
+	const updatedString = randomString();
+	const updatedList = [randomString()];
 
-	const updatedTestString = randomString();
-
-	const result = await dxUpdateQuick(TestItem2KeySpace, itemWithoutKeys, {
-		testNumber: dxOp.Add(1),
+	const result = await updateQuickItem(NoGsiKeySpace, item, {
+		number: dkOp.Add(1),
 		deep: {
 			deep: {
-				deep: dxOp.Value({
-					testString: updatedTestString
+				deep: dkOp.Value({
+					string: updatedString
 				})
 			}
-		}
+		},
+		list: dkOp.ListAppend(updatedList)
 	});
 
-	const resultTypeCheck: A.Equals<typeof result, ITestItem2> = 1;
+	const resultTypeCheck: A.Equals<typeof result, TestItem> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 
-	const { Item } = await TestTable1.client.send(
+	const { Item } = await DocumentClient.send(
 		new GetCommand({
-			TableName: TestTable1.tableName,
-			Key: TestItem2KeySpace.keyOf(itemWithoutKeys)
+			TableName: TABLE_NAME,
+			Key: NoGsiKeySpace.keyOf(item)
 		})
 	);
 
-	expect(Item!.testNumber).toBe(item.testNumber + 1);
-	expect(Item!.deep.deep.deep.testString).toBe(updatedTestString);
+	expect(Item!.number).toBe(item.number + 1);
+	expect(Item!.deep.deep.deep.string).toBe(updatedString);
+	expect(Item!.list.length).toBe(1);
+	expect(Item!.list[0]).toBe(updatedList[0]);
 });

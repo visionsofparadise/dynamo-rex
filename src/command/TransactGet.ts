@@ -1,9 +1,9 @@
 import { TransactGetCommand, TransactGetCommandInput, TransactGetCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { DxCommand } from './Command';
-import { GenericAttributes } from '../Dx';
+import { DkCommand } from './Command';
+import { GenericAttributes } from '../util/utils';
 import { LowerCaseObjectKeys, lowerCaseKeys, upperCaseKeys } from '../util/keyCapitalize';
 import { applyDefaults } from '../util/defaults';
-import { DxClientConfig } from '../Client';
+import { DkClientConfig } from '../Client';
 import { executeMiddlewares, executeMiddleware } from '../Middleware';
 import { Get } from '@aws-sdk/client-dynamodb';
 
@@ -21,39 +21,39 @@ const TRANSACT_GET_COMMAND_OUTPUT_HOOK = [
 	TRANSACT_GET_COMMAND_OUTPUT_DATA_TYPE
 ] as const;
 
-export interface DxTransactGetCommandInput<Key extends GenericAttributes = GenericAttributes>
+export interface DkTransactGetCommandInput<Key extends GenericAttributes = GenericAttributes>
 	extends LowerCaseObjectKeys<Omit<TransactGetCommandInput, 'TransactItems'>> {
 	requests: (LowerCaseObjectKeys<Omit<Get, 'Key'>> & {
 		key: Key;
 	})[];
 }
 
-export interface DxTransactGetCommandOutput<Attributes extends GenericAttributes = GenericAttributes>
+export interface DkTransactGetCommandOutput<Attributes extends GenericAttributes = GenericAttributes>
 	extends LowerCaseObjectKeys<Omit<TransactGetCommandOutput, 'Responses'>> {
 	items: Array<Attributes>;
 }
 
-export class DxTransactGetCommand<
+export class DkTransactGetCommand<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
-> extends DxCommand<
+> extends DkCommand<
 	typeof TRANSACT_GET_COMMAND_INPUT_DATA_TYPE,
 	(typeof TRANSACT_GET_COMMAND_INPUT_HOOK)[number],
-	DxTransactGetCommandInput<Key>,
+	DkTransactGetCommandInput<Key>,
 	TransactGetCommandInput,
 	typeof TRANSACT_GET_COMMAND_OUTPUT_DATA_TYPE,
 	(typeof TRANSACT_GET_COMMAND_OUTPUT_HOOK)[number],
-	DxTransactGetCommandOutput<Attributes>,
+	DkTransactGetCommandOutput<Attributes>,
 	TransactGetCommandOutput
 > {
-	constructor(input: DxTransactGetCommandInput<Key>) {
+	constructor(input: DkTransactGetCommandInput<Key>) {
 		super(input);
 	}
 
 	inputMiddlewareConfig = { dataType: TRANSACT_GET_COMMAND_INPUT_DATA_TYPE, hooks: TRANSACT_GET_COMMAND_INPUT_HOOK };
 	outputMiddlewareConfig = { dataType: TRANSACT_GET_COMMAND_OUTPUT_DATA_TYPE, hooks: TRANSACT_GET_COMMAND_OUTPUT_HOOK };
 
-	handleInput = async ({ defaults, middleware }: DxClientConfig): Promise<TransactGetCommandInput> => {
+	handleInput = async ({ defaults, middleware }: DkClientConfig): Promise<TransactGetCommandInput> => {
 		const postDefaultsInput = applyDefaults(this.input, defaults, ['returnConsumedCapacity']);
 
 		const { data: postMiddlewareInput } = await executeMiddlewares(
@@ -79,8 +79,8 @@ export class DxTransactGetCommand<
 
 	handleOutput = async (
 		output: TransactGetCommandOutput,
-		{ middleware }: DxClientConfig
-	): Promise<DxTransactGetCommandOutput<Attributes>> => {
+		{ middleware }: DkClientConfig
+	): Promise<DkTransactGetCommandOutput<Attributes>> => {
 		const lowerCaseOutput = lowerCaseKeys(output);
 
 		const { responses, ...rest } = lowerCaseOutput;
@@ -92,7 +92,7 @@ export class DxTransactGetCommand<
 				})
 				.filter((item): item is NonNullable<typeof item> => !!item) || [];
 
-		const formattedOutput: DxTransactGetCommandOutput<Attributes> = {
+		const formattedOutput: DkTransactGetCommandOutput<Attributes> = {
 			...rest,
 			items
 		};
@@ -119,7 +119,7 @@ export class DxTransactGetCommand<
 		return postMiddlewareOutput;
 	};
 
-	send = async (clientConfig: DxClientConfig) => {
+	send = async (clientConfig: DkClientConfig) => {
 		const input = await this.handleInput(clientConfig);
 
 		const output = await clientConfig.client.send(new TransactGetCommand(input));

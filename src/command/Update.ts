@@ -1,11 +1,11 @@
 import { UpdateCommand, UpdateCommandInput, UpdateCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { DxCommand } from './Command';
+import { DkCommand } from './Command';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
-import { GenericAttributes } from '../Dx';
+import { GenericAttributes } from '../util/utils';
 import { ReturnValuesAttributes, assertReturnValuesAttributes } from '../util/returnValuesAttributes';
 import { LowerCaseObjectKeys, lowerCaseKeys, upperCaseKeys } from '../util/keyCapitalize';
 import { applyDefaults } from '../util/defaults';
-import { DxClientConfig } from '../Client';
+import { DkClientConfig } from '../Client';
 import { executeMiddlewares, executeMiddleware } from '../Middleware';
 
 const UPDATE_COMMAND_INPUT_DATA_TYPE = 'UpdateCommandInput' as const;
@@ -14,11 +14,11 @@ const UPDATE_COMMAND_INPUT_HOOK = ['CommandInput', 'WriteCommandInput', UPDATE_C
 const UPDATE_COMMAND_OUTPUT_DATA_TYPE = 'UpdateCommandOutput' as const;
 const UPDATE_COMMAND_OUTPUT_HOOK = ['CommandOutput', 'WriteCommandOutput', UPDATE_COMMAND_OUTPUT_DATA_TYPE] as const;
 
-export type DxUpdateReturnValues = ReturnValue | undefined;
+export type DkUpdateReturnValues = ReturnValue | undefined;
 
-export interface DxUpdateCommandInput<
+export interface DkUpdateCommandInput<
 	Key extends GenericAttributes = GenericAttributes,
-	ReturnValues extends DxUpdateReturnValues = DxUpdateReturnValues
+	ReturnValues extends DkUpdateReturnValues = DkUpdateReturnValues
 > extends LowerCaseObjectKeys<
 		Omit<UpdateCommandInput, 'Key' | 'ReturnValues' | 'AttributeUpdates' | 'Expected' | 'ConditionalOperator'>
 	> {
@@ -26,35 +26,35 @@ export interface DxUpdateCommandInput<
 	returnValues?: ReturnValues;
 }
 
-export interface DxUpdateCommandOutput<
+export interface DkUpdateCommandOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
-	ReturnValues extends DxUpdateReturnValues = DxUpdateReturnValues
+	ReturnValues extends DkUpdateReturnValues = DkUpdateReturnValues
 > extends LowerCaseObjectKeys<Omit<UpdateCommandOutput, 'Attributes'>> {
 	attributes: ReturnValuesAttributes<Attributes, ReturnValues>;
 }
 
-export class DxUpdateCommand<
+export class DkUpdateCommand<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes,
-	ReturnValues extends DxUpdateReturnValues = DxUpdateReturnValues
-> extends DxCommand<
+	ReturnValues extends DkUpdateReturnValues = DkUpdateReturnValues
+> extends DkCommand<
 	typeof UPDATE_COMMAND_INPUT_DATA_TYPE,
 	(typeof UPDATE_COMMAND_INPUT_HOOK)[number],
-	DxUpdateCommandInput<Key, ReturnValues>,
+	DkUpdateCommandInput<Key, ReturnValues>,
 	UpdateCommandInput,
 	typeof UPDATE_COMMAND_OUTPUT_DATA_TYPE,
 	(typeof UPDATE_COMMAND_OUTPUT_HOOK)[number],
-	DxUpdateCommandOutput<Attributes, ReturnValues>,
+	DkUpdateCommandOutput<Attributes, ReturnValues>,
 	UpdateCommandOutput
 > {
-	constructor(input: DxUpdateCommandInput<Key, ReturnValues>) {
+	constructor(input: DkUpdateCommandInput<Key, ReturnValues>) {
 		super(input);
 	}
 
 	inputMiddlewareConfig = { dataType: UPDATE_COMMAND_INPUT_DATA_TYPE, hooks: UPDATE_COMMAND_INPUT_HOOK };
 	outputMiddlewareConfig = { dataType: UPDATE_COMMAND_OUTPUT_DATA_TYPE, hooks: UPDATE_COMMAND_OUTPUT_HOOK };
 
-	handleInput = async ({ defaults, middleware }: DxClientConfig): Promise<UpdateCommandInput> => {
+	handleInput = async ({ defaults, middleware }: DkClientConfig): Promise<UpdateCommandInput> => {
 		const postDefaultsInput = applyDefaults(this.input, defaults, [
 			'returnConsumedCapacity',
 			'returnItemCollectionMetrics',
@@ -77,15 +77,15 @@ export class DxUpdateCommand<
 
 	handleOutput = async (
 		output: UpdateCommandOutput,
-		{ middleware }: DxClientConfig
-	): Promise<DxUpdateCommandOutput<Attributes, ReturnValues>> => {
+		{ middleware }: DkClientConfig
+	): Promise<DkUpdateCommandOutput<Attributes, ReturnValues>> => {
 		const lowerCaseOutput = lowerCaseKeys(output);
 
 		const attributes = output.Attributes as Attributes | undefined;
 
 		assertReturnValuesAttributes(attributes, this.input.returnValues);
 
-		const formattedOutput: DxUpdateCommandOutput<Attributes, ReturnValues> = {
+		const formattedOutput: DkUpdateCommandOutput<Attributes, ReturnValues> = {
 			...lowerCaseOutput,
 			attributes
 		};
@@ -116,7 +116,7 @@ export class DxUpdateCommand<
 		return postMiddlewareOutput;
 	};
 
-	send = async (clientConfig: DxClientConfig) => {
+	send = async (clientConfig: DkClientConfig) => {
 		const input = await this.handleInput(clientConfig);
 
 		const output = await clientConfig.client.send(new UpdateCommand(input));

@@ -1,17 +1,18 @@
 import { KeysAndAttributes } from '@aws-sdk/client-dynamodb';
-import { GenericAttributes } from '../Dx';
+import { GenericAttributes } from '../util/utils';
 import { Table } from '../Table';
 import { LowerCaseObjectKeys } from '../util/keyCapitalize';
-import { DxBatchGetCommand, DxBatchGetCommandInput } from '../command/BatchGet';
+import { DkBatchGetCommand, DkBatchGetCommandInput } from '../command/BatchGet';
 import { AnyKeySpace } from '../KeySpace';
+import { DkClient } from '../Client';
 
-export interface DxBatchGetInput
-	extends Omit<DxBatchGetCommandInput, 'RequestItems'>,
+export interface BatchGetItemsInput
+	extends Omit<DkBatchGetCommandInput, 'RequestItems'>,
 		LowerCaseObjectKeys<Omit<KeysAndAttributes, 'Keys' | 'AttributesToGet'>> {
 	pageLimit?: number;
 }
 
-export interface DxBatchGetOutput<
+export interface BatchGetItemsOutput<
 	Attributes extends GenericAttributes = GenericAttributes,
 	Key extends GenericAttributes = GenericAttributes
 > {
@@ -19,12 +20,13 @@ export interface DxBatchGetOutput<
 	unprocessedRequests: LowerCaseObjectKeys<Omit<KeysAndAttributes, 'Keys' | 'AttributesToGet'>> & { keys: Array<Key> };
 }
 
-export const dxTableBatchGet = async <T extends Table = Table>(
+export const batchGetTableItems = async <T extends Table = Table>(
 	Table: T,
 	keys: Array<T['IndexKeyMap'][T['PrimaryIndex']]>,
-	input?: DxBatchGetInput
-): Promise<DxBatchGetOutput<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']]>> => {
-	const { pageLimit = 100, returnConsumedCapacity, ...rest } = input || ({} as DxBatchGetInput);
+	input?: BatchGetItemsInput,
+	dkClient: DkClient = Table.dkClient
+): Promise<BatchGetItemsOutput<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']]>> => {
+	const { pageLimit = 100, returnConsumedCapacity, ...rest } = input || ({} as BatchGetItemsInput);
 
 	if (keys.length === 0)
 		return {
@@ -39,11 +41,11 @@ export const dxTableBatchGet = async <T extends Table = Table>(
 
 	const recurse = async (
 		remainingKeys: Array<T['IndexKeyMap'][T['PrimaryIndex']]>
-	): Promise<DxBatchGetOutput<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']]>> => {
+	): Promise<BatchGetItemsOutput<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']]>> => {
 		const currentKeys = remainingKeys.slice(0, limitedPageLimit);
 
-		const output = await Table.dxClient.send(
-			new DxBatchGetCommand<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']]>({
+		const output = await dkClient.send(
+			new DkBatchGetCommand<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']]>({
 				requests: {
 					[Table.tableName]: {
 						keys: currentKeys,
@@ -80,14 +82,16 @@ export const dxTableBatchGet = async <T extends Table = Table>(
 	return recurse(keys);
 };
 
-export const dxBatchGet = async <K extends AnyKeySpace = AnyKeySpace>(
+export const batchGetItems = async <K extends AnyKeySpace = AnyKeySpace>(
 	KeySpace: K,
 	keys: Array<Parameters<K['keyOf']>[0]>,
-	input?: DxBatchGetInput
-): Promise<DxBatchGetOutput<K['Attributes'], K['IndexKeyMap'][K['PrimaryIndex']]>> => {
-	const output = await dxTableBatchGet(
+	input?: BatchGetItemsInput
+): Promise<BatchGetItemsOutput<K['Attributes'], K['IndexKeyMap'][K['PrimaryIndex']]>> => {
+	const output = await batchGetTableItems(
 		KeySpace.Table,
-		keys.map(key => KeySpace.keyOf(key as any), input)
+		keys.map(key => KeySpace.keyOf(key as any), input),
+		input,
+		KeySpace.dkClient
 	);
 
 	return {

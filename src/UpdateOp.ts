@@ -1,4 +1,4 @@
-import { DxUpdateExpressionParams } from './util/convertObjectToUpdateExpression';
+import { DkUpdateExpressionParams } from './util/convertObjectToUpdateExpression';
 
 type Params = {
 	key: string;
@@ -6,9 +6,9 @@ type Params = {
 	precedingKeys?: Array<string>;
 };
 
-type CreateUpdateExpressionPart = (params: Params) => DxUpdateExpressionParams;
+type CreateUpdateExpressionPart = (params: Params) => DkUpdateExpressionParams;
 
-export class DxOp {
+export class DkOp {
 	constructor(public createUpdateExpressionPart: CreateUpdateExpressionPart) {}
 }
 
@@ -19,9 +19,9 @@ const attributePath = ({ alias, precedingKeys }: Pick<Params, 'alias' | 'precedi
 			: ''
 	}#${alias}`;
 
-export const dxOp = {
+export const dkOp = {
 	Value: <T = any>(value: T) => {
-		const output = new DxOp(({ key, alias, precedingKeys }) => {
+		const output = new DkOp(({ key, alias, precedingKeys }) => {
 			return {
 				updateExpression: `${attributePath({ alias, precedingKeys })} = :${alias}, `,
 				expressionAttributeNames: {
@@ -37,7 +37,7 @@ export const dxOp = {
 	},
 
 	Add: (value: number) => {
-		const output = new DxOp(({ key, alias, precedingKeys }) => {
+		const output = new DkOp(({ key, alias, precedingKeys }) => {
 			const path = attributePath({ alias, precedingKeys });
 
 			return {
@@ -55,7 +55,7 @@ export const dxOp = {
 	},
 
 	Minus: (value: number) => {
-		const output = new DxOp(({ key, alias, precedingKeys }) => {
+		const output = new DkOp(({ key, alias, precedingKeys }) => {
 			const path = attributePath({ alias, precedingKeys });
 
 			return {
@@ -73,7 +73,7 @@ export const dxOp = {
 	},
 
 	ListAppend: <T extends unknown>(value: Array<T>, end: 'head' | 'tail' = 'tail') => {
-		const output = new DxOp(({ key, alias, precedingKeys }) => {
+		const output = new DkOp(({ key, alias, precedingKeys }) => {
 			const path = attributePath({ alias, precedingKeys });
 
 			return {
@@ -91,7 +91,7 @@ export const dxOp = {
 	},
 
 	IfNotExists: <T = unknown>(value: T) => {
-		const output = new DxOp(({ key, alias, precedingKeys }) => {
+		const output = new DkOp(({ key, alias, precedingKeys }) => {
 			const path = attributePath({ alias, precedingKeys });
 
 			return {

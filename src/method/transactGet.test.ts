@@ -1,43 +1,32 @@
-import { TestTable1 } from '../TableTest.dev';
-import { setTimeout } from 'timers/promises';
+import { DocumentClient, ManyGsiTable } from '../TableTest.dev';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { dxTableTransactGet } from './transactGet';
-import { dxTableReset } from './reset';
-import { arrayOfLength, randomString } from '../util/utils';
-
-beforeEach(() => dxTableReset(TestTable1));
+import { transactGetTableItems } from './transactGet';
+import { arrayOfLength, randomNumber, randomString } from '../util/utils';
+import { NoGsiKeySpace } from '../KeySpaceTest.dev';
 
 it('it gets 10 items', async () => {
-	jest.useRealTimers();
-
 	const items = arrayOfLength(10).map(() => {
-		const testString = randomString();
-		const testNumber = 1;
+		const string = randomString();
+		const number = randomNumber();
 
 		return {
-			pk: `test-${testNumber}`,
-			sk: `test-${testString}`,
-			testString,
-			testNumber
+			string,
+			number
 		};
 	});
 
 	for (const item of items) {
-		await TestTable1.client.send(
+		await DocumentClient.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
-				Item: item
+				TableName: ManyGsiTable.tableName,
+				Item: NoGsiKeySpace.withIndexKeys(item)
 			})
 		);
 	}
 
-	await setTimeout(1000);
-
-	const result = await dxTableTransactGet(
-		TestTable1,
-		items.map(({ pk, sk }) => {
-			return { pk, sk };
-		})
+	const result = await transactGetTableItems(
+		ManyGsiTable,
+		items.map(item => NoGsiKeySpace.keyOf(item))
 	);
 
 	expect(result.length).toBe(10);

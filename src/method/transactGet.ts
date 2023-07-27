@@ -1,19 +1,21 @@
 import { AnyKeySpace } from '../KeySpace';
-import { DxTransactGetCommand, DxTransactGetCommandInput } from '../command/TransactGet';
-import { GenericAttributes } from '../Dx';
+import { DkTransactGetCommand, DkTransactGetCommandInput } from '../command/TransactGet';
+import { GenericAttributes } from '../util/utils';
 import { PrimaryIndex, Table } from '../Table';
+import { DkClient } from '../Client';
 
-export interface DxTransactGetInput extends Omit<DxTransactGetCommandInput, 'requests'> {}
+export interface TransactGetItemsInput extends Omit<DkTransactGetCommandInput, 'requests'> {}
 
-export type DxTransactGetOutput<Attributes extends GenericAttributes = GenericAttributes> = Array<Attributes>;
+export type TransactGetItemsOutput<Attributes extends GenericAttributes = GenericAttributes> = Array<Attributes>;
 
-export const dxTableTransactGet = async <T extends Table = Table>(
+export const transactGetTableItems = async <T extends Table = Table>(
 	Table: T,
 	keys: Array<T['IndexKeyMap'][PrimaryIndex]>,
-	input?: DxTransactGetInput
-): Promise<DxTransactGetOutput<T>> => {
-	const output = await Table.dxClient.send(
-		new DxTransactGetCommand<T['AttributesAndIndexKeys'], T['IndexKeyMap'][T['PrimaryIndex']]>({
+	input?: TransactGetItemsInput,
+	dkClient: DkClient = Table.dkClient
+): Promise<TransactGetItemsOutput<T>> => {
+	const output = await dkClient.send(
+		new DkTransactGetCommand<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']]>({
 			...input,
 			requests: keys.map(key => ({ tableName: Table.tableName, key }))
 		})
@@ -22,14 +24,16 @@ export const dxTableTransactGet = async <T extends Table = Table>(
 	return output.items;
 };
 
-export const dxTransactGet = async <K extends AnyKeySpace = AnyKeySpace>(
+export const transactGetItems = async <K extends AnyKeySpace = AnyKeySpace>(
 	KeySpace: K,
 	keyParams: Array<Parameters<K['keyOf']>[0]>,
-	input?: DxTransactGetInput
-): Promise<DxTransactGetOutput<K['Attributes']>> => {
-	const items = await dxTableTransactGet(
+	input?: TransactGetItemsInput
+): Promise<TransactGetItemsOutput<K['Attributes']>> => {
+	const items = await transactGetTableItems(
 		KeySpace.Table,
-		keyParams.map(kp => KeySpace.keyOf(kp as any), input)
+		keyParams.map(kp => KeySpace.keyOf(kp as any), input),
+		input,
+		KeySpace.dkClient
 	);
 
 	return items.map(item => KeySpace.omitIndexKeys(item));

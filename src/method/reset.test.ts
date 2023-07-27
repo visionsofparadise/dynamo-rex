@@ -1,43 +1,53 @@
-import { dxTableScan } from './scan';
-import { TestTable1 } from '../TableTest.dev';
-import { setTimeout } from 'timers/promises';
-import { dxTableReset } from './reset';
-import { randomNumber, randomString } from '../util/utils';
+import { scanTableItems } from './scan';
+import { DocumentClient } from '../TableTest.dev';
+import { resetTableItems } from './reset';
+import { randomString } from '../util/utils';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
+import { Table } from '../Table';
 
-beforeEach(() => dxTableReset(TestTable1));
+const RESET_TABLE_NAME = process.env.DYNAMODB_RESET_TABLE || 'resetTest';
+
+export const ResetTable = new Table({
+	client: DocumentClient,
+	name: RESET_TABLE_NAME,
+	indexes: {
+		primaryIndex: {
+			hash: {
+				key: 'pk',
+				value: 'string'
+			},
+			sort: {
+				key: 'sk',
+				value: 'string'
+			}
+		}
+	}
+});
 
 it('reset deletes all items', async () => {
-	jest.useRealTimers();
-
 	for (let i = 0; i < 10; i++) {
-		const testString = randomString();
-		const testNumber = randomNumber();
+		const string = randomString();
 
 		const item = {
-			pk: `test-${testNumber}`,
-			sk: `test-${testString}`,
-			testString,
-			testNumber
+			pk: string,
+			sk: string
 		};
 
-		await TestTable1.client.send(
+		await DocumentClient.send(
 			new PutCommand({
-				TableName: TestTable1.tableName,
+				TableName: RESET_TABLE_NAME,
 				Item: item
 			})
 		);
 	}
 
-	await setTimeout(1000);
-
-	const beforeReset = await dxTableScan(TestTable1);
+	const beforeReset = await scanTableItems(ResetTable);
 
 	expect(beforeReset.items.length).toBe(10);
 
-	await dxTableReset(TestTable1);
+	await resetTableItems(ResetTable);
 
-	const result = await dxTableScan(TestTable1);
+	const result = await scanTableItems(ResetTable);
 
 	expect(result.items.length).toBe(0);
 });

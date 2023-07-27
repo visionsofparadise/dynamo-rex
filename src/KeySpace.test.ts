@@ -1,22 +1,22 @@
 import { A } from 'ts-toolbelt';
-import { ITestItem2, TestItem2KeySpace, TestItem4KeySpace, TestItem5KeySpace } from './KeySpaceTest.dev';
+import { TestItem, ManyGsiKeySpace, NoGsiNeverParamKeySpace, NoGsiNeverParamsKeySpace } from './KeySpaceTest.dev';
 
-const testString = 'test';
-const testNumber = 1;
+const string = 'test';
+const number = 1;
 
-const testItem: (typeof TestItem2KeySpace)['Attributes'] = {
-	testString,
-	testNumber,
+const testItem: (typeof ManyGsiKeySpace)['Attributes'] = {
+	string,
+	number,
 	deep: {
 		deep: {
 			deep: {
-				testString
+				string
 			}
 		}
 	}
 };
 
-type TestKeySpace2IndexKeys = { pk: string } & { sk: string } & { gsi0Pk: string } & { gsi0Sk: string } & {
+type ManyGsiKeySpaceIndexKeys = { pk: string } & { sk: string } & { gsi0Pk: string } & { gsi0Sk: string } & {
 	gsi1Pk: number;
 } & { gsi1Sk: number | undefined } & { gsi2Pk: string } & { gsi2Sk: number } & { gsi3Pk: number } & {
 	gsi3Sk: string | undefined;
@@ -24,18 +24,18 @@ type TestKeySpace2IndexKeys = { pk: string } & { sk: string } & { gsi0Pk: string
 
 it('returns indexes', () => {
 	const check: A.Equals<
-		(typeof TestItem2KeySpace)['indexes'],
+		(typeof ManyGsiKeySpace)['indexes'],
 		Array<'primaryIndex' | 'gsi0' | 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4' | 'gsi5'>
 	> = 1;
 
 	expect(check).toBe(1);
 
-	expect(TestItem2KeySpace.indexes).toStrictEqual(['primaryIndex', 'gsi0', 'gsi1', 'gsi2', 'gsi3', 'gsi4', 'gsi5']);
+	expect(ManyGsiKeySpace.indexes).toStrictEqual(['primaryIndex', 'gsi0', 'gsi1', 'gsi2', 'gsi3', 'gsi4', 'gsi5']);
 });
 
 it('returns index key keys', () => {
 	const check: A.Equals<
-		(typeof TestItem2KeySpace)['attributeKeys'],
+		(typeof ManyGsiKeySpace)['attributeKeys'],
 		Array<
 			| 'pk'
 			| 'sk'
@@ -52,11 +52,11 @@ it('returns index key keys', () => {
 		>
 	> = 1;
 
-	TestItem2KeySpace.indexAttributeKeys('gsi0');
+	ManyGsiKeySpace.indexAttributeKeys('gsi0');
 
 	expect(check).toBe(1);
 
-	expect(TestItem2KeySpace.attributeKeys).toStrictEqual([
+	expect(ManyGsiKeySpace.attributeKeys).toStrictEqual([
 		'pk',
 		'sk',
 		'gsi0Pk',
@@ -74,62 +74,62 @@ it('returns index key keys', () => {
 
 it('generates primary index key', () => {
 	const paramCheck: A.Equals<
-		Parameters<(typeof TestItem2KeySpace)['keyOf']>[0],
-		Pick<ITestItem2, 'testString'> & Pick<ITestItem2, 'testNumber'>
+		Parameters<(typeof ManyGsiKeySpace)['keyOf']>[0],
+		Pick<TestItem, 'string'> & Pick<TestItem, 'number'>
 	> = 1;
 
 	expect(paramCheck).toBe(1);
 
-	const primaryIndexKey = TestItem2KeySpace.keyOf({
-		testString,
-		testNumber
+	const primaryIndexKey = ManyGsiKeySpace.keyOf({
+		string,
+		number
 	});
 
 	const check: A.Equals<typeof primaryIndexKey, { pk: string } & { sk: string }> = 1;
 
 	expect(check).toBe(1);
 
-	expect(primaryIndexKey.pk).toBe('test-1');
-	expect(primaryIndexKey.sk).toBe('test-test');
+	expect(primaryIndexKey.pk).toBe('test');
+	expect(primaryIndexKey.sk).toBe('1');
 	expect(Object.keys(primaryIndexKey).length).toBe(2);
 });
 
 it('generates secondary index key', () => {
-	const secondaryIndexKey = TestItem2KeySpace.indexKeyOf('gsi0', {
-		testNumber,
-		testString
+	const secondaryIndexKey = ManyGsiKeySpace.indexKeyOf('gsi0', {
+		number,
+		string
 	});
 
 	const check: A.Equals<typeof secondaryIndexKey, { gsi0Pk: string } & { gsi0Sk: string }> = 1;
 
 	expect(check).toBe(1);
 
-	expect(secondaryIndexKey.gsi0Pk).toBe('test-1');
-	expect(secondaryIndexKey.gsi0Sk).toBe('test-test');
+	expect(secondaryIndexKey.gsi0Pk).toBe('1');
+	expect(secondaryIndexKey.gsi0Sk).toBe('test');
 	expect(Object.keys(secondaryIndexKey).length).toBe(2);
 });
 
 it('generates index keys', () => {
-	const indexKeys = TestItem2KeySpace.indexKeysOf({
-		testNumber,
-		testString
+	const indexKeys = ManyGsiKeySpace.indexKeysOf({
+		number,
+		string
 	});
 
-	const check: A.Equals<typeof indexKeys, TestKeySpace2IndexKeys> = 1;
+	const check: A.Equals<typeof indexKeys, ManyGsiKeySpaceIndexKeys> = 1;
 
 	expect(check).toBe(1);
 
-	expect(indexKeys.pk).toBe('test-1');
-	expect(indexKeys.sk).toBe('test-test');
-	expect(indexKeys.gsi0Pk).toBe('test-1');
-	expect(indexKeys.gsi0Sk).toBe('test-test');
+	expect(indexKeys.pk).toBe('test');
+	expect(indexKeys.sk).toBe('1');
+	expect(indexKeys.gsi0Pk).toBe('1');
+	expect(indexKeys.gsi0Sk).toBe('test');
 	expect(Object.keys(indexKeys).length).toBe(12);
 });
 
 it('returns testItem with index keys', () => {
-	const withIndexKeys = TestItem2KeySpace.withIndexKeys(testItem);
+	const withIndexKeys = ManyGsiKeySpace.withIndexKeys(testItem);
 
-	const check: A.Equals<typeof withIndexKeys, ITestItem2 & TestKeySpace2IndexKeys> = 1;
+	const check: A.Equals<typeof withIndexKeys, TestItem & ManyGsiKeySpaceIndexKeys> = 1;
 
 	expect(check).toBe(1);
 
@@ -138,13 +138,13 @@ it('returns testItem with index keys', () => {
 
 it('omits index keys', () => {
 	const testItem2 = {
-		testString: 'test-string',
+		string: 'test-string',
 		pk: 'test-string'
 	};
 
-	const omitIndexKeys = TestItem2KeySpace.omitIndexKeys(testItem2);
+	const omitIndexKeys = ManyGsiKeySpace.omitIndexKeys(testItem2);
 
-	const check: A.Equals<typeof omitIndexKeys, { testString: string }> = 1;
+	const check: A.Equals<typeof omitIndexKeys, { string: string }> = 1;
 
 	expect(check).toBe(1);
 
@@ -152,13 +152,13 @@ it('omits index keys', () => {
 });
 
 it('combines params without never', () => {
-	const check: A.Equals<Parameters<typeof TestItem4KeySpace.keyOf>[0], { testString: string }> = 1;
+	const check: A.Equals<Parameters<typeof NoGsiNeverParamKeySpace.keyOf>[0], { string: string }> = 1;
 
 	expect(check).toBe(1);
 });
 
 it('combines params without never', () => {
-	const check: A.Equals<Parameters<typeof TestItem5KeySpace.keyOf>[0], {}> = 1;
+	const check: A.Equals<Parameters<typeof NoGsiNeverParamsKeySpace.keyOf>[0], {}> = 1;
 
 	expect(check).toBe(1);
 });
