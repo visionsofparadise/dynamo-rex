@@ -69,7 +69,6 @@ export class DynamoXPipelineStack extends Stack {
 			input: source,
 			commands: [
 				'npm ci',
-				'npm run clean',
 				'npm run build',
 				'npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}',
 				'npm run publish'
