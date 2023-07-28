@@ -71,7 +71,7 @@ export class DynamoXPipelineStack extends Stack {
 				'npm ci',
 				'npm run build',
 				'npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}',
-				'npm run publish'
+				'npm run patch'
 			],
 			buildEnvironment: {
 				environmentVariables: {

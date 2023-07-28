@@ -1,7 +1,7 @@
 {
 	"name": "dynamox",
 	"description": "Helper for DynamoDB",
-	"version": "1.0.17",
+	"version": "1.0.132",
 	"main": "./dist-cjs/index.js",
 	"module": "./dist-es/index.js",
 	"types": "./dist-types/index.d.ts",
@@ -16,7 +16,7 @@
 		"build:es": "tsc -p tsconfig.es.json",
 		"build:types": "tsc -p tsconfig.types.json",
 		"test": "jest",
-		"publish": "npm version patch && npm publish",
+		"patch": "npm version patch && npm publish",
 		"cdk": "cdk"
 	},
 	"devDependencies": {
