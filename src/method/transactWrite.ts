@@ -1,4 +1,4 @@
-import { AnyKeySpace } from '../KeySpace';
+import { KeySpace } from '../KeySpace';
 import { Table } from '../Table';
 import {
 	DkTransactWriteCommand,
@@ -18,28 +18,31 @@ export type TransactWriteItemsOutput = DkTransactWriteCommandOutput;
 export const transactWriteTableItems = async <T extends Table = Table>(
 	Table: T,
 	requests: Array<
-		| Omit<DkTransactWriteCommandInputConditionCheck<T['IndexKeyMap'][T['PrimaryIndex']]>, 'tableName'>
-		| Omit<DkTransactWriteCommandInputDelete<T['IndexKeyMap'][T['PrimaryIndex']]>, 'tableName'>
-		| Omit<DkTransactWriteCommandInputPut<T['Attributes']>, 'tableName'>
-		| Omit<DkTransactWriteCommandInputUpdate<T['IndexKeyMap'][T['PrimaryIndex']]>, 'tableName'>
+		| Omit<DkTransactWriteCommandInputConditionCheck<Table.GetIndexKey<T, T['primaryIndex']>>, 'tableName'>
+		| Omit<DkTransactWriteCommandInputDelete<Table.GetIndexKey<T, T['primaryIndex']>>, 'tableName'>
+		| Omit<DkTransactWriteCommandInputPut<Table.GetAttributes<T>>, 'tableName'>
+		| Omit<DkTransactWriteCommandInputUpdate<Table.GetIndexKey<T, T['primaryIndex']>>, 'tableName'>
 	>,
 	input?: TransactWriteItemsInput,
 	dkClient: DkClient = Table.dkClient
 ): Promise<TransactWriteItemsOutput> =>
 	dkClient.send(
-		new DkTransactWriteCommand<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']]>({
+		new DkTransactWriteCommand<Table.GetAttributes<T>, Table.GetIndexKey<T, T['primaryIndex']>>({
 			...input,
 			requests: requests.map(request => ({ ...request, tableName: Table.tableName }))
 		})
 	);
 
-export const transactWriteItems = async <K extends AnyKeySpace = AnyKeySpace>(
+export const transactWriteItems = async <K extends KeySpace = KeySpace>(
 	KeySpace: K,
 	requests: Array<
-		| Omit<DkTransactWriteCommandInputConditionCheck<Parameters<K['keyOf']>[0]>, 'tableName'>
-		| Omit<DkTransactWriteCommandInputDelete<Parameters<K['keyOf']>[0]>, 'tableName'>
-		| Omit<DkTransactWriteCommandInputPut<K['Attributes']>, 'tableName'>
-		| Omit<DkTransactWriteCommandInputUpdate<Parameters<K['keyOf']>[0]>, 'tableName'>
+		| Omit<
+				DkTransactWriteCommandInputConditionCheck<KeySpace.GetIndexKeyValueParams<K, K['primaryIndex']>>,
+				'tableName'
+		  >
+		| Omit<DkTransactWriteCommandInputDelete<KeySpace.GetIndexKeyValueParams<K, K['primaryIndex']>>, 'tableName'>
+		| Omit<DkTransactWriteCommandInputPut<KeySpace.GetAttributes<K>>, 'tableName'>
+		| Omit<DkTransactWriteCommandInputUpdate<KeySpace.GetIndexKeyValueParams<K, K['primaryIndex']>>, 'tableName'>
 	>,
 	input?: TransactWriteItemsInput
 ): Promise<TransactWriteItemsOutput> =>
@@ -55,7 +58,7 @@ export const transactWriteItems = async <K extends AnyKeySpace = AnyKeySpace>(
 
 			return {
 				...request,
-				key: KeySpace.keyOf(request.key as any)
+				key: KeySpace.keyOf(request.key)
 			};
 		}),
 		input,

@@ -55,7 +55,7 @@ it('queries items with beginsWith on index key', async () => {
 	}
 
 	const result = await queryQuickItems(ManyGsiKeySpace, {
-		index: 'gsi0',
+		index: 'gsi0' as const,
 		hashKeyParams: { number: 200 },
 		beginsWith: string
 	});
@@ -83,7 +83,7 @@ it('queries items with between on index key', async () => {
 	}
 
 	const result = await queryQuickItems(ManyGsiKeySpace, {
-		index: 'gsi2',
+		index: 'gsi2' as const,
 		hashKeyParams: { string },
 		greaterThan: 198,
 		lessThan: 204

@@ -1,4 +1,4 @@
-import { AnyKeySpace, KeySpace } from '../KeySpace';
+import { KeySpace } from '../KeySpace';
 import { ListParams, QueryItemsInput, queryTableItems } from './query';
 import { run } from '../util/utils';
 import { Table, primaryIndex } from '../Table';
@@ -12,17 +12,17 @@ export type QueryGetItemInput = Omit<
 
 export type QueryGetItemOutput<Attributes extends GenericAttributes = GenericAttributes> = Attributes;
 
-export const queryGetTableItem = async <T extends Table = Table, Index extends T['Index'] | never = never>(
+export const queryGetTableItem = async <T extends Table = Table, Index extends T['indexes'][number] | never = never>(
 	Table: T,
 	index: Index,
-	key: T['IndexKeyMap'][Index],
+	key: Table.GetIndexKey<T, Index>,
 	input?: QueryGetItemInput,
 	dkClient: DkClient = Table.dkClient
-): Promise<QueryGetItemOutput<T['Attributes']>> => {
+): Promise<QueryGetItemOutput<Table.GetAttributes<T>>> => {
 	const setIndex = index !== primaryIndex ? index : undefined;
 
-	const hashKey = Table.config.indexes[index].hash.key;
-	const sortKey = Table.config.indexes[index].sort?.key;
+	const hashKey: string & keyof typeof key = Table.config.indexes[index].hash.key;
+	const sortKey: string & keyof typeof key = Table.config.indexes[index].sort?.key;
 
 	const output = await run(async () => {
 		if (sortKey) {
@@ -64,22 +64,21 @@ export const queryGetTableItem = async <T extends Table = Table, Index extends T
 	return output.items[0];
 };
 
-export const queryGetItem = async <
-	K extends AnyKeySpace = AnyKeySpace,
-	Index extends K['SecondaryIndex'] | never = never
->(
+export const queryGetItem = async <K extends KeySpace = KeySpace, Index extends K['indexes'][number] | never = never>(
 	KeySpace: K,
 	index: Index,
-	keyParams: KeySpace.GetKeyParams<K, Index>,
+	keyParams: KeySpace.GetIndexKeyValueParams<K, Index>,
 	input?: QueryGetItemInput
-): Promise<QueryGetItemOutput<K['Attributes']>> => {
-	const item = (await queryGetTableItem(
+): Promise<QueryGetItemOutput<KeySpace.GetAttributes<K>>> => {
+	const item = await queryGetTableItem(
 		KeySpace.Table,
 		index,
-		KeySpace.indexKeyOf(index, keyParams as any),
+		KeySpace.indexKeyOf(index, keyParams),
 		input,
 		KeySpace.dkClient
-	)) as QueryGetItemOutput<K['AttributesAndIndexKeys']>;
+	);
+
+	KeySpace.assertAttributesAndKeys(item);
 
 	return KeySpace.omitIndexKeys(item);
 };

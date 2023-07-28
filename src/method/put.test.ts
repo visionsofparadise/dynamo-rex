@@ -3,6 +3,7 @@ import { NoGsiKeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
 import { randomNumber, randomString } from '../util/utils';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
+import { KeySpace } from '../KeySpace';
 
 it('puts new item', async () => {
 	const item = {
@@ -53,7 +54,7 @@ it('returns old values', async () => {
 		returnValues: ReturnValue.ALL_OLD
 	});
 
-	const resultTypeCheck: A.Equals<typeof result, (typeof NoGsiKeySpace)['Attributes']> = 1;
+	const resultTypeCheck: A.Equals<typeof result, KeySpace.GetAttributes<typeof NoGsiKeySpace>> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 

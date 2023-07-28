@@ -5,6 +5,7 @@ import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { NoGsiKeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
+import { KeySpace } from '../KeySpace';
 
 it('deletes an existing item', async () => {
 	const string = randomString();
@@ -63,7 +64,7 @@ it('returns old values', async () => {
 		returnValues: ReturnValue.ALL_OLD
 	});
 
-	const resultTypeCheck: A.Equals<typeof result, (typeof NoGsiKeySpace)['Attributes']> = 1;
+	const resultTypeCheck: A.Equals<typeof result, KeySpace.GetAttributes<typeof NoGsiKeySpace>> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 

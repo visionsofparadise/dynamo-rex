@@ -1,5 +1,5 @@
 import { Table } from '../Table';
-import { AnyKeySpace } from '../KeySpace';
+import { KeySpace } from '../KeySpace';
 import { GenericAttributes } from '../util/utils';
 import { DkQueryCommand, DkQueryCommandInput, DkQueryCommandOutput } from '../command/Query';
 import { DkClient } from '../Client';
@@ -24,20 +24,20 @@ export type QueryItemsOutput<
 
 export const queryTableItems = async <
 	T extends Table = Table,
-	Index extends T['SecondaryIndex'] | never | undefined = never | undefined
+	Index extends T['secondaryIndexes'][number] | never | undefined = never | undefined
 >(
 	Table: T,
 	input: QueryItemsInput<Index, Table.GetIndexCursorKey<T, Index & string>>,
 	dkClient: DkClient = Table.dkClient
-): Promise<QueryItemsOutput<T['Attributes'], Table.GetIndexCursorKey<T, Index & string>>> => {
+): Promise<QueryItemsOutput<Table.GetAttributes<T>, Table.GetIndexCursorKey<T, Index & string>>> => {
 	const recurse = async (
 		totalCount: number,
 		pageCursorKey?: Table.GetIndexCursorKey<T, Index & string>
-	): Promise<QueryItemsOutput<T['Attributes'], Table.GetIndexCursorKey<T, Index & string>>> => {
+	): Promise<QueryItemsOutput<Table.GetAttributes<T>, Table.GetIndexCursorKey<T, Index & string>>> => {
 		const { autoPage, pageLimit, totalLimit, ...inputRest } = input;
 
 		const output = await dkClient.send(
-			new DkQueryCommand<T['Attributes'], Table.GetIndexCursorKey<T, Index & string>>({
+			new DkQueryCommand<Table.GetAttributes<T>, Table.GetIndexCursorKey<T, Index & string>>({
 				...inputRest,
 				tableName: Table.tableName,
 				cursorKey: pageCursorKey,
@@ -72,16 +72,20 @@ export const queryTableItems = async <
 };
 
 export const queryItems = async <
-	K extends AnyKeySpace = AnyKeySpace,
-	Index extends K['SecondaryIndex'] | never | undefined = never | undefined
+	K extends KeySpace = KeySpace,
+	Index extends K['secondaryIndexes'][number] | never | undefined = never | undefined
 >(
 	KeySpace: K,
 	input: QueryItemsInput<Index, Table.GetIndexCursorKey<K['Table'], Index>>
-): Promise<QueryItemsOutput<K['Attributes'], Table.GetIndexCursorKey<K['Table'], Index>>> => {
+): Promise<QueryItemsOutput<KeySpace.GetAttributes<K>, Table.GetIndexCursorKey<K['Table'], Index>>> => {
 	const output = await queryTableItems(KeySpace.Table, input, KeySpace.dkClient);
 
 	return {
 		...output,
-		items: output.items.map(item => KeySpace.omitIndexKeys(item))
+		items: output.items.map(item => {
+			KeySpace.assertAttributesAndKeys(item);
+
+			return KeySpace.omitIndexKeys(item);
+		})
 	};
 };

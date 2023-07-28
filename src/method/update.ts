@@ -1,4 +1,4 @@
-import { AnyKeySpace } from '../KeySpace';
+import { KeySpace } from '../KeySpace';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
 import { ReturnValuesAttributes } from '../util/returnValuesAttributes';
 import { GenericAttributes } from '../util/utils';
@@ -19,12 +19,12 @@ export const updateTableItem = async <
 	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
 >(
 	Table: T,
-	key: T['IndexKeyMap'][T['PrimaryIndex']],
+	key: Table.GetIndexKey<T, T['primaryIndex']>,
 	input: UpdateItemInput<RV>,
 	dkClient: DkClient = Table.dkClient
-): Promise<UpdateItemOutput<T['Attributes'], RV>> => {
+): Promise<UpdateItemOutput<Table.GetAttributes<T>, RV>> => {
 	const output = await dkClient.send(
-		new DkUpdateCommand<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']], RV>({
+		new DkUpdateCommand<Table.GetAttributes<T>, Table.GetIndexKey<T, T['primaryIndex']>, RV>({
 			...input,
 			tableName: Table.tableName,
 			key,
@@ -36,19 +36,18 @@ export const updateTableItem = async <
 };
 
 export const updateItem = async <
-	K extends AnyKeySpace = AnyKeySpace,
+	K extends KeySpace = KeySpace,
 	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
 >(
 	KeySpace: K,
-	keyParams: Parameters<K['keyOf']>[0],
+	keyParams: KeySpace.GetIndexKeyValueParams<K, K['primaryIndex']>,
 	input: UpdateItemInput<RV>
-): Promise<UpdateItemOutput<K['Attributes'], RV>> => {
-	const attributes = await updateTableItem(KeySpace.Table, KeySpace.keyOf(keyParams as any), input, KeySpace.dkClient);
+): Promise<UpdateItemOutput<KeySpace.GetAttributes<K>, RV>> => {
+	const attributes = await updateTableItem(KeySpace.Table, KeySpace.keyOf(keyParams), input, KeySpace.dkClient);
 
-	const strippedAttributes = (attributes ? KeySpace.omitIndexKeys(attributes) : undefined) as ReturnValuesAttributes<
-		K['Attributes'],
-		RV
-	>;
+	const strippedAttributes = (
+		attributes ? KeySpace.omitIndexKeys(attributes as unknown as KeySpace.GetAttributesAndKeys<K>) : undefined
+	) as ReturnValuesAttributes<KeySpace.GetAttributes<K>, RV>;
 
 	return strippedAttributes;
 };

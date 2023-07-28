@@ -5,6 +5,7 @@ import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { NoGsiKeySpace } from '../KeySpaceTest.dev';
 import { A } from 'ts-toolbelt';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
+import { KeySpace } from '../KeySpace';
 
 it('updates an existing item', async () => {
 	const string = randomString();
@@ -72,7 +73,7 @@ it('returns all new values', async () => {
 		}
 	});
 
-	const resultTypeCheck: A.Equals<typeof result, (typeof NoGsiKeySpace)['Attributes']> = 1;
+	const resultTypeCheck: A.Equals<typeof result, KeySpace.GetAttributes<typeof NoGsiKeySpace>> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 
@@ -110,7 +111,7 @@ it('returns all old values', async () => {
 		}
 	});
 
-	const resultTypeCheck: A.Equals<typeof result, (typeof NoGsiKeySpace)['Attributes']> = 1;
+	const resultTypeCheck: A.Equals<typeof result, KeySpace.GetAttributes<typeof NoGsiKeySpace>> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 
@@ -143,7 +144,7 @@ it('returns updated new values', async () => {
 		}
 	});
 
-	const resultTypeCheck: A.Equals<typeof result, Partial<(typeof NoGsiKeySpace)['Attributes']> | undefined> = 1;
+	const resultTypeCheck: A.Equals<typeof result, Partial<KeySpace.GetAttributes<typeof NoGsiKeySpace>> | undefined> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 
@@ -180,7 +181,7 @@ it('returns updated old values', async () => {
 		}
 	});
 
-	const resultTypeCheck: A.Equals<typeof result, Partial<(typeof NoGsiKeySpace)['Attributes']> | undefined> = 1;
+	const resultTypeCheck: A.Equals<typeof result, Partial<KeySpace.GetAttributes<typeof NoGsiKeySpace>> | undefined> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 

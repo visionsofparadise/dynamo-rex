@@ -1,24 +1,58 @@
 import { PrimaryIndex, Table, primaryIndex } from './Table';
-import { GenericAttributes, zipObject } from './util/utils';
+import { GenericAttributes, Remap } from './util/utils';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { A, U } from 'ts-toolbelt';
+import { U } from 'ts-toolbelt';
 import { appendMiddleware } from './Middleware';
 import { DkClient, DkClientConfig } from './Client';
 
 export namespace KeySpace {
-	export type GetKeyParams<K extends AnyKeySpace, Index extends K['Index']> = U.IntersectOf<
-		Exclude<K['IndexKeyValueParamsMap'][Index], undefined>
+	export type GetKeyParams<K extends KeySpace, Index extends K['indexes'][number]> = Remap<
+		Exclude<GetIndexKeyValueParamsMap<K>[Index], undefined | never>
 	>;
-}
 
-export type AnyKeySpace = KeySpace<any, any, any, any>;
+	export type GetIndexAttributeKeys<
+		K extends KeySpace,
+		Index extends K['indexes'][number] = K['indexes'][number]
+	> = Table.GetIndexAttributeKeyMap<K['Table']>[Index];
+
+	export type GetIndexKeyMap<K extends KeySpace> = {
+		[x in K['indexes'][number]]: Table.GetIndexKeyMap<K['Table']>[x];
+	};
+
+	export type GetIndexKey<K extends KeySpace, Index extends K['indexes'][number]> = Remap<
+		U.IntersectOf<KeySpace.GetIndexKeyMap<K>[Index]>
+	>;
+
+	export type GetAttributes<K extends KeySpace> = Parameters<K['indexKeysOf']>[0];
+
+	export type GetAttributesAndKeys<K extends KeySpace> = GetAttributes<K> &
+		KeySpace.GetIndexKey<K, K['indexes'][number]>;
+
+	export type GetIndexValueParamsMap<K extends KeySpace> = {
+		[x in K['indexes'][number]]: {
+			[y in keyof K['indexValueHandlers'][x]]: Exclude<Parameters<K['indexValueHandlers'][x][y]>[0], undefined | never>;
+		};
+	};
+
+	export type GetIndexKeyValueParamsMap<K extends KeySpace> = {
+		[x in K['indexes'][number]]: U.IntersectOf<GetIndexValueParamsMap<K>[x][keyof GetIndexValueParamsMap<K>[x]]>;
+	};
+
+	export type GetIndexKeyValueParams<K extends KeySpace, Index extends K['indexes'][number]> = Remap<
+		GetIndexKeyValueParamsMap<K>[Index]
+	>;
+
+	export type GetIndexHashKeyValueParamsMap<K extends KeySpace> = {
+		[x in K['indexes'][number]]: GetIndexValueParamsMap<K>[x][Table.GetIndexHashKey<K['Table'], x>];
+	};
+}
 
 export type IndexValueHandlersType<
 	ParentTable extends Table = Table,
 	Attributes extends GenericAttributes = GenericAttributes,
-	SecondaryIndex extends ParentTable['SecondaryIndex'] | never = never
+	SecondaryIndex extends ParentTable['secondaryIndexes'][number] | never = never
 > = {
-	[x in Exclude<PrimaryIndex | SecondaryIndex, never>]: {
+	[x in string & Exclude<PrimaryIndex | SecondaryIndex, never>]: {
 		[y in keyof Table.GetIndexKey<ParentTable, x>]: (params: Attributes) => Table.GetIndexKey<ParentTable, x>[y];
 	};
 };
@@ -26,16 +60,16 @@ export type IndexValueHandlersType<
 export interface KeySpaceConfig<
 	ParentTable extends Table = Table,
 	Attributes extends GenericAttributes = GenericAttributes,
-	SecondaryIndex extends ParentTable['SecondaryIndex'] | never = never,
+	SecondaryIndex extends ParentTable['secondaryIndexes'][number] | never = never,
 	IndexValueHandlers extends IndexValueHandlersType<ParentTable, Attributes, SecondaryIndex> = any
 > extends Partial<DkClientConfig> {
 	indexValueHandlers: IndexValueHandlers;
 }
 
 export class KeySpace<
-	ParentTable extends Table = Table,
+	ParentTable extends Table = any,
 	Attributes extends GenericAttributes = GenericAttributes,
-	SecondaryIndex extends ParentTable['SecondaryIndex'] | never = never,
+	SecondaryIndex extends ParentTable['secondaryIndexes'][number] | never = any,
 	IndexValueHandlers extends IndexValueHandlersType<ParentTable, Attributes, SecondaryIndex> = any
 > {
 	client: DynamoDBDocumentClient;
@@ -67,99 +101,84 @@ export class KeySpace<
 		return new KeySpace<ParentTable, Attributes, SecondaryIndex, ConfigIndexValueHandlers>(this.Table, config);
 	}
 
-	Attributes!: Attributes;
-
-	Index!: Exclude<PrimaryIndex | SecondaryIndex, never>;
-	PrimaryIndex!: PrimaryIndex;
-	SecondaryIndex!: SecondaryIndex;
-
-	IndexKeyMap!: {
-		[x in this['Index']]: ParentTable['IndexKeyMap'][x];
-	};
-
-	AttributesAndIndexKeys!: Attributes & U.IntersectOf<this['IndexKeyMap'][this['Index']]>;
-
-	IndexKeyKey!: keyof U.IntersectOf<IndexValueHandlers[this['Index']]>;
-
-	IndexValueParamsMap!: {
-		[x in this['Index']]: {
-			[y in keyof IndexValueHandlers[x]]: A.Cast<Parameters<IndexValueHandlers[x][y]>[0], {}>;
-		};
-	};
-
-	IndexKeyValueParamsMap!: {
-		[x in this['Index']]: U.IntersectOf<this['IndexValueParamsMap'][x][keyof this['IndexValueParamsMap'][x]]>;
-	};
-
-	IndexHashKeyValueParamsMap!: {
-		[x in this['Index']]: this['IndexValueParamsMap'][x][ParentTable['config']['indexes'][x]['hash']['key']];
-	};
-
-	get indexes(): Array<this['Index']> {
-		return Object.keys(this.indexValueHandlers) as Array<this['Index']>;
+	get indexes(): Array<this['Table']['primaryIndex'] | Exclude<SecondaryIndex, never>> {
+		return Object.keys(this.indexValueHandlers).filter(
+			(index): index is this['Table']['primaryIndex'] | Exclude<SecondaryIndex, never> =>
+				this.Table.indexes.includes(index)
+		);
 	}
 
-	indexAttributeKeys<Index extends this['Index']>(index: Index): Array<string & keyof IndexValueHandlers[Index]> {
-		return Object.keys(this.indexValueHandlers[index]) as Array<string & keyof IndexValueHandlers[Index]>;
+	get primaryIndex(): this['Table']['primaryIndex'] {
+		return this.Table.primaryIndex;
 	}
 
-	get attributeKeys(): Array<string & keyof U.IntersectOf<IndexValueHandlers[this['Index']]>> {
-		return this.indexes.flatMap(index => this.indexAttributeKeys(index)) as Array<
-			string & keyof U.IntersectOf<IndexValueHandlers[this['Index']]>
-		>;
+	get secondaryIndexes(): Array<Exclude<this['indexes'][number], this['primaryIndex']>> {
+		return this.indexes.filter(
+			(index): index is Exclude<this['indexes'][number], this['primaryIndex']> => index !== this.primaryIndex
+		);
 	}
 
-	indexAttributeValue<Index extends this['Index'], Key extends keyof this['IndexValueParamsMap'][Index]>(
+	indexAttributeKeys = <Index extends this['indexes'][number]>(
+		index: Index
+	): Array<Table.GetIndexAttributeKeys<this['Table'], Index>> => {
+		const indexConfig = this.Table.config.indexes[index];
+
+		return indexConfig.sort ? [indexConfig.hash.key, indexConfig.sort.key] : [indexConfig.hash.key];
+	};
+
+	get attributeKeys(): Array<KeySpace.GetIndexAttributeKeys<this, this['indexes'][number]>> {
+		return this.indexes.flatMap(index => this.indexAttributeKeys(index));
+	}
+
+	indexAttributeValue<
+		Index extends this['indexes'][number],
+		Key extends keyof this['config']['indexValueHandlers'][Index]
+	>(
 		index: Index,
 		key: Key,
-		params: this['IndexValueParamsMap'][Index][Key]
+		params: Parameters<this['config']['indexValueHandlers'][Index][Key]>[0]
 	): ReturnType<this['config']['indexValueHandlers'][Index][Key]> {
-		return this.indexValueHandlers[index][key](params as any) as ReturnType<
-			this['config']['indexValueHandlers'][Index][Key]
-		>;
+		return this.indexValueHandlers[index][key](params) as ReturnType<this['config']['indexValueHandlers'][Index][Key]>;
 	}
 
-	keyOf(params: this['IndexKeyValueParamsMap'][PrimaryIndex]): this['IndexKeyMap'][PrimaryIndex] {
+	keyOf(
+		params: KeySpace.GetIndexKeyValueParams<this, this['primaryIndex']>
+	): KeySpace.GetIndexKey<this, this['primaryIndex']> {
 		return this.indexKeyOf(primaryIndex, params);
 	}
 
-	indexKeyOf<Index extends this['Index']>(
+	indexKeyOf<Index extends this['indexes'][number]>(
 		index: Index,
-		params: this['IndexKeyValueParamsMap'][Index]
-	): this['IndexKeyMap'][Index] {
+		params: KeySpace.GetIndexKeyValueParams<this, Index>
+	): KeySpace.GetIndexKey<this, Index> {
 		const keys = this.indexAttributeKeys(index);
 
-		const values = keys.map(key => this.indexAttributeValue(index, key, params as any));
-
-		return zipObject(keys, values) as unknown as this['IndexKeyMap'][Index];
+		return Object.fromEntries(keys.map(key => [key, this.indexAttributeValue(index, key, params as any)]));
 	}
 
-	indexKeysOf(
-		params: A.Cast<U.IntersectOf<this['IndexKeyValueParamsMap'][this['Index']]>, {}>
-	): A.Cast<U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>, {}> {
+	indexKeysOf(item: Attributes): KeySpace.GetIndexKey<this, this['indexes'][number]> {
 		return this.indexes.reduce(
 			(currentIndexKeys, index) => ({
 				...currentIndexKeys,
-				...this.indexKeyOf(index, params as this['IndexKeyValueParamsMap'][typeof index])
+				...this.indexKeyOf(index, item as KeySpace.GetIndexKeyValueParams<this, typeof index>)
 			}),
 			{}
-		) as A.Cast<U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>, {}>;
+		) as KeySpace.GetIndexKey<this, this['indexes'][number]>;
 	}
 
-	withIndexKeys<Item extends A.Cast<U.IntersectOf<this['IndexKeyValueParamsMap'][this['Index']]>, {}>>(
-		item: Item
-	): Item & A.Cast<U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>, {}> {
+	withIndexKeys(item: Attributes): KeySpace.GetAttributesAndKeys<this> {
 		return { ...item, ...this.indexKeysOf(item) };
 	}
 
-	omitIndexKeys<Item extends Partial<Attributes & U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>>>(
-		itemWithIndexKeys: Item
-	): Omit<Item, keyof U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>> {
-		const keyMap = new Map(this.attributeKeys.map(key => [key, true]));
+	omitIndexKeys(item: KeySpace.GetAttributesAndKeys<this>): Attributes {
+		const clone = { ...item };
 
-		return Object.fromEntries(Object.entries(itemWithIndexKeys).filter(([key]) => !keyMap.has(key as any))) as Omit<
-			Item,
-			keyof U.IntersectOf<Table.GetIndexKey<ParentTable, this['Index']>>
-		>;
+		this.attributeKeys.forEach(key => {
+			if (key in clone) delete clone[key];
+		});
+
+		return clone;
 	}
+
+	assertAttributesAndKeys: (item: GenericAttributes) => asserts item is KeySpace.GetAttributesAndKeys<this> = _ => {};
 }

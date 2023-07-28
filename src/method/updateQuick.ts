@@ -1,4 +1,4 @@
-import { AnyKeySpace } from '../KeySpace';
+import { KeySpace } from '../KeySpace';
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
 import { O } from 'ts-toolbelt';
 import { convertObjectToUpdateExpression } from '../util/convertObjectToUpdateExpression';
@@ -23,11 +23,11 @@ export const updateQuickTableItem = async <
 	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
 >(
 	Table: T,
-	key: T['IndexKeyMap'][T['PrimaryIndex']],
-	updateAttributes: O.Partial<O.Unionize<T['Attributes'], AllSchema<T['Attributes'], DkOp>>, 'deep'>,
+	key: Table.GetIndexKey<T, T['primaryIndex']>,
+	updateAttributes: O.Partial<O.Unionize<Table.GetAttributes<T>, AllSchema<Table.GetAttributes<T>, DkOp>>, 'deep'>,
 	input?: UpdateQuickItemInput<RV>,
 	dkClient: DkClient = Table.dkClient
-): Promise<UpdateQuickItemOutput<T['Attributes'], RV>> => {
+): Promise<UpdateQuickItemOutput<Table.GetAttributes<T>, RV>> => {
 	const updateExpressionParams = convertObjectToUpdateExpression(updateAttributes);
 
 	const attributes = await updateTableItem(
@@ -52,26 +52,28 @@ export const updateQuickTableItem = async <
 };
 
 export const updateQuickItem = async <
-	K extends AnyKeySpace = AnyKeySpace,
+	K extends KeySpace = KeySpace,
 	RV extends ReturnValue | undefined = typeof ReturnValue.ALL_NEW
 >(
 	KeySpace: K,
-	keyParams: Parameters<K['keyOf']>[0],
-	updateAttributes: O.Partial<O.Unionize<K['Attributes'], AllSchema<K['Attributes'], DkOp>>, 'deep'>,
+	keyParams: KeySpace.GetIndexKeyValueParams<K, K['primaryIndex']>,
+	updateAttributes: O.Partial<
+		O.Unionize<KeySpace.GetAttributes<K>, AllSchema<KeySpace.GetAttributes<K>, DkOp>>,
+		'deep'
+	>,
 	input?: UpdateQuickItemInput<RV>
-): Promise<UpdateQuickItemOutput<K['Attributes'], RV>> => {
+): Promise<UpdateQuickItemOutput<KeySpace.GetAttributes<K>, RV>> => {
 	const attributes = await updateQuickTableItem(
 		KeySpace.Table,
-		KeySpace.keyOf(keyParams as any),
+		KeySpace.keyOf(keyParams),
 		updateAttributes,
 		input,
 		KeySpace.dkClient
 	);
 
-	const strippedAttributes = (attributes ? KeySpace.omitIndexKeys(attributes) : undefined) as ReturnValuesAttributes<
-		K['Attributes'],
-		RV
-	>;
+	const strippedAttributes = (
+		attributes ? KeySpace.omitIndexKeys(attributes as unknown as KeySpace.GetAttributesAndKeys<K>) : undefined
+	) as ReturnValuesAttributes<KeySpace.GetAttributes<K>, RV>;
 
 	return strippedAttributes;
 };

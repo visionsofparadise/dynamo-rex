@@ -3,7 +3,7 @@ import { GenericAttributes } from '../util/utils';
 import { Table } from '../Table';
 import { LowerCaseObjectKeys } from '../util/keyCapitalize';
 import { DkBatchGetCommand, DkBatchGetCommandInput } from '../command/BatchGet';
-import { AnyKeySpace } from '../KeySpace';
+import { KeySpace } from '../KeySpace';
 import { DkClient } from '../Client';
 
 export interface BatchGetItemsInput
@@ -22,10 +22,10 @@ export interface BatchGetItemsOutput<
 
 export const batchGetTableItems = async <T extends Table = Table>(
 	Table: T,
-	keys: Array<T['IndexKeyMap'][T['PrimaryIndex']]>,
+	keys: Array<Table.GetIndexKey<T, T['primaryIndex']>>,
 	input?: BatchGetItemsInput,
 	dkClient: DkClient = Table.dkClient
-): Promise<BatchGetItemsOutput<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']]>> => {
+): Promise<BatchGetItemsOutput<Table.GetAttributes<T>, Table.GetIndexKey<T, T['primaryIndex']>>> => {
 	const { pageLimit = 100, returnConsumedCapacity, ...rest } = input || ({} as BatchGetItemsInput);
 
 	if (keys.length === 0)
@@ -40,12 +40,12 @@ export const batchGetTableItems = async <T extends Table = Table>(
 	const limitedPageLimit = Math.min(pageLimit, 100);
 
 	const recurse = async (
-		remainingKeys: Array<T['IndexKeyMap'][T['PrimaryIndex']]>
-	): Promise<BatchGetItemsOutput<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']]>> => {
+		remainingKeys: Array<Table.GetIndexKey<T, T['primaryIndex']>>
+	): Promise<BatchGetItemsOutput<Table.GetAttributes<T>, Table.GetIndexKey<T, T['primaryIndex']>>> => {
 		const currentKeys = remainingKeys.slice(0, limitedPageLimit);
 
 		const output = await dkClient.send(
-			new DkBatchGetCommand<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']]>({
+			new DkBatchGetCommand<Table.GetAttributes<T>, Table.GetIndexKey<T, T['primaryIndex']>>({
 				requests: {
 					[Table.tableName]: {
 						keys: currentKeys,
@@ -82,20 +82,24 @@ export const batchGetTableItems = async <T extends Table = Table>(
 	return recurse(keys);
 };
 
-export const batchGetItems = async <K extends AnyKeySpace = AnyKeySpace>(
+export const batchGetItems = async <K extends KeySpace = KeySpace>(
 	KeySpace: K,
-	keys: Array<Parameters<K['keyOf']>[0]>,
+	keys: Array<KeySpace.GetIndexKeyValueParams<K, K['primaryIndex']>>,
 	input?: BatchGetItemsInput
-): Promise<BatchGetItemsOutput<K['Attributes'], K['IndexKeyMap'][K['PrimaryIndex']]>> => {
+): Promise<BatchGetItemsOutput<KeySpace.GetAttributes<K>, KeySpace.GetIndexKey<K, K['primaryIndex']>>> => {
 	const output = await batchGetTableItems(
 		KeySpace.Table,
-		keys.map(key => KeySpace.keyOf(key as any), input),
+		keys.map(key => KeySpace.keyOf(key), input),
 		input,
 		KeySpace.dkClient
 	);
 
 	return {
 		...output,
-		items: output.items.map(item => KeySpace.omitIndexKeys(item))
-	};
+		items: output.items.map(item => {
+			KeySpace.assertAttributesAndKeys(item);
+
+			return KeySpace.omitIndexKeys(item);
+		})
+	} as BatchGetItemsOutput<KeySpace.GetAttributes<K>, KeySpace.GetIndexKey<K, K['primaryIndex']>>;
 };

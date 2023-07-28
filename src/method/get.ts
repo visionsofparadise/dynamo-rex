@@ -1,7 +1,7 @@
 import { Table } from '../Table';
 import { DkGetCommand, DkGetCommandInput } from '../command/Get';
 import { GenericAttributes } from '../util/utils';
-import { AnyKeySpace } from '../KeySpace';
+import { KeySpace } from '../KeySpace';
 import { DkClient } from '../Client';
 
 export interface GetItemInput extends Omit<DkGetCommandInput, 'tableName' | 'key'> {}
@@ -10,27 +10,29 @@ export type GetItemOutput<Attributes extends GenericAttributes = GenericAttribut
 
 export const getTableItem = async <T extends Table>(
 	Table: T,
-	keyParams: T['IndexKeyMap'][T['PrimaryIndex']],
+	key: Table.GetIndexKey<T, T['primaryIndex']>,
 	input?: GetItemInput,
 	dkClient: DkClient = Table.dkClient
-): Promise<GetItemOutput<T['Attributes']>> => {
+): Promise<GetItemOutput<Table.GetAttributes<T>>> => {
 	const output = await dkClient.send(
-		new DkGetCommand<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']]>({
+		new DkGetCommand<Table.GetAttributes<T>, Table.GetIndexKey<T, T['primaryIndex']>>({
 			...input,
 			tableName: Table.tableName,
-			key: keyParams
+			key: key
 		})
 	);
 
 	return output.item;
 };
 
-export const getItem = async <K extends AnyKeySpace>(
+export const getItem = async <K extends KeySpace>(
 	KeySpace: K,
-	keyParams: Parameters<K['keyOf']>[0],
+	keyParams: KeySpace.GetIndexKeyValueParams<K, K['primaryIndex']>,
 	input?: GetItemInput
-): Promise<GetItemOutput<K['Attributes']>> => {
-	const item = await getTableItem(KeySpace.Table, KeySpace.keyOf(keyParams as any), input, KeySpace.dkClient);
+): Promise<GetItemOutput<KeySpace.GetAttributes<K>>> => {
+	const item = await getTableItem(KeySpace.Table, KeySpace.keyOf(keyParams), input, KeySpace.dkClient);
+
+	KeySpace.assertAttributesAndKeys(item);
 
 	return KeySpace.omitIndexKeys(item);
 };

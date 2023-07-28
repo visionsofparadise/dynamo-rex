@@ -4,6 +4,7 @@ import { DocumentClient, TABLE_NAME } from '../TableTest.dev';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { randomNumber, randomString } from '../util/utils';
 import { A } from 'ts-toolbelt';
+import { KeySpace } from '../KeySpace';
 
 it('gets a put item', async () => {
 	const string = randomString();
@@ -23,7 +24,7 @@ it('gets a put item', async () => {
 
 	const result = await queryGetItem(ManyGsiKeySpace, 'gsi0', item);
 
-	const resultTypeCheck: A.Equals<typeof result, (typeof ManyGsiKeySpace)['Attributes']> = 1;
+	const resultTypeCheck: A.Equals<typeof result, KeySpace.GetAttributes<typeof ManyGsiKeySpace>> = 1;
 
 	expect(resultTypeCheck).toBe(1);
 

@@ -1,5 +1,7 @@
 export { DkClient } from './Client';
 
+export { Table } from './Table';
+
 export { DkBatchGetCommand, DkBatchGetCommandInput, DkBatchGetCommandOutput } from './command/BatchGet';
 export { DkBatchWriteCommand, DkBatchWriteCommandInput, DkBatchWriteCommandOutput } from './command/BatchWrite';
 export { DkDeleteCommand, DkDeleteCommandInput, DkDeleteCommandOutput, DkDeleteReturnValues } from './command/Delete';

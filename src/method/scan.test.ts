@@ -60,13 +60,13 @@ beforeAll(async () => {
 it('scan returns list of items', async () => {
 	const result = await scanTableItems(ScanTable);
 
-	const cursorTypeCheck: A.Equals<(typeof result)['cursorKey'], ({ pk: string } & { sk: string }) | undefined> = 1;
+	const cursorTypeCheck: A.Equals<(typeof result)['cursorKey'], { pk: string; sk: string } | undefined> = 1;
 
 	expect(cursorTypeCheck).toBe(1);
 
 	const itemsTypeCheck: A.Equals<
 		(typeof result)['items'],
-		Array<{ pk: string } & { sk: string } & Partial<{ gsi0Pk: string } & { gsi0Sk: string }>>
+		Array<{ pk: string; sk: string; gsi0Pk?: string; gsi0Sk?: string }>
 	> = 1;
 
 	expect(itemsTypeCheck).toBe(1);
@@ -81,7 +81,7 @@ it('scan on index returns list of items', async () => {
 
 	const cursorTypeCheck: A.Equals<
 		(typeof result)['cursorKey'],
-		({ pk: string } & { sk: string } & { gsi0Pk: string } & { gsi0Sk: string }) | undefined
+		{ pk: string; sk: string; gsi0Pk: string; gsi0Sk: string } | undefined
 	> = 1;
 
 	expect(cursorTypeCheck).toBe(1);

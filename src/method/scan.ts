@@ -14,19 +14,22 @@ export type ScanItemsOutput<
 	CursorKey extends GenericAttributes = GenericAttributes
 > = DkScanCommandOutput<Attributes, CursorKey>;
 
-export const scanTableItems = async <T extends Table = Table, Index extends T['SecondaryIndex'] | never = never>(
+export const scanTableItems = async <
+	T extends Table = Table,
+	Index extends T['secondaryIndexes'][number] | never = never
+>(
 	Table: T,
-	input?: ScanItemsInput<Index, Table.GetIndexCursorKey<T, Index & string>>
-): Promise<ScanItemsOutput<T['Attributes'], Table.GetIndexCursorKey<T, Index & string>>> => {
+	input?: ScanItemsInput<Index, Table.GetIndexCursorKey<T, Index>>
+): Promise<ScanItemsOutput<Table.GetAttributes<T>, Table.GetIndexCursorKey<T, Index>>> => {
 	const recurse = async (
 		totalCount: number,
-		pageCursorKey?: Table.GetIndexCursorKey<T, Index & string>
-	): Promise<ScanItemsOutput<T['Attributes'], Table.GetIndexCursorKey<T, Index & string>>> => {
+		pageCursorKey?: Table.GetIndexCursorKey<T, Index>
+	): Promise<ScanItemsOutput<Table.GetAttributes<T>, Table.GetIndexCursorKey<T, Index>>> => {
 		const { autoPage, pageLimit, totalLimit, ...inputRest } =
-			input || ({} as ScanItemsInput<Index, Table.GetIndexCursorKey<T, Index & string>>);
+			input || ({} as ScanItemsInput<Index, Table.GetIndexCursorKey<T, Index>>);
 
 		const output = await Table.dkClient.send(
-			new DkScanCommand<T['Attributes'], Table.GetIndexCursorKey<T, Index & string>>({
+			new DkScanCommand<Table.GetAttributes<T>, Table.GetIndexCursorKey<T, Index>>({
 				...inputRest,
 				tableName: Table.tableName,
 				cursorKey: pageCursorKey,

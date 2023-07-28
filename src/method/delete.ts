@@ -1,4 +1,4 @@
-import { AnyKeySpace } from '../KeySpace';
+import { KeySpace } from '../KeySpace';
 import { ReturnValuesAttributes } from '../util/returnValuesAttributes';
 import { GenericAttributes } from '../util/utils';
 import { DkDeleteCommand, DkDeleteCommandInput, DkDeleteReturnValues } from '../command/Delete';
@@ -15,12 +15,12 @@ export type DeleteItemOutput<
 
 export const deleteTableItem = async <T extends Table = Table, RV extends DkDeleteReturnValues = undefined>(
 	Table: T,
-	key: T['IndexKeyMap'][T['PrimaryIndex']],
+	key: Table.GetIndexKey<T, T['primaryIndex']>,
 	input?: DeleteItemInput<RV>,
 	dkClient: DkClient = Table.dkClient
-): Promise<DeleteItemOutput<T['Attributes'], RV>> => {
+): Promise<DeleteItemOutput<Table.GetAttributes<T>, RV>> => {
 	const output = await dkClient.send(
-		new DkDeleteCommand<T['Attributes'], T['IndexKeyMap'][T['PrimaryIndex']], RV>({
+		new DkDeleteCommand<Table.GetAttributes<T>, Table.GetIndexKey<T, T['primaryIndex']>, RV>({
 			...input,
 			tableName: Table.tableName,
 			key
@@ -30,17 +30,16 @@ export const deleteTableItem = async <T extends Table = Table, RV extends DkDele
 	return output.attributes;
 };
 
-export const deleteItem = async <K extends AnyKeySpace = AnyKeySpace, RV extends DkDeleteReturnValues = undefined>(
+export const deleteItem = async <K extends KeySpace = KeySpace, RV extends DkDeleteReturnValues = undefined>(
 	KeySpace: K,
-	keyParams: Parameters<K['keyOf']>[0],
+	keyParams: KeySpace.GetIndexKeyValueParams<K, K['primaryIndex']>,
 	input?: DeleteItemInput<RV>
-): Promise<DeleteItemOutput<K['Attributes'], RV>> => {
-	const attributes = await deleteTableItem(KeySpace.Table, KeySpace.keyOf(keyParams as any), input, KeySpace.dkClient);
+): Promise<DeleteItemOutput<KeySpace.GetAttributes<K>, RV>> => {
+	const attributes = await deleteTableItem(KeySpace.Table, KeySpace.keyOf(keyParams), input, KeySpace.dkClient);
 
-	const strippedAttributes = (attributes ? KeySpace.omitIndexKeys(attributes) : undefined) as ReturnValuesAttributes<
-		K['Attributes'],
-		RV
-	>;
+	const strippedAttributes = (
+		attributes ? KeySpace.omitIndexKeys(attributes as unknown as KeySpace.GetAttributesAndKeys<K>) : undefined
+	) as ReturnValuesAttributes<KeySpace.GetAttributes<K>, RV>;
 
 	return strippedAttributes;
 };

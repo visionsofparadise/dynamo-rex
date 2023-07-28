@@ -1,10 +1,11 @@
 import { A } from 'ts-toolbelt';
 import { TestItem, ManyGsiKeySpace, NoGsiNeverParamKeySpace, NoGsiNeverParamsKeySpace } from './KeySpaceTest.dev';
+import { KeySpace } from './KeySpace';
 
 const string = 'test';
 const number = 1;
 
-const testItem: (typeof ManyGsiKeySpace)['Attributes'] = {
+const testItem: KeySpace.GetAttributes<typeof ManyGsiKeySpace> = {
 	string,
 	number,
 	deep: {
@@ -16,11 +17,20 @@ const testItem: (typeof ManyGsiKeySpace)['Attributes'] = {
 	}
 };
 
-type ManyGsiKeySpaceIndexKeys = { pk: string } & { sk: string } & { gsi0Pk: string } & { gsi0Sk: string } & {
+type ManyGsiKeySpaceIndexKeys = {
+	pk: string;
+	sk: string;
+	gsi0Pk: string;
+	gsi0Sk: string;
 	gsi1Pk: number;
-} & { gsi1Sk: number | undefined } & { gsi2Pk: string } & { gsi2Sk: number } & { gsi3Pk: number } & {
+	gsi1Sk: number | undefined;
+	gsi2Pk: string;
+	gsi2Sk: number;
+	gsi3Pk: number;
 	gsi3Sk: string | undefined;
-} & { gsi4Pk: string } & { gsi5Pk: number };
+	gsi4Pk: string;
+	gsi5Pk: number;
+};
 
 it('returns indexes', () => {
 	const check: A.Equals<
@@ -73,10 +83,7 @@ it('returns index key keys', () => {
 });
 
 it('generates primary index key', () => {
-	const paramCheck: A.Equals<
-		Parameters<(typeof ManyGsiKeySpace)['keyOf']>[0],
-		Pick<TestItem, 'string'> & Pick<TestItem, 'number'>
-	> = 1;
+	const paramCheck: A.Equals<Parameters<(typeof ManyGsiKeySpace)['keyOf']>[0], Pick<TestItem, 'string' | 'number'>> = 1;
 
 	expect(paramCheck).toBe(1);
 
@@ -85,7 +92,7 @@ it('generates primary index key', () => {
 		number
 	});
 
-	const check: A.Equals<typeof primaryIndexKey, { pk: string } & { sk: string }> = 1;
+	const check: A.Equals<typeof primaryIndexKey, { pk: string; sk: string }> = 1;
 
 	expect(check).toBe(1);
 
@@ -100,7 +107,7 @@ it('generates secondary index key', () => {
 		string
 	});
 
-	const check: A.Equals<typeof secondaryIndexKey, { gsi0Pk: string } & { gsi0Sk: string }> = 1;
+	const check: A.Equals<typeof secondaryIndexKey, { gsi0Pk: string; gsi0Sk: string }> = 1;
 
 	expect(check).toBe(1);
 
@@ -137,18 +144,15 @@ it('returns testItem with index keys', () => {
 });
 
 it('omits index keys', () => {
-	const testItem2 = {
-		string: 'test-string',
-		pk: 'test-string'
-	};
+	const testItemWithKeys = ManyGsiKeySpace.withIndexKeys(testItem);
 
-	const omitIndexKeys = ManyGsiKeySpace.omitIndexKeys(testItem2);
+	const omitIndexKeys = ManyGsiKeySpace.omitIndexKeys(testItemWithKeys);
 
-	const check: A.Equals<typeof omitIndexKeys, { string: string }> = 1;
+	const check: A.Equals<typeof omitIndexKeys, TestItem> = 1;
 
 	expect(check).toBe(1);
 
-	expect(Object.keys(omitIndexKeys).length).toBe(1);
+	expect(Object.keys(omitIndexKeys).length).toBe(3);
 });
 
 it('combines params without never', () => {
@@ -158,7 +162,7 @@ it('combines params without never', () => {
 });
 
 it('combines params without never', () => {
-	const check: A.Equals<Parameters<typeof NoGsiNeverParamsKeySpace.keyOf>[0], {}> = 1;
+	const check: A.Equals<Parameters<typeof NoGsiNeverParamsKeySpace.keyOf>[0], never> = 1;
 
 	expect(check).toBe(1);
 });
