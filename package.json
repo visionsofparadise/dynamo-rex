@@ -1,7 +1,7 @@
 {
 	"name": "dynamox",
 	"description": "Helper for DynamoDB",
-	"version": "1.0.132",
+	"version": "1.0.133",
 	"main": "./dist-cjs/index.js",
 	"module": "./dist-es/index.js",
 	"types": "./dist-types/index.d.ts",
